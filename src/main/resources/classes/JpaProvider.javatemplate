@@ -1,0 +1,14 @@
+package {package}.repositories;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
+@ApplicationScoped
+public class JpaProvider {
+
+    @Produces
+    @PersistenceContext(unitName = "{unitNamePU}")
+    public static EntityManager em;
+}

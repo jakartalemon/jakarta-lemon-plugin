@@ -1,0 +1,35 @@
+package {package}.services;
+
+import {package}.repositories.AbstractRepository;
+import java.util.List;
+import java.util.Optional;
+
+
+public abstract class AbstractService< ID, T, R extends AbstractRepository<ID, T>> {
+
+    protected abstract R getRepository();
+
+    public T create(T model) {
+        return getRepository().create(model);
+    }
+
+    public Optional<T> findById(ID id) {
+        return getRepository().findById(id);
+    }
+
+    public List<T> findAll() {
+        return getRepository().findAll();
+    }
+
+    public boolean deleteById(ID id) {
+        return getRepository().deleteById(id);
+    }
+
+    public void delete(T model) {
+        getRepository().delete(model);
+    }
+
+    public boolean update(ID id, T newModel) {
+        return getRepository().update(id, newModel);
+    }
+}
