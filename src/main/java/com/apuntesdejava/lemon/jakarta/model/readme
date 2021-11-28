@@ -1,0 +1,3 @@
+
+mvn jakarta-lemon-project:create-model
+mvn jakarta-lemon-project:create-model-jmoordb
