@@ -63,6 +63,7 @@ public class CreateModelMojo extends AbstractMojo {
             String groupId = mavenProject.getGroupId();
             projectModel.setPackageName(groupId);
             projectModel.setProjectName(mavenProject.getId());
+            getLog().debug("--> PROPERTIES:" + projectModel.getDatasource().getProperties());
             Path baseDirPath = mavenProject.getBasedir().toPath();
             getLog().debug("groupId:" + groupId);
             getLog().debug("baseDir:" + baseDirPath);
@@ -231,9 +232,15 @@ public class CreateModelMojo extends AbstractMojo {
             Files.createDirectories(target.getParent());
             try ( InputStream is = getClass().getResourceAsStream(source)) {
                 List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
-                List<String> newCode = code.stream().map(line -> StringUtils.replaceEach(line,
-                        maps.keySet().toArray(new String[0]),
-                        maps.values().toArray(new String[0]))).collect(Collectors.toList());
+                List<String> newCode = code
+                        .stream()
+                        .map(
+                                line -> StringUtils.replaceEach(line,
+                                        maps.keySet().toArray(new String[0]),
+                                        maps.values().toArray(new String[0])
+                                )
+                        )
+                        .collect(Collectors.toList());
                 Files.write(target, newCode);
             }
         } catch (IOException ex) {

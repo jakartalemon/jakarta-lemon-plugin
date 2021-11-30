@@ -30,6 +30,8 @@ public class ProjectModel {
     private String packageName;
     private String projectName;
 
+    private DataSourceModel datasource;
+
     public String getRest() {
         return rest;
     }
@@ -60,6 +62,14 @@ public class ProjectModel {
 
     public void setProjectName(String projectName) {
         this.projectName = projectName;
+    }
+
+    public DataSourceModel getDatasource() {
+        return datasource;
+    }
+
+    public void setDatasource(DataSourceModel datasource) {
+        this.datasource = datasource;
     }
 
 }
