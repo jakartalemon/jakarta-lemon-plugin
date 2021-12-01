@@ -3,20 +3,37 @@ package com.apuntesdejava.lemon.plugin;
 import com.apuntesdejava.lemon.jakarta.model.EntityModel;
 import com.apuntesdejava.lemon.jakarta.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -24,15 +41,23 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 @Mojo(name = "create-model")
 public class CreateModelMojo extends AbstractMojo {
 
     private static final int TAB = 4;
+
+    private static void removeLastComma(List<String> list) {
+        list.set(list.size() - 1, StringUtils.removeEnd(list.get(list.size() - 1), ","));
+    }
 
     @Parameter(
             property = "model",
@@ -41,8 +66,42 @@ public class CreateModelMojo extends AbstractMojo {
     private String _modelProjectFile;
     private ProjectModel projectModel;
 
-    @Component
+    @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
+    private final Map<String, Object> dbDefinitions
+            = Map.of("mysql",
+                    Map.of(
+                            "driver", "com.mysql.cj.jdbc.Driver",
+                            "datasource", "com.mysql.cj.jdbc.MysqlDataSource",
+                            "pool", "com.mysql.cj.jdbc.MysqlConnectionPoolDataSource",
+                            "dependency", Map.of(
+                                    "version", "8.0.27",
+                                    "groupId", "mysql",
+                                    "artifactId", "mysql-connector-java"
+                            )
+                    ),
+                    "postgresql",
+                    Map.of(
+                            "driver", "org.postgresql.Driver",
+                            "datasource", "org.postgresql.jdbc3.Jdbc3ConnectionPool",
+                            "dependency", Map.of(
+                                    "version", "42.3.1",
+                                    "groupId", "org.postgresql",
+                                    "artifactId", "postgresql"
+                            )
+                    ),
+                    "mariadb",
+                    Map.of(
+                            "driver", "org.mariadb.jdbc.Driver",
+                            "datasource", "org.mariadb.jdbc.MariaDbDataSource",
+                            "pool", "org.mariadb.jdbc.MariaDbPoolDataSource",
+                            "dependency", Map.of(
+                                    "version", "2.7.4",
+                                    "groupId", "org.mariadb.jdbc",
+                                    "artifactId", "mariadb-java-client"
+                            )
+                    )
+            );
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -51,6 +110,8 @@ public class CreateModelMojo extends AbstractMojo {
         try ( InputStream in = new FileInputStream(_modelProjectFile)) {
             this.projectModel = jsonb.fromJson(in, ProjectModel.class);
             buildModel();
+            addDependencies();
+            addDatasource();
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
@@ -63,7 +124,6 @@ public class CreateModelMojo extends AbstractMojo {
             String groupId = mavenProject.getGroupId();
             projectModel.setPackageName(groupId);
             projectModel.setProjectName(mavenProject.getId());
-            getLog().debug("--> PROPERTIES:" + projectModel.getDatasource().getProperties());
             Path baseDirPath = mavenProject.getBasedir().toPath();
             getLog().debug("groupId:" + groupId);
             getLog().debug("baseDir:" + baseDirPath);
@@ -310,7 +370,186 @@ public class CreateModelMojo extends AbstractMojo {
         }
     }
 
-    private static void removeLastComma(List<String> list) {
-        list.set(list.size() - 1, StringUtils.removeEnd(list.get(list.size() - 1), ","));
+    private void addDependencies() {
+        addDBDependencies();
     }
+
+    private void addDBDependencies() {
+        getLog().debug("Add DB Dependencies");
+        String dbType = projectModel.getDatasource().getDb();
+        Map<String, Object> definitions = (Map<String, Object>) dbDefinitions.get(dbType);
+        if (definitions != null) {
+            Map<String, String> dependencyMap = (Map<String, String>) definitions.get("dependency");
+            String version = dependencyMap.get("version");
+            String groupId = dependencyMap.get("groupId");
+            String artifactId = dependencyMap.get("artifactId");
+            boolean found = mavenProject.getDependencies()
+                    .stream()
+                    .filter(item
+                            -> StringUtils.equals(item.getGroupId(), groupId)
+                    && StringUtils.equals(item.getArtifactId(), artifactId)
+                    ).count() > 0;
+            if (!found) {
+                try {
+                    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                    dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+                    DocumentBuilder db = dbf.newDocumentBuilder();
+                    Document doc = db.parse(mavenProject.getFile());
+                    doc.getDocumentElement().normalize();
+                    XPath xPath = XPathFactory.newInstance().newXPath();
+
+                    NodeList dependenciesNodeList = (NodeList) xPath.compile("/project/dependencies").evaluate(doc, XPathConstants.NODESET);
+                    Element dependenciesElem = (Element) dependenciesNodeList.item(0);
+                    Element dependecyDriver = doc.createElement("dependency");
+
+                    Element groupIdElem = doc.createElement("groupId");
+                    groupIdElem.setTextContent(groupId);
+                    Element artifactIdElem = doc.createElement("artifactId");
+                    artifactIdElem.setTextContent(artifactId);
+                    Element versionElem = doc.createElement("version");
+                    versionElem.setTextContent(version);
+
+                    dependecyDriver.appendChild(groupIdElem);
+                    dependecyDriver.appendChild(artifactIdElem);
+                    dependecyDriver.appendChild(versionElem);
+
+                    dependenciesElem.appendChild(dependecyDriver);
+
+                    try ( FileOutputStream output
+                            = new FileOutputStream(mavenProject.getFile())) {
+                        writeXml(doc, output);
+                    } catch (TransformerException ex) {
+                        getLog().error(ex.getMessage(), ex);
+                    }
+
+                } catch (ParserConfigurationException | SAXException | XPathExpressionException | IOException ex) {
+                    getLog().error(ex.getMessage(), ex);
+                }
+            }
+        }
+
+    }
+
+    private static void writeXml(Document doc,
+            OutputStream output)
+            throws TransformerException {
+
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        DOMSource source = new DOMSource(doc);
+        StreamResult result = new StreamResult(output);
+
+        transformer.transform(source, result);
+
+    }
+
+    private void addDatasource() {
+        getLog().debug("Creating datasource");
+        if (projectModel.getDatasource() != null) {
+            String dbType = projectModel.getDatasource().getDb();
+            Map<String, Object> definitions = (Map<String, Object>) dbDefinitions.get(dbType);
+            String driverDataSource = (definitions == null) ? dbType : (String) definitions.get("datasource");
+            getLog().debug("Driver: " + driverDataSource);
+            var style = DatasourceDefinitionStyleType.findByValue(projectModel.getDatasource().getStyle());
+            switch (style) {
+                case PAYARA_RESOURCE:
+
+                    break;
+                case WEB:
+                    createWebXML();
+                    break;
+                default:
+                    getLog().error("DataSource Style is invalid");
+            }
+        }
+    }
+
+    private void createWebXML() {
+        try {
+            Path webXmlPath = Paths.get(mavenProject.getBasedir().toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
+            getLog().debug("Creating DataSource at " + webXmlPath);
+            Files.createDirectories(webXmlPath.getParent());
+            String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
+            boolean createDataSource;
+            Document doc;
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            Element rootElement;
+            if (Files.exists(webXmlPath)) {
+                doc = db.parse(webXmlPath.toFile());
+                doc.getDocumentElement().normalize();
+                XPath xPath = XPathFactory.newInstance().newXPath();
+                NodeList dataSourceNodeList = (NodeList) xPath.compile("/web-app/data-source/name[text()='" + dataSourceName + "']").evaluate(doc, XPathConstants.NODESET);
+                createDataSource = dataSourceNodeList.getLength() == 0;
+                rootElement = (Element) doc.getElementsByTagName("web-app").item(0);
+            } else {
+                createDataSource = true;
+                doc = db.newDocument();
+                rootElement = doc.createElementNS("http://xmlns.jcp.org/xml/ns/javaee", "web-app");
+                rootElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+                rootElement.setAttribute("xsi:schemaLocation", "http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd");
+                rootElement.setAttribute("version", "4.0");
+                doc.appendChild(rootElement);
+                rootElement.appendChild(createElement(doc, "session-config", createElement(doc, "session-timeout", "30")));
+
+            }
+            if (createDataSource) {
+                String dbType = projectModel.getDatasource().getDb();
+                Map<String, Object> definitions = (Map<String, Object>) dbDefinitions.get(dbType);
+                String driverDataSource = (definitions == null) ? dbType : (String) definitions.get("datasource");
+
+                Element dataSourceElem = createElement(doc, "data-source");
+                dataSourceElem.appendChild(createElement(doc, "name", dataSourceName));
+                dataSourceElem.appendChild(createElement(doc, "class-name", driverDataSource));
+                dataSourceElem.appendChild(createElement(doc, "url", projectModel.getDatasource().getUrl()));
+                dataSourceElem.appendChild(createElement(doc, "user", projectModel.getDatasource().getUsername()));
+                dataSourceElem.appendChild(createElement(doc, "password", projectModel.getDatasource().getPassword()));
+                if (projectModel.getDatasource().getProperties() != null) {
+                    for (Map.Entry<String, String> entry : projectModel.getDatasource().getProperties().entrySet()) {
+                        dataSourceElem.appendChild(
+                                createElement(
+                                        doc, "property",
+                                        createElement(doc, "name", entry.getKey()),
+                                        createElement(doc, "value", entry.getValue()
+                                        )
+                                )
+                        );
+                    }
+                }
+                rootElement.appendChild(dataSourceElem);
+
+                try ( FileOutputStream output
+                        = new FileOutputStream(webXmlPath.toFile())) {
+                    writeXml(doc, output);
+                } catch (TransformerException ex) {
+                    getLog().error(ex.getMessage(), ex);
+                }
+            }
+        } catch (IOException | ParserConfigurationException | SAXException | XPathExpressionException ex) {
+            getLog().error(ex.getMessage(), ex);
+        }
+
+    }
+
+    private static Element createElement(Document doc, String name, String textContent) {
+        Element elem = doc.createElement(name);
+        elem.setTextContent(textContent);
+        return elem;
+    }
+
+    private static Element createElement(Document doc, String name, Node... children) {
+        Element elem = doc.createElement(name);
+        for (Node child : children) {
+            elem.appendChild(child);
+
+        }
+        return elem;
+    }
+
+    private static Element createElement(Document doc, String name) {
+        Element elem = doc.createElement(name);
+        return elem;
+    }
+
 }

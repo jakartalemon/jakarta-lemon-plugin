@@ -22,11 +22,13 @@ import java.util.Map;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 public class DataSourceModel {
+
     private String db;
     private String url;
     private String username;
     private String password;
-    private Map<String,String> properties;
+    private Map<String, String> properties;
+    private String style;
 
     public String getDb() {
         return db;
@@ -67,5 +69,13 @@ public class DataSourceModel {
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
     }
-    
+
+    public String getStyle() {
+        return style;
+    }
+
+    public void setStyle(String style) {
+        this.style = style;
+    }
+
 }
