@@ -112,6 +112,7 @@ public class CreateModelMojo extends AbstractMojo {
             buildModel();
             addDependencies();
             addDatasource();
+            addPersistenceXML();
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
@@ -462,6 +463,55 @@ public class CreateModelMojo extends AbstractMojo {
                     getLog().error("DataSource Style is invalid");
             }
         }
+    }
+
+    private void addPersistenceXML() {
+        getLog().debug("Create persistence.xml");
+        Path persistenceXmlPath = Paths.get(mavenProject.getBasedir().toString(), "src", "main", "resources", "META-INF", "persistence.xml").normalize();
+        if (Files.notExists(persistenceXmlPath)) {
+            try {
+                Files.createDirectories(persistenceXmlPath.getParent());
+                DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+                DocumentBuilder db = dbf.newDocumentBuilder();
+                Document doc = db.newDocument();
+                Element rootElement = doc.createElementNS("http://xmlns.jcp.org/xml/ns/persistence", "persistence");
+                rootElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+                rootElement.setAttribute("xsi:schemaLocation", "http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd");
+                rootElement.setAttribute("version", "2.2");
+                Element persistenceUnitElem = doc.createElement("persistence-unit");
+                persistenceUnitElem.setAttribute("name", projectModel.getProjectName() + "PU");
+                persistenceUnitElem.setAttribute("transaction-type", "JTA");
+                String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
+
+                persistenceUnitElem.appendChild(createElement(doc, "jta-data-source", dataSourceName));
+                persistenceUnitElem.appendChild(createElement(doc, "shared-cache-mode", "ENABLE_SELECTIVE"));
+                Element propertyElem;
+
+                persistenceUnitElem.appendChild(
+                        createElement(
+                                doc,
+                                "properties",
+                                propertyElem = createElement(doc, "property")
+                        )
+                );
+                propertyElem.setAttribute("name", "javax.persistence.schema-generation.database.action");
+                propertyElem.setAttribute("value", "create");
+
+                rootElement.appendChild(persistenceUnitElem);
+                doc.appendChild(rootElement);
+
+                try ( FileOutputStream output
+                        = new FileOutputStream(persistenceXmlPath.toFile())) {
+                    writeXml(doc, output);
+                } catch (TransformerException ex) {
+                    getLog().error(ex.getMessage(), ex);
+                }
+            } catch (IOException | ParserConfigurationException ex) {
+                getLog().error(ex.getMessage(), ex);
+            }
+        }
+
     }
 
     private void createWebXML() {
