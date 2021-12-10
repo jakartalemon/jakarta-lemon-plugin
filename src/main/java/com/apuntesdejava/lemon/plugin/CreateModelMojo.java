@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -68,7 +69,7 @@ public class CreateModelMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
-    private final Map<String, Object> dbDefinitions
+    private static final Map<String, Object> DB_DEFINITIONS
             = Map.of("mysql",
                     Map.of(
                             "driver", "com.mysql.cj.jdbc.Driver",
@@ -102,6 +103,8 @@ public class CreateModelMojo extends AbstractMojo {
                             )
                     )
             );
+    private DatasourceDefinitionStyleType style;
+    private Map<String, Object> dbDefinitions;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -378,9 +381,9 @@ public class CreateModelMojo extends AbstractMojo {
     private void addDBDependencies() {
         getLog().debug("Add DB Dependencies");
         String dbType = projectModel.getDatasource().getDb();
-        Map<String, Object> definitions = (Map<String, Object>) dbDefinitions.get(dbType);
-        if (definitions != null) {
-            Map<String, String> dependencyMap = (Map<String, String>) definitions.get("dependency");
+        this.dbDefinitions = (Map<String, Object>) DB_DEFINITIONS.get(dbType);
+        if (dbDefinitions != null) {
+            Map<String, String> dependencyMap = (Map<String, String>) dbDefinitions.get("dependency");
             String version = dependencyMap.get("version");
             String groupId = dependencyMap.get("groupId");
             String artifactId = dependencyMap.get("artifactId");
@@ -448,13 +451,12 @@ public class CreateModelMojo extends AbstractMojo {
         getLog().debug("Creating datasource");
         if (projectModel.getDatasource() != null) {
             String dbType = projectModel.getDatasource().getDb();
-            Map<String, Object> definitions = (Map<String, Object>) dbDefinitions.get(dbType);
-            String driverDataSource = (definitions == null) ? dbType : (String) definitions.get("datasource");
+            String driverDataSource = (dbDefinitions == null) ? dbType : (String) dbDefinitions.get("datasource");
             getLog().debug("Driver: " + driverDataSource);
-            var style = DatasourceDefinitionStyleType.findByValue(projectModel.getDatasource().getStyle());
+            this.style = DatasourceDefinitionStyleType.findByValue(projectModel.getDatasource().getStyle());
             switch (style) {
                 case PAYARA_RESOURCE:
-
+                    createPayaraResource();
                     break;
                 case WEB:
                     createWebXML();
@@ -482,7 +484,8 @@ public class CreateModelMojo extends AbstractMojo {
                 Element persistenceUnitElem = doc.createElement("persistence-unit");
                 persistenceUnitElem.setAttribute("name", projectModel.getProjectName() + "PU");
                 persistenceUnitElem.setAttribute("transaction-type", "JTA");
-                String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
+                String dataSourceName = (style == DatasourceDefinitionStyleType.WEB ? "java:app/" : "")
+                        + "jdbc/" + mavenProject.getArtifactId();
 
                 persistenceUnitElem.appendChild(createElement(doc, "jta-data-source", dataSourceName));
                 persistenceUnitElem.appendChild(createElement(doc, "shared-cache-mode", "ENABLE_SELECTIVE"));
@@ -546,14 +549,14 @@ public class CreateModelMojo extends AbstractMojo {
             }
             if (createDataSource) {
                 String dbType = projectModel.getDatasource().getDb();
-                Map<String, Object> definitions = (Map<String, Object>) dbDefinitions.get(dbType);
+                Map<String, Object> definitions = (Map<String, Object>) DB_DEFINITIONS.get(dbType);
                 String driverDataSource = (definitions == null) ? dbType : (String) definitions.get("datasource");
 
                 Element dataSourceElem = createElement(doc, "data-source");
                 dataSourceElem.appendChild(createElement(doc, "name", dataSourceName));
                 dataSourceElem.appendChild(createElement(doc, "class-name", driverDataSource));
                 dataSourceElem.appendChild(createElement(doc, "url", projectModel.getDatasource().getUrl()));
-                dataSourceElem.appendChild(createElement(doc, "user", projectModel.getDatasource().getUsername()));
+                dataSourceElem.appendChild(createElement(doc, "user", projectModel.getDatasource().getUser()));
                 dataSourceElem.appendChild(createElement(doc, "password", projectModel.getDatasource().getPassword()));
                 if (projectModel.getDatasource().getProperties() != null) {
                     for (Map.Entry<String, String> entry : projectModel.getDatasource().getProperties().entrySet()) {
@@ -589,17 +592,64 @@ public class CreateModelMojo extends AbstractMojo {
     }
 
     private static Element createElement(Document doc, String name, Node... children) {
+        return createElement(doc, name, null, children);
+    }
+
+    private static Element createElement(Document doc, String name, Map<String, String> attrs, Node... children) {
         Element elem = doc.createElement(name);
         for (Node child : children) {
             elem.appendChild(child);
 
         }
+        if (attrs != null) {
+            attrs.entrySet().forEach(entry -> elem.setAttribute(entry.getKey(), entry.getValue()));
+        }
         return elem;
     }
 
     private static Element createElement(Document doc, String name) {
-        Element elem = doc.createElement(name);
-        return elem;
+        return doc.createElement(name);
+    }
+
+    private void createPayaraResource() {
+        try {
+            String dbType = projectModel.getDatasource().getDb();
+            String driverDataSource = (dbDefinitions == null) ? dbType : (String) dbDefinitions.get("datasource");
+
+            Path resourceXml = Paths.get(mavenProject.getBasedir().toString(), "setup", "payara-resources.xml").normalize();
+            getLog().debug("Creating DataSource at " + resourceXml);
+            Files.createDirectories(resourceXml.getParent());
+            String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
+            String poolName = mavenProject.getArtifactId() + "Pool";
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = dbf.newDocumentBuilder();
+            Document doc = builder.newDocument();
+            Element resourcesElem = doc.createElement("resources");
+            Element jdbcResourceElem = doc.createElement("jdbc-resources");
+            resourcesElem.setAttribute("jndi-name", dataSourceName);
+            resourcesElem.setAttribute("pool-name", poolName);
+            resourcesElem.appendChild(jdbcResourceElem);
+
+            doc.appendChild(resourcesElem);
+            Element jdbcConnectionPoolElem = doc.createElement("jdbc-connection-pool");
+            jdbcConnectionPoolElem.setAttribute("datasource-classname", driverDataSource);
+            jdbcConnectionPoolElem.setAttribute("name", poolName);
+            jdbcConnectionPoolElem.setAttribute("res-type", "java.sql.DataSource");
+
+            Map<String, String> attrs = new LinkedHashMap<>(Map.of(
+                    "url", projectModel.getDatasource().getUrl(),
+                    "user", projectModel.getDatasource().getUser(),
+                    "password", projectModel.getDatasource().getPassword()
+            ));
+            attrs.putAll(projectModel.getDatasource().getProperties());
+
+            Element propElem = createElement(doc, "property", attrs);
+            jdbcConnectionPoolElem.appendChild(propElem);
+            doc.appendChild(jdbcConnectionPoolElem);
+
+        } catch (IOException | ParserConfigurationException ex) {
+            getLog().error(ex.getMessage(), ex);
+        }
     }
 
 }

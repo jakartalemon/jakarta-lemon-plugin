@@ -25,7 +25,7 @@ public class DataSourceModel {
 
     private String db;
     private String url;
-    private String username;
+    private String user;
     private String password;
     private Map<String, String> properties;
     private String style;
@@ -46,12 +46,12 @@ public class DataSourceModel {
         this.url = url;
     }
 
-    public String getUsername() {
-        return username;
+    public String getUser() {
+        return user;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUser(String user) {
+        this.user = user;
     }
 
     public String getPassword() {
