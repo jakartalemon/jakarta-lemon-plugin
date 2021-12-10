@@ -5,19 +5,19 @@ import com.apuntesdejava.lemon.jakarta.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
+import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
+import com.apuntesdejava.lemon.plugin.util.XmlUtil;
+import static com.apuntesdejava.lemon.plugin.util.XmlUtil.createElement;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,11 +26,7 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -47,7 +43,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -105,6 +100,7 @@ public class CreateModelMojo extends AbstractMojo {
             );
     private DatasourceDefinitionStyleType style;
     private Map<String, Object> dbDefinitions;
+    private String dbType;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -113,8 +109,8 @@ public class CreateModelMojo extends AbstractMojo {
         try ( InputStream in = new FileInputStream(_modelProjectFile)) {
             this.projectModel = jsonb.fromJson(in, ProjectModel.class);
             buildModel();
-            addDependencies();
             addDatasource();
+            addDependencies();
             addPersistenceXML();
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
@@ -375,13 +371,13 @@ public class CreateModelMojo extends AbstractMojo {
     }
 
     private void addDependencies() {
-        addDBDependencies();
+        if (this.style == DatasourceDefinitionStyleType.WEB) { //se agrega dependencia solo si está incorporado dentro del .war
+            addDBDependencies();
+        }
     }
 
     private void addDBDependencies() {
         getLog().debug("Add DB Dependencies");
-        String dbType = projectModel.getDatasource().getDb();
-        this.dbDefinitions = (Map<String, Object>) DB_DEFINITIONS.get(dbType);
         if (dbDefinitions != null) {
             Map<String, String> dependencyMap = (Map<String, String>) dbDefinitions.get("dependency");
             String version = dependencyMap.get("version");
@@ -418,15 +414,9 @@ public class CreateModelMojo extends AbstractMojo {
                     dependecyDriver.appendChild(versionElem);
 
                     dependenciesElem.appendChild(dependecyDriver);
+                    XmlUtil.writeXml(doc, mavenProject.getFile());
 
-                    try ( FileOutputStream output
-                            = new FileOutputStream(mavenProject.getFile())) {
-                        writeXml(doc, output);
-                    } catch (TransformerException ex) {
-                        getLog().error(ex.getMessage(), ex);
-                    }
-
-                } catch (ParserConfigurationException | SAXException | XPathExpressionException | IOException ex) {
+                } catch (ParserConfigurationException | TransformerException | SAXException | XPathExpressionException | IOException ex) {
                     getLog().error(ex.getMessage(), ex);
                 }
             }
@@ -434,29 +424,18 @@ public class CreateModelMojo extends AbstractMojo {
 
     }
 
-    private static void writeXml(Document doc,
-            OutputStream output)
-            throws TransformerException {
-
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer = transformerFactory.newTransformer();
-        DOMSource source = new DOMSource(doc);
-        StreamResult result = new StreamResult(output);
-
-        transformer.transform(source, result);
-
-    }
-
     private void addDatasource() {
+        this.dbType = projectModel.getDatasource().getDb();
+        this.dbDefinitions = (Map<String, Object>) DB_DEFINITIONS.get(dbType);
+
         getLog().debug("Creating datasource");
         if (projectModel.getDatasource() != null) {
-            String dbType = projectModel.getDatasource().getDb();
             String driverDataSource = (dbDefinitions == null) ? dbType : (String) dbDefinitions.get("datasource");
             getLog().debug("Driver: " + driverDataSource);
             this.style = DatasourceDefinitionStyleType.findByValue(projectModel.getDatasource().getStyle());
             switch (style) {
                 case PAYARA_RESOURCE:
-                    createPayaraResource();
+                    PayaraUtil.createPayaraResource(projectModel, mavenProject, dbDefinitions, getLog());
                     break;
                 case WEB:
                     createWebXML();
@@ -504,13 +483,9 @@ public class CreateModelMojo extends AbstractMojo {
                 rootElement.appendChild(persistenceUnitElem);
                 doc.appendChild(rootElement);
 
-                try ( FileOutputStream output
-                        = new FileOutputStream(persistenceXmlPath.toFile())) {
-                    writeXml(doc, output);
-                } catch (TransformerException ex) {
-                    getLog().error(ex.getMessage(), ex);
-                }
-            } catch (IOException | ParserConfigurationException ex) {
+                XmlUtil.writeXml(doc, persistenceXmlPath);
+
+            } catch (IOException | ParserConfigurationException | TransformerException ex) {
                 getLog().error(ex.getMessage(), ex);
             }
         }
@@ -572,84 +547,13 @@ public class CreateModelMojo extends AbstractMojo {
                 }
                 rootElement.appendChild(dataSourceElem);
 
-                try ( FileOutputStream output
-                        = new FileOutputStream(webXmlPath.toFile())) {
-                    writeXml(doc, output);
-                } catch (TransformerException ex) {
-                    getLog().error(ex.getMessage(), ex);
-                }
+                XmlUtil.writeXml(doc, webXmlPath);
+
             }
-        } catch (IOException | ParserConfigurationException | SAXException | XPathExpressionException ex) {
+        } catch (IOException | ParserConfigurationException | SAXException | XPathExpressionException | TransformerException ex) {
             getLog().error(ex.getMessage(), ex);
         }
 
-    }
-
-    private static Element createElement(Document doc, String name, String textContent) {
-        Element elem = doc.createElement(name);
-        elem.setTextContent(textContent);
-        return elem;
-    }
-
-    private static Element createElement(Document doc, String name, Node... children) {
-        return createElement(doc, name, null, children);
-    }
-
-    private static Element createElement(Document doc, String name, Map<String, String> attrs, Node... children) {
-        Element elem = doc.createElement(name);
-        for (Node child : children) {
-            elem.appendChild(child);
-
-        }
-        if (attrs != null) {
-            attrs.entrySet().forEach(entry -> elem.setAttribute(entry.getKey(), entry.getValue()));
-        }
-        return elem;
-    }
-
-    private static Element createElement(Document doc, String name) {
-        return doc.createElement(name);
-    }
-
-    private void createPayaraResource() {
-        try {
-            String dbType = projectModel.getDatasource().getDb();
-            String driverDataSource = (dbDefinitions == null) ? dbType : (String) dbDefinitions.get("datasource");
-
-            Path resourceXml = Paths.get(mavenProject.getBasedir().toString(), "setup", "payara-resources.xml").normalize();
-            getLog().debug("Creating DataSource at " + resourceXml);
-            Files.createDirectories(resourceXml.getParent());
-            String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
-            String poolName = mavenProject.getArtifactId() + "Pool";
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = dbf.newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element resourcesElem = doc.createElement("resources");
-            Element jdbcResourceElem = doc.createElement("jdbc-resources");
-            resourcesElem.setAttribute("jndi-name", dataSourceName);
-            resourcesElem.setAttribute("pool-name", poolName);
-            resourcesElem.appendChild(jdbcResourceElem);
-
-            doc.appendChild(resourcesElem);
-            Element jdbcConnectionPoolElem = doc.createElement("jdbc-connection-pool");
-            jdbcConnectionPoolElem.setAttribute("datasource-classname", driverDataSource);
-            jdbcConnectionPoolElem.setAttribute("name", poolName);
-            jdbcConnectionPoolElem.setAttribute("res-type", "java.sql.DataSource");
-
-            Map<String, String> attrs = new LinkedHashMap<>(Map.of(
-                    "url", projectModel.getDatasource().getUrl(),
-                    "user", projectModel.getDatasource().getUser(),
-                    "password", projectModel.getDatasource().getPassword()
-            ));
-            attrs.putAll(projectModel.getDatasource().getProperties());
-
-            Element propElem = createElement(doc, "property", attrs);
-            jdbcConnectionPoolElem.appendChild(propElem);
-            doc.appendChild(jdbcConnectionPoolElem);
-
-        } catch (IOException | ParserConfigurationException ex) {
-            getLog().error(ex.getMessage(), ex);
-        }
     }
 
 }
