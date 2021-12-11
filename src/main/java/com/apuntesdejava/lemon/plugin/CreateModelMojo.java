@@ -313,12 +313,15 @@ public class CreateModelMojo extends AbstractMojo {
             List<String> lines = new ArrayList<>();
             lines.add("package " + projectModel.getPackageName() + "." + subPackageName + ";\n");
             lines.add("@lombok.Data");
+            if (StringUtils.isNotBlank(entity.getTableName())) {
+                lines.add(String.format("@javax.persistence.Table(name = \"%s\" )", entity.getTableName()));
+            }
             lines.add("@javax.persistence.Entity");
             if (entity.getFinders() != null) {
                 entity.getFinders().entrySet().stream().filter(entry -> entry.getValue().isNativeQuery())
                         .forEach(entry -> {
                             lines.add("@javax.persistence.NamedNativeQuery(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "name = \"" + entity.getName() + ".findBy" + entry.getKey() + "\",");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("name = \"$s.findBy%s\",", entity.getName(), entry.getKey()));
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "query = \"" + entry.getValue().getQuery() + ",\n");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "resultClass = " + entry.getValue().getReturnValueType());
                             lines.add(")");
@@ -337,16 +340,26 @@ public class CreateModelMojo extends AbstractMojo {
                     if (value.isPk()) {
                         lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.Id");
                     }
+                    if (StringUtils.isNotBlank(value.getJoin())) {
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("@javax.persistence.%s", value.getJoin()));
+                    }
                     if (StringUtils.isNotBlank(value.getColumnName())) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.Column(");
-                        List<String> attrsList = new ArrayList<>();
-                        attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "name = \"" + value.getColumnName() + "\",");
-                        if (value.getLength() != null && value.getLength() > 0) {
-                            attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "length = " + value.getLength() + ",");
+                        if (StringUtils.isBlank(value.getJoin())) {
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.Column(");
+                            List<String> attrsList = new ArrayList<>();
+                            attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "name = \"" + value.getColumnName() + "\",");
+                            if (value.getLength() != null && value.getLength() > 0) {
+                                attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "length = " + value.getLength() + ",");
+                            }
+                            removeLastComma(attrsList);
+                            lines.addAll(attrsList);
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
+                        } else {
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.JoinColumn(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + String.format("name = \"%s\"", value.getColumnName()));
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
+
                         }
-                        removeLastComma(attrsList);
-                        lines.addAll(attrsList);
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
                     }
                     if (StringUtils.isNotBlank(value.getGeneratedValue())) {
 

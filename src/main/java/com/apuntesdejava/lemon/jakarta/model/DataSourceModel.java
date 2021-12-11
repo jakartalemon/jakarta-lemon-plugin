@@ -16,11 +16,13 @@
 package com.apuntesdejava.lemon.jakarta.model;
 
 import java.util.Map;
+import lombok.Data;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
+@Data
 public class DataSourceModel {
 
     private String db;
@@ -29,53 +31,5 @@ public class DataSourceModel {
     private String password;
     private Map<String, String> properties;
     private String style;
-
-    public String getDb() {
-        return db;
-    }
-
-    public void setDb(String db) {
-        this.db = db;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
-    public void setUser(String user) {
-        this.user = user;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-
-    public void setProperties(Map<String, String> properties) {
-        this.properties = properties;
-    }
-
-    public String getStyle() {
-        return style;
-    }
-
-    public void setStyle(String style) {
-        this.style = style;
-    }
 
 }

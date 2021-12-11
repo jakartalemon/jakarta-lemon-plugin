@@ -15,10 +15,13 @@
  */
 package com.apuntesdejava.lemon.jakarta.model;
 
+import lombok.Data;
+
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
+@Data
 public class FieldModel {
 
     private String type;
@@ -28,44 +31,6 @@ public class FieldModel {
 
     private String generatedValue;
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getColumnName() {
-        return columnName;
-    }
-
-    public void setColumnName(String columnName) {
-        this.columnName = columnName;
-    }
-
-    public boolean isPk() {
-        return pk;
-    }
-
-    public void setPk(boolean pk) {
-        this.pk = pk;
-    }
-
-    public Integer getLength() {
-        return length;
-    }
-
-    public void setLength(Integer length) {
-        this.length = length;
-    }
-
-    public String getGeneratedValue() {
-        return generatedValue;
-    }
-
-    public void setGeneratedValue(String generatedValue) {
-        this.generatedValue = generatedValue;
-    }
+    private String join;
 
 }

@@ -17,11 +17,13 @@ package com.apuntesdejava.lemon.jakarta.model;
 
 import jakarta.json.bind.annotation.JsonbProperty;
 import java.util.Map;
+import lombok.Data;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
+@Data
 public class FinderModel {
 
     private String query;
@@ -36,45 +38,4 @@ public class FinderModel {
 
     private Map<String, String> parameters;
 
-    public String getQuery() {
-        return query;
-    }
-
-    public void setQuery(String query) {
-        this.query = query;
-    }
-
-    public boolean isNativeQuery() {
-        return nativeQuery;
-    }
-
-    public void setNativeQuery(boolean nativeQuery) {
-        this.nativeQuery = nativeQuery;
-    }
-
-    public boolean isUnique() {
-        return unique;
-    }
-
-    public void setUnique(boolean unique) {
-        this.unique = unique;
-    }
-
-    public String getReturnValueType() {
-        return returnValueType;
-    }
-
-    public void setReturnValueType(String returnValueType) {
-        this.returnValueType = returnValueType;
-    }
-
-    public Map<String, String> getParameters() {
-        return parameters;
-    }
-
-    public void setParameters(Map<String, String> parameters) {
-        this.parameters = parameters;
-    }
-    
-    
 }
