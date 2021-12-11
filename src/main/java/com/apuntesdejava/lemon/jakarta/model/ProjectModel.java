@@ -16,11 +16,13 @@
 package com.apuntesdejava.lemon.jakarta.model;
 
 import java.util.List;
+import lombok.Data;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
+@Data
 public class ProjectModel {
 
     private String rest;
@@ -31,45 +33,5 @@ public class ProjectModel {
     private String projectName;
 
     private DataSourceModel datasource;
-
-    public String getRest() {
-        return rest;
-    }
-
-    public void setRest(String rest) {
-        this.rest = rest;
-    }
-
-    public List<EntityModel> getEntities() {
-        return entities;
-    }
-
-    public void setEntities(List<EntityModel> entities) {
-        this.entities = entities;
-    }
-
-    public String getPackageName() {
-        return packageName;
-    }
-
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
-    }
-
-    public String getProjectName() {
-        return projectName;
-    }
-
-    public void setProjectName(String projectName) {
-        this.projectName = projectName;
-    }
-
-    public DataSourceModel getDatasource() {
-        return datasource;
-    }
-
-    public void setDatasource(DataSourceModel datasource) {
-        this.datasource = datasource;
-    }
 
 }

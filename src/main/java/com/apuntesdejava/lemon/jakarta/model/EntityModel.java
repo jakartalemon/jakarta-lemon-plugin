@@ -16,41 +16,21 @@
 package com.apuntesdejava.lemon.jakarta.model;
 
 import java.util.Map;
+import lombok.Data;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
+@Data
 public class EntityModel {
 
     private String name;
 
+    private String tableName;
+
     private Map<String, FieldModel> fields;
 
     private Map<String, FinderModel> finders;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Map<String, FieldModel> getFields() {
-        return fields;
-    }
-
-    public void setFields(Map<String, FieldModel> fields) {
-        this.fields = fields;
-    }
-
-    public Map<String, FinderModel> getFinders() {
-        return finders;
-    }
-
-    public void setFinders(Map<String, FinderModel> finders) {
-        this.finders = finders;
-    }
 
 }
