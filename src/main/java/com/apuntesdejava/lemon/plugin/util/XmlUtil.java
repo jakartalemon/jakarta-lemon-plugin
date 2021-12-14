@@ -20,6 +20,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import static javax.xml.transform.OutputKeys.DOCTYPE_PUBLIC;
 import static javax.xml.transform.OutputKeys.DOCTYPE_SYSTEM;
 import javax.xml.transform.Transformer;
@@ -27,16 +31,43 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 public class XmlUtil {
+
+    public static Document newDocument() throws ParserConfigurationException {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        return db.newDocument();
+    }
+
+    public static Document getFile(File file) throws ParserConfigurationException, SAXException, IOException {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document doc = db.parse(file);
+        doc.getDocumentElement().normalize();
+        return doc;
+    }
+
+    public static NodeList getNodeListByPath(Node doc, String xPathQuery) throws XPathExpressionException {
+        XPath xPath = XPathFactory.newInstance().newXPath();
+        return (NodeList) xPath.compile(xPathQuery).evaluate(doc, XPathConstants.NODESET);
+    }
 
     public static Element createElement(Document doc, String name, String textContent) {
         Element elem = doc.createElement(name);
@@ -57,7 +88,7 @@ public class XmlUtil {
         if (attrs != null) {
             attrs.entrySet().forEach(entry -> {
                 Element propElem = doc.createElement("property");
-                propElem.setAttribute("name",entry.getKey());
+                propElem.setAttribute("name", entry.getKey());
                 propElem.setAttribute("value", entry.getValue());
                 elem.appendChild(propElem);
             });

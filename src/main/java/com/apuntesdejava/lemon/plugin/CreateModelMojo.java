@@ -6,11 +6,9 @@ import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
+import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import com.apuntesdejava.lemon.plugin.util.XmlUtil;
 import static com.apuntesdejava.lemon.plugin.util.XmlUtil.createElement;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -22,15 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -64,56 +56,18 @@ public class CreateModelMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
-    private static final Map<String, Object> DB_DEFINITIONS
-            = Map.of("mysql",
-                    Map.of(
-                            "driver", "com.mysql.cj.jdbc.Driver",
-                            "datasource", "com.mysql.cj.jdbc.MysqlDataSource",
-                            "pool", "com.mysql.cj.jdbc.MysqlConnectionPoolDataSource",
-                            "dependency", Map.of(
-                                    "version", "8.0.27",
-                                    "groupId", "mysql",
-                                    "artifactId", "mysql-connector-java"
-                            )
-                    ),
-                    "postgresql",
-                    Map.of(
-                            "driver", "org.postgresql.Driver",
-                            "datasource", "org.postgresql.jdbc3.Jdbc3ConnectionPool",
-                            "dependency", Map.of(
-                                    "version", "42.3.1",
-                                    "groupId", "org.postgresql",
-                                    "artifactId", "postgresql"
-                            )
-                    ),
-                    "mariadb",
-                    Map.of(
-                            "driver", "org.mariadb.jdbc.Driver",
-                            "datasource", "org.mariadb.jdbc.MariaDbDataSource",
-                            "pool", "org.mariadb.jdbc.MariaDbPoolDataSource",
-                            "dependency", Map.of(
-                                    "version", "2.7.4",
-                                    "groupId", "org.mariadb.jdbc",
-                                    "artifactId", "mariadb-java-client"
-                            )
-                    )
-            );
+
     private DatasourceDefinitionStyleType style;
-    private Map<String, Object> dbDefinitions;
-    private String dbType;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Jsonb jsonb = JsonbBuilder.create();
-        getLog().debug("Reading model configuration:" + _modelProjectFile);
-        try ( InputStream in = new FileInputStream(_modelProjectFile)) {
-            this.projectModel = jsonb.fromJson(in, ProjectModel.class);
+        Optional<ProjectModel> opt = ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile);
+        if (opt.isPresent()) {
+            this.projectModel = opt.get();
             buildModel();
             addDatasource();
             addDependencies();
             addPersistenceXML();
-        } catch (IOException ex) {
-            getLog().error(ex.getMessage(), ex);
         }
 
     }
@@ -391,64 +345,55 @@ public class CreateModelMojo extends AbstractMojo {
 
     private void addDBDependencies() {
         getLog().debug("Add DB Dependencies");
-        if (dbDefinitions != null) {
-            Map<String, String> dependencyMap = (Map<String, String>) dbDefinitions.get("dependency");
-            String version = dependencyMap.get("version");
-            String groupId = dependencyMap.get("groupId");
-            String artifactId = dependencyMap.get("artifactId");
-            boolean found = mavenProject.getDependencies()
-                    .stream()
-                    .filter(item
-                            -> StringUtils.equals(item.getGroupId(), groupId)
-                    && StringUtils.equals(item.getArtifactId(), artifactId)
-                    ).count() > 0;
-            if (!found) {
-                try {
-                    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                    dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-                    DocumentBuilder db = dbf.newDocumentBuilder();
-                    Document doc = db.parse(mavenProject.getFile());
-                    doc.getDocumentElement().normalize();
-                    XPath xPath = XPathFactory.newInstance().newXPath();
+        Map<String, String> dependencyMap = (Map<String, String>) projectModel.getDbDefinitions().get("dependency");
+        String version = dependencyMap.get("version");
+        String groupId = dependencyMap.get("groupId");
+        String artifactId = dependencyMap.get("artifactId");
+        boolean found = mavenProject.getDependencies()
+                .stream()
+                .filter(item
+                        -> StringUtils.equals(item.getGroupId(), groupId)
+                && StringUtils.equals(item.getArtifactId(), artifactId)
+                ).count() > 0;
+        if (!found) {
+            try {
+                Document doc = XmlUtil.getFile(mavenProject.getFile());
 
-                    NodeList dependenciesNodeList = (NodeList) xPath.compile("/project/dependencies").evaluate(doc, XPathConstants.NODESET);
-                    Element dependenciesElem = (Element) dependenciesNodeList.item(0);
-                    Element dependecyDriver = doc.createElement("dependency");
+                NodeList dependenciesNodeList = XmlUtil.getNodeListByPath(doc, "/project/dependencies");
+                Element dependenciesElem = (Element) dependenciesNodeList.item(0);
+                Element dependecyDriver = doc.createElement("dependency");
 
-                    Element groupIdElem = doc.createElement("groupId");
-                    groupIdElem.setTextContent(groupId);
-                    Element artifactIdElem = doc.createElement("artifactId");
-                    artifactIdElem.setTextContent(artifactId);
-                    Element versionElem = doc.createElement("version");
-                    versionElem.setTextContent(version);
+                Element groupIdElem = doc.createElement("groupId");
+                groupIdElem.setTextContent(groupId);
+                Element artifactIdElem = doc.createElement("artifactId");
+                artifactIdElem.setTextContent(artifactId);
+                Element versionElem = doc.createElement("version");
+                versionElem.setTextContent(version);
 
-                    dependecyDriver.appendChild(groupIdElem);
-                    dependecyDriver.appendChild(artifactIdElem);
-                    dependecyDriver.appendChild(versionElem);
+                dependecyDriver.appendChild(groupIdElem);
+                dependecyDriver.appendChild(artifactIdElem);
+                dependecyDriver.appendChild(versionElem);
 
-                    dependenciesElem.appendChild(dependecyDriver);
-                    XmlUtil.writeXml(doc, mavenProject.getFile());
+                dependenciesElem.appendChild(dependecyDriver);
+                XmlUtil.writeXml(doc, mavenProject.getFile());
 
-                } catch (ParserConfigurationException | TransformerException | SAXException | XPathExpressionException | IOException ex) {
-                    getLog().error(ex.getMessage(), ex);
-                }
+            } catch (ParserConfigurationException | TransformerException | SAXException | XPathExpressionException | IOException ex) {
+                getLog().error(ex.getMessage(), ex);
             }
         }
 
     }
 
     private void addDatasource() {
-        this.dbType = projectModel.getDatasource().getDb();
-        this.dbDefinitions = (Map<String, Object>) DB_DEFINITIONS.get(dbType);
 
         getLog().debug("Creating datasource");
         if (projectModel.getDatasource() != null) {
-            String driverDataSource = (dbDefinitions == null) ? dbType : (String) dbDefinitions.get("datasource");
+            String driverDataSource = projectModel.getDriver();
             getLog().debug("Driver: " + driverDataSource);
             this.style = DatasourceDefinitionStyleType.findByValue(projectModel.getDatasource().getStyle());
             switch (style) {
-                case PAYARA_RESOURCE:
-                    PayaraUtil.createPayaraResource(projectModel, mavenProject, dbDefinitions, getLog());
+                case PAYARA_RESOURCES:
+                    PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel, mavenProject);
                     break;
                 case WEB:
                     createWebXML();
@@ -465,10 +410,8 @@ public class CreateModelMojo extends AbstractMojo {
         if (Files.notExists(persistenceXmlPath)) {
             try {
                 Files.createDirectories(persistenceXmlPath.getParent());
-                DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-                DocumentBuilder db = dbf.newDocumentBuilder();
-                Document doc = db.newDocument();
+
+                Document doc = XmlUtil.newDocument();
                 Element rootElement = doc.createElementNS("http://xmlns.jcp.org/xml/ns/persistence", "persistence");
                 rootElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
                 rootElement.setAttribute("xsi:schemaLocation", "http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd");
@@ -513,20 +456,15 @@ public class CreateModelMojo extends AbstractMojo {
             String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
             boolean createDataSource;
             Document doc;
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-            DocumentBuilder db = dbf.newDocumentBuilder();
             Element rootElement;
             if (Files.exists(webXmlPath)) {
-                doc = db.parse(webXmlPath.toFile());
-                doc.getDocumentElement().normalize();
-                XPath xPath = XPathFactory.newInstance().newXPath();
-                NodeList dataSourceNodeList = (NodeList) xPath.compile("/web-app/data-source/name[text()='" + dataSourceName + "']").evaluate(doc, XPathConstants.NODESET);
+                doc = XmlUtil.getFile(webXmlPath.toFile());
+                NodeList dataSourceNodeList = XmlUtil.getNodeListByPath(doc, "/web-app/data-source/name[text()='" + dataSourceName + "']");
                 createDataSource = dataSourceNodeList.getLength() == 0;
                 rootElement = (Element) doc.getElementsByTagName("web-app").item(0);
             } else {
                 createDataSource = true;
-                doc = db.newDocument();
+                doc = XmlUtil.newDocument();
                 rootElement = doc.createElementNS("http://xmlns.jcp.org/xml/ns/javaee", "web-app");
                 rootElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
                 rootElement.setAttribute("xsi:schemaLocation", "http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd");
@@ -536,9 +474,7 @@ public class CreateModelMojo extends AbstractMojo {
 
             }
             if (createDataSource) {
-                String dbType = projectModel.getDatasource().getDb();
-                Map<String, Object> definitions = (Map<String, Object>) DB_DEFINITIONS.get(dbType);
-                String driverDataSource = (definitions == null) ? dbType : (String) definitions.get("datasource");
+                String driverDataSource = projectModel.getDriver();
 
                 Element dataSourceElem = createElement(doc, "data-source");
                 dataSourceElem.appendChild(createElement(doc, "name", dataSourceName));

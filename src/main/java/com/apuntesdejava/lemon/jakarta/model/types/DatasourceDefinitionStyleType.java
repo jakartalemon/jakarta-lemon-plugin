@@ -23,7 +23,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 public enum DatasourceDefinitionStyleType {
     WEB("web.xml"),
-    PAYARA_RESOURCE("payara-resources");
+    PAYARA_RESOURCES("payara-resources");
     private final String value;
 
     private DatasourceDefinitionStyleType(String value) {
