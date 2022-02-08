@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Apuntes de Java.
+ * Copyright 2022 Apuntes de Java.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.model;
+package com.apuntesdejava.lemon.jakarta.openapi.model;
 
-import java.util.Map;
+import jakarta.json.bind.annotation.JsonbProperty;
 import lombok.Data;
 
 /**
@@ -23,13 +23,18 @@ import lombok.Data;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-public class DataSourceModel {
+public class PathModel {
 
-    private String db;
-    private String url;
-    private String user;
-    private String password;
-    private Map<String, String> properties;
-    private String style;
+    @JsonbProperty(value = "$ref")
+    private String ref;
+    private String summary;
+    private String description;
 
+    private OperationModel get;
+    private OperationModel put;
+    private OperationModel post;
+    private OperationModel delete;
+    private OperationModel options;
+    private OperationModel patch;
+    private OperationModel trace;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Diego Silva <diego.silva at apuntesdejava.com>.
+ * Copyright 2022 Apuntes de Java.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.model;
+package com.apuntesdejava.lemon.jakarta.openapi.model;
 
-import java.util.Map;
 import lombok.Data;
 
 /**
@@ -23,14 +22,11 @@ import lombok.Data;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-public class EntityModel {
+public class OperationModel {
 
-    private String name;
-
-    private String tableName;
-
-    private Map<String, FieldModel> fields;
-
-    private Map<String, FinderModel> finders;
-
+    private String[] tags;
+    private String summary;
+    private String operationId;
+    private ReferenceModel[] parameters;
+    private RequestBodyModel requestBody;
 }

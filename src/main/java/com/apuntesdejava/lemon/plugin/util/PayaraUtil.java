@@ -15,8 +15,8 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.model.DataSourceModel;
-import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.DataSourceModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,6 +43,10 @@ public class PayaraUtil {
 
     private static final String PAYARA_RESOURCE_DOCTYPE_PUBLIC = "-//Payara.fish//DTD Payara Server 4 Resource Definitions//EN";
     private static final String PAYARA_RESOURCE_DOCTYPE_SYSTEM = "https://raw.githubusercontent.com/payara/Payara-Community-Documentation/master/docs/modules/ROOT/pages/schemas/payara-resources_1_6.dtd";
+
+    private PayaraUtil() {
+
+    }
 
     public static void createPayaraDataSourceResources(
             Log log, ProjectModel projectModel, MavenProject mavenProject) {
@@ -96,7 +100,7 @@ public class PayaraUtil {
     private static String replaceChars(String str) {
         return StringUtils.replaceEach(str,
                 new String[]{":"},
-                new String[]{'\\'+":"}
+                new String[]{'\\' + ":"}
         );
     }
 
@@ -120,7 +124,7 @@ public class PayaraUtil {
 
             Files.write(
                     Path.of(fileName),
-                    lines 
+                    lines
             );
             log.debug(fileName + " created");
 

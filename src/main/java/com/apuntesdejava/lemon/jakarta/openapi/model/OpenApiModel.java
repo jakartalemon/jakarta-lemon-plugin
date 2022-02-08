@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Diego Silva <diego.silva at apuntesdejava.com>.
+ * Copyright 2022 Apuntes de Java.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.model;
+package com.apuntesdejava.lemon.jakarta.openapi.model;
 
+import java.util.Map;
 import lombok.Data;
 
 /**
@@ -22,15 +23,12 @@ import lombok.Data;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-public class FieldModel {
+public class OpenApiModel {
 
-    private String type;
-    private String columnName;
-    private boolean pk;
-    private Integer length;
-
-    private String generatedValue;
-
-    private String join;
-
+    private String openapi;
+    private InfoModel info;
+    
+    private ServerModel[] servers;
+    
+    private Map<String,PathModel> paths;
 }

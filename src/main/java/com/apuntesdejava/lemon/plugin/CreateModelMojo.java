@@ -1,8 +1,8 @@
 package com.apuntesdejava.lemon.plugin;
 
-import com.apuntesdejava.lemon.jakarta.model.EntityModel;
-import com.apuntesdejava.lemon.jakarta.model.FieldModel;
-import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.EntityModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
@@ -43,6 +43,8 @@ public class CreateModelMojo extends AbstractMojo {
 
     private static final int TAB = 4;
 
+    private static final String VERSION = "version";
+
     private static void removeLastComma(List<String> list) {
         list.set(list.size() - 1, StringUtils.removeEnd(list.get(list.size() - 1), ","));
     }
@@ -51,7 +53,7 @@ public class CreateModelMojo extends AbstractMojo {
             property = "model",
             defaultValue = "model.json"
     )
-    private String _modelProjectFile;
+    private String modelProjectFile;
     private ProjectModel projectModel;
 
     @Parameter(defaultValue = "${project}", readonly = true)
@@ -61,7 +63,7 @@ public class CreateModelMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Optional<ProjectModel> opt = ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile);
+        Optional<ProjectModel> opt = ProjectModelUtil.getProjectModel(getLog(), modelProjectFile);
         if (opt.isPresent()) {
             this.projectModel = opt.get();
             buildModel();
@@ -250,8 +252,8 @@ public class CreateModelMojo extends AbstractMojo {
                         .stream()
                         .map(
                                 line -> StringUtils.replaceEach(line,
-                                        maps.keySet().toArray(new String[0]),
-                                        maps.values().toArray(new String[0])
+                                        maps.keySet().toArray(String[]::new),
+                                        maps.values().toArray(String[]::new)
                                 )
                         )
                         .collect(Collectors.toList());
@@ -346,7 +348,7 @@ public class CreateModelMojo extends AbstractMojo {
     private void addDBDependencies() {
         getLog().debug("Add DB Dependencies");
         Map<String, String> dependencyMap = (Map<String, String>) projectModel.getDbDefinitions().get("dependency");
-        String version = dependencyMap.get("version");
+        String version = dependencyMap.get(VERSION);
         String groupId = dependencyMap.get("groupId");
         String artifactId = dependencyMap.get("artifactId");
         boolean found = mavenProject.getDependencies()
@@ -367,7 +369,7 @@ public class CreateModelMojo extends AbstractMojo {
                 groupIdElem.setTextContent(groupId);
                 Element artifactIdElem = doc.createElement("artifactId");
                 artifactIdElem.setTextContent(artifactId);
-                Element versionElem = doc.createElement("version");
+                Element versionElem = doc.createElement(VERSION);
                 versionElem.setTextContent(version);
 
                 dependecyDriver.appendChild(groupIdElem);

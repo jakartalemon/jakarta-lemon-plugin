@@ -15,7 +15,7 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import java.io.FileInputStream;
@@ -29,6 +29,10 @@ import org.apache.maven.plugin.logging.Log;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 public class ProjectModelUtil {
+
+    private ProjectModelUtil() {
+
+    }
 
     public static Optional<ProjectModel> getProjectModel(Log log, String modelProjectFile) {
         log.debug("Reading model configuration:" + modelProjectFile);
