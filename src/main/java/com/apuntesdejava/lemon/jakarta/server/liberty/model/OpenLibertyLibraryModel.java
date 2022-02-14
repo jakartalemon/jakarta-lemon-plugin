@@ -18,32 +18,22 @@ package com.apuntesdejava.lemon.jakarta.server.liberty.model;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlRootElement;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-@XmlRootElement(name = "server")
+@AllArgsConstructor
+@NoArgsConstructor
 @XmlAccessorType(XmlAccessType.FIELD)
-public class ServerModel {
+public class OpenLibertyLibraryModel {
 
     @XmlAttribute
-    private String description;
+    private String id;
 
-    private FeatureManagerModel featureManager = new FeatureManagerModel();
-
-    private HttpEndpointModel httpEndpoint = new HttpEndpointModel();
-
-    private ApplicationManagerModel applicationManager = new ApplicationManagerModel();
-
-    private WebApplicationModel webApplication = new WebApplicationModel();
-
-    private SslModel ssl = new SslModel();
-
-    private OpenLibertyLibraryModel library;
-
-    private OpenLibertyDataSourceModel dataSource;
+    private FilesetModel fileset;
 }

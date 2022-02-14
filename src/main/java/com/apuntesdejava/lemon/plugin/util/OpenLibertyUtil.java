@@ -15,9 +15,13 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
+import com.apuntesdejava.lemon.jakarta.model.DataSourceModel;
 import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyDataSourceModel;
+import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyDataSourcePropertiesModel;
 import com.apuntesdejava.lemon.jakarta.server.liberty.model.FilesetModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.LibraryModel;
+import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyJdbcDriverModel;
+import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyLibraryModel;
 import com.apuntesdejava.lemon.jakarta.server.liberty.model.ServerModel;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
@@ -27,15 +31,19 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Optional;
+import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Profile;
-import org.apache.maven.shared.utils.xml.Xpp3Dom;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
+//import org.apache.maven.shared.utils.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
@@ -51,39 +59,71 @@ public class OpenLibertyUtil {
 
     public static void createDataSource(Log log, ProjectModel projectModel, MavenProject mavenProject) {
         try {
+            log.debug("Updating server.xml");
             ServerModel serverModel = getServerModel(log, mavenProject);
             serverModel.getFeatureManager().getFeature().add("jdbc-4.3");
-            serverModel.setLibrary(
-                    new LibraryModel("jdbcLib", new FilesetModel("jdbc", "*.jar"))
+            serverModel.setLibrary(new OpenLibertyLibraryModel("jdbcLib", new FilesetModel("jdbc", "*.jar"))
             );
+            String jndiName = "jdbc/" + mavenProject.getArtifactId();
+            OpenLibertyDataSourcePropertiesModel properties = new OpenLibertyDataSourcePropertiesModel();
+            DataSourceModel datasourceModel = projectModel.getDatasource();
+            properties.setUrl(datasourceModel.getUrl());
+            properties.setUser(datasourceModel.getUser());
+            properties.setPassword(datasourceModel.getPassword());
+            Map<String, String> props = datasourceModel.getProperties();
+            props.entrySet().stream().forEach(entry -> {
+                String propName = entry.getKey();
+                if (PropertyUtils.isWriteable(properties, propName)) {
+                    try {
+                        PropertyUtils.setProperty(properties, propName, entry.getValue());
+                    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
+                        log.warn(ex.getMessage());
+                    }
+                }
+
+            });
+            serverModel.setDataSource(new OpenLibertyDataSourceModel(
+                    jndiName,
+                    new OpenLibertyJdbcDriverModel("jdbcLib"),
+                    properties)
+            );
+
+            log.debug("Modifing pom.xml");
             Model model = ProjectModelUtil.getModel(mavenProject);
             Profile profile = ProjectModelUtil.getProfile(model, "openliberty");
             BuildBase build = ProjectModelUtil.getBuild(profile);
             Optional<Plugin> pluginOpt = ProjectModelUtil.addPlugin(build, "io.openliberty.tools", "liberty-maven-plugin", "3.3.4");
-//            if (pluginOpt.isPresent()) {
-//                Plugin plugin = pluginOpt.get();
-//                Xpp3Dom xconf = (Xpp3Dom) plugin.getConfiguration();
-//                Xpp3Dom conf = new Xpp3Dom("configuration");
-//                Xpp3Dom copyDependencies = new Xpp3Dom("copyDependencies");
-//                Xpp3Dom dependencyGroup = new Xpp3Dom("dependencyGroup");
-//                Xpp3Dom location = new Xpp3Dom("location");
-//                location.setValue("jdbc");
-//                Xpp3Dom dependency = new Xpp3Dom("dependency");
-//                dependencyGroup.addChild(location);
-//                dependencyGroup.addChild(dependency);
-//                Xpp3Dom groupId = new Xpp3Dom("groupId");
-//                Xpp3Dom artifactId = new Xpp3Dom("artifactId");
-//                Xpp3Dom version = new Xpp3Dom("version");
-//                dependency.addChild(groupId);
-//                dependency.addChild(artifactId);
-//                dependency.addChild(version);
-//                copyDependencies.addChild(dependencyGroup);
-//                conf.addChild(copyDependencies);
-//                plugin.setConfiguration(conf);
-////                Object conf = plugin.getConfiguration();
-////                log.debug("conf:" + conf);
-////                plugin.setConfiguration(plugin);
-//            }
+            if (pluginOpt.isPresent()) {
+                Plugin plugin = pluginOpt.get();
+                Xpp3Dom conf = Optional.ofNullable((Xpp3Dom) plugin.getConfiguration())
+                        .orElseGet(() -> {
+                            Xpp3Dom xpp3Dom = new Xpp3Dom("configuration");
+                            plugin.setConfiguration(xpp3Dom);
+                            return xpp3Dom;
+                        });
+                Xpp3Dom copyDependencies = ProjectModelUtil.addChildren(conf, "copyDependencies");
+                Xpp3Dom dependencyGroup = ProjectModelUtil.addChildren(copyDependencies, "dependencyGroup");
+                Xpp3Dom location = ProjectModelUtil.addChildren(dependencyGroup, "location");
+                location.setValue("jdbc");
+
+                Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, "dependency");
+                String database = projectModel.getDatasource().getDb();
+
+                Map<String, Object> dependen = DependenciesUtil.getByDatabase(database);
+
+                Xpp3Dom groupId = ProjectModelUtil.addChildren(dependency, "groupId");
+                groupId.setValue((String) dependen.get("groupId"));
+                Xpp3Dom artifactId = ProjectModelUtil.addChildren(dependency,"artifactId");
+                artifactId.setValue((String) dependen.get("artifactId"));
+                Xpp3Dom version = ProjectModelUtil.addChildren(dependency,"version");
+                version.setValue((String) dependen.get("version"));
+                copyDependencies.addChild(dependencyGroup);
+
+                ProjectModelUtil.saveModel(mavenProject, model);
+//                Object conf = plugin.getConfiguration();
+//                log.debug("conf:" + conf);
+//                plugin.setConfiguration(plugin);
+            }
 
             saveServerModel(mavenProject, serverModel);
 

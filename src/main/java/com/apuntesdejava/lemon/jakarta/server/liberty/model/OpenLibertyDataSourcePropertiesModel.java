@@ -15,7 +15,7 @@
  */
 package com.apuntesdejava.lemon.jakarta.server.liberty.model;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
+import static jakarta.xml.bind.annotation.XmlAccessType.FIELD;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
 import lombok.AllArgsConstructor;
@@ -26,14 +26,27 @@ import lombok.NoArgsConstructor;
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
+@XmlAccessorType(FIELD)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@XmlAccessorType(XmlAccessType.FIELD)
-public class LibraryModel {
+public class OpenLibertyDataSourcePropertiesModel {
 
     @XmlAttribute
-    private String id;
+    private String url;
 
-    private FilesetModel fileset;
+    @XmlAttribute
+    private String user;
+
+    @XmlAttribute
+    private String password;
+
+    @XmlAttribute
+    private String serverTimezone;
+
+    @XmlAttribute
+    private String allowPublicKeyRetrieval;
+
+    @XmlAttribute
+    private String useSSL;
 }

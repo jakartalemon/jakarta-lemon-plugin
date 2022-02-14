@@ -25,6 +25,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -38,6 +39,7 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
@@ -113,6 +115,17 @@ public class ProjectModelUtil {
         File projectFile = mavenProject.getFile();
         MavenXpp3Reader reader = new MavenXpp3Reader();
         return reader.read(new FileReader(projectFile));
+    }
+
+    public static Xpp3Dom addChildren(Xpp3Dom parent, String name) {
+        return Arrays.stream(parent.getChildren())
+                .filter(item -> item.getName().equals(name))
+                .findFirst()
+                .orElseGet(() -> {
+                    Xpp3Dom xpp3Dom = new Xpp3Dom(name);
+                    parent.addChild(xpp3Dom);
+                    return xpp3Dom;
+                });
     }
 
 }
