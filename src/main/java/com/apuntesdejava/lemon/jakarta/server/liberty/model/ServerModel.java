@@ -42,4 +42,6 @@ public class ServerModel {
     private WebApplicationModel webApplication = new WebApplicationModel();
 
     private SslModel ssl = new SslModel();
+
+    private LibraryModel library;
 }

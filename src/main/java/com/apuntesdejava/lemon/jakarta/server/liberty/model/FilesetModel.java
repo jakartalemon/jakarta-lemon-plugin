@@ -17,9 +17,7 @@ package com.apuntesdejava.lemon.jakarta.server.liberty.model;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import jakarta.xml.bind.annotation.XmlAttribute;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,17 +30,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @XmlAccessorType(XmlAccessType.FIELD)
-public class FeatureManagerModel {
+public class FilesetModel {
 
-    private Set<String> feature = new LinkedHashSet<>(
-            List.of(
-                    "jakartaee-8.0",
-                    "microProfile-4.1",
-                    "jpa-2.2",
-                    "jaxrs-2.1",
-                    "jsonp-1.1",
-                    "cdi-2.0",
-                    "mpConfig-2.0"
-            )
-    );
+    @XmlAttribute
+    private String dir;
+
+    @XmlAttribute
+    private String includes;
 }
