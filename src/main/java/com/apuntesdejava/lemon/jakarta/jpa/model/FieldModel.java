@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.model;
+package com.apuntesdejava.lemon.jakarta.jpa.model;
 
-import jakarta.json.bind.annotation.JsonbProperty;
-import java.util.Map;
 import lombok.Data;
 
 /**
@@ -24,18 +22,15 @@ import lombok.Data;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-public class FinderModel {
+public class FieldModel {
 
-    private String query;
+    private String type;
+    private String columnName;
+    private boolean pk;
+    private Integer length;
 
-    @JsonbProperty(value = "native")
-    private boolean nativeQuery;
+    private String generatedValue;
 
-    private boolean unique;
-
-    @JsonbProperty(value = "return")
-    private String returnValueType;
-
-    private Map<String, String> parameters;
+    private String join;
 
 }

@@ -15,7 +15,7 @@
  */
 package com.apuntesdejava.lemon.plugin;
 
-import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.server.liberty.model.ServerModel;
 import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;

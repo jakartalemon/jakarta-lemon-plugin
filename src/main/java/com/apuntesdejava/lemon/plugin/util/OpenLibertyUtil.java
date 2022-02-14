@@ -15,8 +15,8 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.model.DataSourceModel;
-import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.DataSourceModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyDataSourceModel;
 import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyDataSourcePropertiesModel;
 import com.apuntesdejava.lemon.jakarta.server.liberty.model.FilesetModel;
@@ -95,12 +95,7 @@ public class OpenLibertyUtil {
             Optional<Plugin> pluginOpt = ProjectModelUtil.addPlugin(build, "io.openliberty.tools", "liberty-maven-plugin", "3.3.4");
             if (pluginOpt.isPresent()) {
                 Plugin plugin = pluginOpt.get();
-                Xpp3Dom conf = Optional.ofNullable((Xpp3Dom) plugin.getConfiguration())
-                        .orElseGet(() -> {
-                            Xpp3Dom xpp3Dom = new Xpp3Dom("configuration");
-                            plugin.setConfiguration(xpp3Dom);
-                            return xpp3Dom;
-                        });
+                Xpp3Dom conf = ProjectModelUtil.getConfiguration(plugin);
                 Xpp3Dom copyDependencies = ProjectModelUtil.addChildren(conf, "copyDependencies");
                 Xpp3Dom dependencyGroup = ProjectModelUtil.addChildren(copyDependencies, "dependencyGroup");
                 Xpp3Dom location = ProjectModelUtil.addChildren(dependencyGroup, "location");
@@ -111,18 +106,12 @@ public class OpenLibertyUtil {
 
                 Map<String, Object> dependen = DependenciesUtil.getByDatabase(database);
 
-                Xpp3Dom groupId = ProjectModelUtil.addChildren(dependency, "groupId");
-                groupId.setValue((String) dependen.get("groupId"));
-                Xpp3Dom artifactId = ProjectModelUtil.addChildren(dependency,"artifactId");
-                artifactId.setValue((String) dependen.get("artifactId"));
-                Xpp3Dom version = ProjectModelUtil.addChildren(dependency,"version");
-                version.setValue((String) dependen.get("version"));
+                ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.get("groupId"));
+                ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.get("artifactId"));
+                ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.get("version"));
                 copyDependencies.addChild(dependencyGroup);
 
                 ProjectModelUtil.saveModel(mavenProject, model);
-//                Object conf = plugin.getConfiguration();
-//                log.debug("conf:" + conf);
-//                plugin.setConfiguration(plugin);
             }
 
             saveServerModel(mavenProject, serverModel);

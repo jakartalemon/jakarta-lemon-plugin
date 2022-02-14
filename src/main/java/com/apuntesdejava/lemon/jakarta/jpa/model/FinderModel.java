@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.model;
+package com.apuntesdejava.lemon.jakarta.jpa.model;
 
-import com.apuntesdejava.lemon.plugin.util.Constants;
-import java.util.List;
+import jakarta.json.bind.annotation.JsonbProperty;
 import java.util.Map;
 import lombok.Data;
 
@@ -25,24 +24,18 @@ import lombok.Data;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-public class ProjectModel {
+public class FinderModel {
 
-    private String rest;
+    private String query;
 
-    private List<EntityModel> entities;
+    @JsonbProperty(value = "native")
+    private boolean nativeQuery;
 
-    private String packageName;
-    private String projectName;
+    private boolean unique;
 
-    private DataSourceModel datasource;
+    @JsonbProperty(value = "return")
+    private String returnValueType;
 
-    public Map<String, Object> getDbDefinitions() {
-        return (Map<String, Object>) Constants.DB_DEFINITIONS.get(datasource.getDb());
-    }
+    private Map<String, String> parameters;
 
-    public String getDriver() {
-        return Constants.DB_DEFINITIONS.containsKey(datasource.getDb())
-                ? (String) ((Map<String, Object>) Constants.DB_DEFINITIONS.get(datasource.getDb())).get("datasource")
-                : datasource.getDb();
-    }
 }

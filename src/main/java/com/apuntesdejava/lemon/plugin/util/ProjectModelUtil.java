@@ -15,7 +15,7 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import java.io.File;
@@ -28,8 +28,10 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.BuildBase;
+import org.apache.maven.model.ConfigurationContainer;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginContainer;
@@ -48,6 +50,24 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
  */
 public class ProjectModelUtil {
 
+    public static Properties getProperties(Profile profile) {
+        return Optional.ofNullable(profile.getProperties())
+                .orElseGet(() -> {
+                    Properties props = new Properties();
+                    profile.setProperties(props);
+                    return profile.getProperties();
+                });
+    }
+
+    public static Xpp3Dom getConfiguration(ConfigurationContainer plugin) {
+        return Optional.ofNullable((Xpp3Dom) plugin.getConfiguration())
+                .orElseGet(() -> {
+                    Xpp3Dom xpp3Dom = new Xpp3Dom("configuration");
+                    plugin.setConfiguration(xpp3Dom);
+                    return xpp3Dom;
+                });
+    }
+
     public static Optional<ProjectModel> getProjectModel(Log log, String modelProjectFile) {
         log.debug("Reading model configuration:" + modelProjectFile);
         try ( InputStream in = new FileInputStream(modelProjectFile)) {
@@ -63,7 +83,7 @@ public class ProjectModelUtil {
     public static Profile getProfile(Model model, String profile) {
         return model.getProfiles().stream().filter(p -> p.getId().equals(profile)).findFirst().orElseGet(() -> {
             Profile p = new Profile();
-            p.setId("openliberty");
+            p.setId(profile);
             model.addProfile(p);
             return p;
         });
@@ -126,6 +146,10 @@ public class ProjectModelUtil {
                     parent.addChild(xpp3Dom);
                     return xpp3Dom;
                 });
+    }
+
+    private ProjectModelUtil() {
+
     }
 
 }
