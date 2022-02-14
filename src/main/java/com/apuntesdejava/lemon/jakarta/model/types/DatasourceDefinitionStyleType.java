@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 public enum DatasourceDefinitionStyleType {
     WEB("web.xml"),
+    OPENLIBERTY("openliberty"),
     PAYARA_RESOURCES("payara-resources");
     private final String value;
 

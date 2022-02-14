@@ -18,11 +18,31 @@ package com.apuntesdejava.lemon.plugin.util;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.model.BuildBase;
+import org.apache.maven.model.ConfigurationContainer;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginContainer;
+import org.apache.maven.model.PluginManagement;
+import org.apache.maven.model.Profile;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  *
@@ -30,8 +50,22 @@ import org.apache.maven.plugin.logging.Log;
  */
 public class ProjectModelUtil {
 
-    private ProjectModelUtil() {
+    public static Properties getProperties(Profile profile) {
+        return Optional.ofNullable(profile.getProperties())
+                .orElseGet(() -> {
+                    Properties props = new Properties();
+                    profile.setProperties(props);
+                    return profile.getProperties();
+                });
+    }
 
+    public static Xpp3Dom getConfiguration(ConfigurationContainer plugin) {
+        return Optional.ofNullable((Xpp3Dom) plugin.getConfiguration())
+                .orElseGet(() -> {
+                    Xpp3Dom xpp3Dom = new Xpp3Dom("configuration");
+                    plugin.setConfiguration(xpp3Dom);
+                    return xpp3Dom;
+                });
     }
 
     public static Optional<ProjectModel> getProjectModel(Log log, String modelProjectFile) {
@@ -44,6 +78,78 @@ public class ProjectModelUtil {
         }
         log.error("Model configuration file :" + modelProjectFile + " not found");
         return Optional.empty();
+    }
+
+    public static Profile getProfile(Model model, String profile) {
+        return model.getProfiles().stream().filter(p -> p.getId().equals(profile)).findFirst().orElseGet(() -> {
+            Profile p = new Profile();
+            p.setId(profile);
+            model.addProfile(p);
+            return p;
+        });
+    }
+
+    public static PluginManagement getPluginManagement(BuildBase build) {
+        return Optional.ofNullable(build.getPluginManagement()).orElseGet(() -> {
+            PluginManagement $pm = new PluginManagement();
+            build.setPluginManagement($pm);
+            return $pm;
+        });
+    }
+
+    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId) {
+        return addPlugin(pluginContainer, groupId, artifactId, null);
+    }
+
+    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId, String version) {
+        List<Plugin> plugins = pluginContainer.getPlugins();
+        Optional<Plugin> plugin = plugins.stream().filter(item -> item.getGroupId().equals(groupId) && item.getArtifactId().equals(artifactId)).findFirst();
+        if (plugin.isEmpty()) {
+            Plugin p = new Plugin();
+            p.setGroupId(groupId);
+            p.setArtifactId(artifactId);
+            if (StringUtils.isNotBlank(version)) {
+                p.setVersion(version);
+            }
+            pluginContainer.addPlugin(p);
+            return Optional.of(p);
+        }
+        return plugin;
+    }
+
+    public static BuildBase getBuild(Profile profile) {
+        return Optional.ofNullable(profile.getBuild()).orElseGet(() -> {
+            BuildBase b = new BuildBase();
+            profile.setBuild(b);
+            return b;
+        });
+    }
+
+    public static void saveModel(MavenProject mavenProject, Model model) throws IOException {
+        File projectFile = mavenProject.getFile();
+        MavenXpp3Writer writer = new MavenXpp3Writer();
+        writer.write(new FileWriter(projectFile), model);
+    }
+
+    public static Model getModel(MavenProject mavenProject) throws FileNotFoundException, IOException, XmlPullParserException {
+        File projectFile = mavenProject.getFile();
+        MavenXpp3Reader reader = new MavenXpp3Reader();
+        return reader.read(new FileReader(projectFile));
+    }
+
+    public static Xpp3Dom addChildren(Xpp3Dom parent, String name) {
+        return Arrays.stream(parent.getChildren())
+                .filter(item -> item.getName().equals(name))
+                .findFirst()
+                .orElseGet(() -> {
+                    Xpp3Dom xpp3Dom = new Xpp3Dom(name);
+                    parent.addChild(xpp3Dom);
+                    return xpp3Dom;
+                });
+    }
+
+    private ProjectModelUtil() {
+
     }
 
 }

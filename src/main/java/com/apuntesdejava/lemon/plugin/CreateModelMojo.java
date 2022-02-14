@@ -5,6 +5,7 @@ import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
+import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import com.apuntesdejava.lemon.plugin.util.XmlUtil;
@@ -392,7 +393,8 @@ public class CreateModelMojo extends AbstractMojo {
         if (projectModel.getDatasource() != null) {
             String driverDataSource = projectModel.getDriver();
             getLog().debug("Driver: " + driverDataSource);
-            this.style = DatasourceDefinitionStyleType.findByValue(projectModel.getDatasource().getStyle());
+            String styleSrc = projectModel.getDatasource().getStyle();
+            this.style = DatasourceDefinitionStyleType.findByValue(styleSrc);
             switch (style) {
                 case PAYARA_RESOURCES:
                     PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel, mavenProject);
@@ -400,8 +402,11 @@ public class CreateModelMojo extends AbstractMojo {
                 case WEB:
                     createWebXML();
                     break;
+                case OPENLIBERTY:
+                    OpenLibertyUtil.createDataSource(getLog(), projectModel, mavenProject);
+                    break;
                 default:
-                    getLog().error("DataSource Style is invalid");
+                    getLog().error("DataSource Style is invalid:" + styleSrc);
             }
         }
     }
