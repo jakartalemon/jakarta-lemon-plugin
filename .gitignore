@@ -54,3 +54,5 @@ Thumbs.db
 **/.factorypath
 /nb-configuration.xml
 /.vscode/
+
+.gradle

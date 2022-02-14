@@ -15,6 +15,7 @@
  */
 package com.apuntesdejava.lemon.jakarta.model;
 
+import com.apuntesdejava.lemon.plugin.util.Constants;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -36,46 +37,12 @@ public class ProjectModel {
     private DataSourceModel datasource;
 
     public Map<String, Object> getDbDefinitions() {
-        return (Map<String, Object>) DB_DEFINITIONS.get(datasource.getDb());
+        return (Map<String, Object>) Constants.DB_DEFINITIONS.get(datasource.getDb());
     }
 
     public String getDriver() {
-        return DB_DEFINITIONS.containsKey(datasource.getDb())
-                ? (String) ((Map<String, Object>) DB_DEFINITIONS.get(datasource.getDb())).get("datasource")
+        return Constants.DB_DEFINITIONS.containsKey(datasource.getDb())
+                ? (String) ((Map<String, Object>) Constants.DB_DEFINITIONS.get(datasource.getDb())).get("datasource")
                 : datasource.getDb();
     }
-    private static final Map<String, Object> DB_DEFINITIONS
-            = Map.of("mysql",
-                    Map.of(
-                            "driver", "com.mysql.cj.jdbc.Driver",
-                            "datasource", "com.mysql.cj.jdbc.MysqlDataSource",
-                            "pool", "com.mysql.cj.jdbc.MysqlConnectionPoolDataSource",
-                            "dependency", Map.of(
-                                    "version", "8.0.27",
-                                    "groupId", "mysql",
-                                    "artifactId", "mysql-connector-java"
-                            )
-                    ),
-                    "postgresql",
-                    Map.of(
-                            "driver", "org.postgresql.Driver",
-                            "datasource", "org.postgresql.jdbc3.Jdbc3ConnectionPool",
-                            "dependency", Map.of(
-                                    "version", "42.3.1",
-                                    "groupId", "org.postgresql",
-                                    "artifactId", "postgresql"
-                            )
-                    ),
-                    "mariadb",
-                    Map.of(
-                            "driver", "org.mariadb.jdbc.Driver",
-                            "datasource", "org.mariadb.jdbc.MariaDbDataSource",
-                            "pool", "org.mariadb.jdbc.MariaDbPoolDataSource",
-                            "dependency", Map.of(
-                                    "version", "2.7.4",
-                                    "groupId", "org.mariadb.jdbc",
-                                    "artifactId", "mariadb-java-client"
-                            )
-                    )
-            );
 }
