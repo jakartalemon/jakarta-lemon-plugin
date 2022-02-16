@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.server.liberty.model;
+package com.apuntesdejava.lemon.jakarta.liberty.model;
 
-import static jakarta.xml.bind.annotation.XmlAccessType.FIELD;
+import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,27 +28,21 @@ import lombok.NoArgsConstructor;
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
-@XmlAccessorType(FIELD)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OpenLibertyDataSourcePropertiesModel {
+@XmlAccessorType(XmlAccessType.FIELD)
+public class FeatureManagerModel {
 
-    @XmlAttribute
-    private String url;
-
-    @XmlAttribute
-    private String user;
-
-    @XmlAttribute
-    private String password;
-
-    @XmlAttribute
-    private String serverTimezone;
-
-    @XmlAttribute
-    private String allowPublicKeyRetrieval;
-
-    @XmlAttribute
-    private String useSSL;
+    private Set<String> feature = new LinkedHashSet<>(
+            List.of(
+                    "jakartaee-8.0",
+                    "microProfile-4.1",
+                    "jpa-2.2",
+                    "jaxrs-2.1",
+                    "jsonp-1.1",
+                    "cdi-2.0",
+                    "mpConfig-2.0"
+            )
+    );
 }

@@ -16,12 +16,12 @@
 package com.apuntesdejava.lemon.plugin;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.plugin.util.DependenciesUtil;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import org.apache.maven.model.BuildBase;
@@ -121,10 +121,10 @@ public class AddPayaraMicroMojo extends AbstractMojo {
 
                 String database = projectModel.getDatasource().getDb();
 
-                Map<String, Object> dependen = DependenciesUtil.getByDatabase(database);
-                ProjectModelUtil.addChildren(artifactItem, "groupId").setValue((String) dependen.get("groupId"));
-                ProjectModelUtil.addChildren(artifactItem, "artifactId").setValue((String) dependen.get("artifactId"));
-                ProjectModelUtil.addChildren(artifactItem, "version").setValue((String) dependen.get("version"));
+                DependencyModel dependen = DependenciesUtil.getByDatabase(database);
+                ProjectModelUtil.addChildren(artifactItem, "groupId").setValue((String) dependen.getGroupId());
+                ProjectModelUtil.addChildren(artifactItem, "artifactId").setValue((String) dependen.getArtifactId());
+                ProjectModelUtil.addChildren(artifactItem, "version").setValue((String) dependen.getVersion());
                 ProjectModelUtil.addChildren(artifactItem, "type").setValue("jar");
             }
 

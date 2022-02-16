@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.server.liberty.model;
+package com.apuntesdejava.lemon.jakarta.liberty.model;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Data;
 
 /**
@@ -26,24 +25,12 @@ import lombok.Data;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-@XmlRootElement(name = "server")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class ServerModel {
+public class SslModel {
 
     @XmlAttribute
-    private String description;
+    private String id = "defaultSSLConfig";
 
-    private FeatureManagerModel featureManager = new FeatureManagerModel();
-
-    private HttpEndpointModel httpEndpoint = new HttpEndpointModel();
-
-    private ApplicationManagerModel applicationManager = new ApplicationManagerModel();
-
-    private WebApplicationModel webApplication = new WebApplicationModel();
-
-    private SslModel ssl = new SslModel();
-
-    private OpenLibertyLibraryModel library;
-
-    private OpenLibertyDataSourceModel dataSource;
+    @XmlAttribute
+    private String trustDefaultCerts = "true";
 }

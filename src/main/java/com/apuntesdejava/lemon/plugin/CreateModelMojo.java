@@ -3,8 +3,10 @@ package com.apuntesdejava.lemon.plugin;
 import com.apuntesdejava.lemon.jakarta.jpa.model.EntityModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
+import com.apuntesdejava.lemon.plugin.util.DependenciesUtil;
 import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
@@ -348,10 +350,12 @@ public class CreateModelMojo extends AbstractMojo {
 
     private void addDBDependencies() {
         getLog().debug("Add DB Dependencies");
-        Map<String, String> dependencyMap = (Map<String, String>) projectModel.getDbDefinitions().get("dependency");
-        String version = dependencyMap.get(VERSION);
-        String groupId = dependencyMap.get("groupId");
-        String artifactId = dependencyMap.get("artifactId");
+        String database = projectModel.getDatasource().getDb();
+
+        DependencyModel dependen = DependenciesUtil.getByDatabase(database);
+        String version = dependen.getVersion();
+        String groupId = dependen.getGroupId();
+        String artifactId = dependen.getArtifactId();
         boolean found = mavenProject.getDependencies()
                 .stream()
                 .filter(item

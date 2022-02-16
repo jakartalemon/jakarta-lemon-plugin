@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.server.liberty.model;
+package com.apuntesdejava.lemon.jakarta.liberty.model;
 
 import static jakarta.xml.bind.annotation.XmlAccessType.FIELD;
 import jakarta.xml.bind.annotation.XmlAccessorType;

@@ -13,21 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.server.liberty.model;
+package com.apuntesdejava.lemon.jakarta.liberty.model;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
+import static jakarta.xml.bind.annotation.XmlAccessType.FIELD;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
+@XmlAccessorType(FIELD)
 @Data
-@XmlAccessorType(XmlAccessType.FIELD)
-public class ApplicationManagerModel {
+@AllArgsConstructor
+@NoArgsConstructor
+public class OpenLibertyJdbcDriverModel {
 
     @XmlAttribute
-    private String autoExpand = "true";
+    private String libraryRef;
 }

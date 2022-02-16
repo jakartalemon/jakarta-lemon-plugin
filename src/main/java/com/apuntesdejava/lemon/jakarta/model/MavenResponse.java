@@ -13,29 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.server.liberty.model;
+package com.apuntesdejava.lemon.jakarta.model;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-@XmlAccessorType(XmlAccessType.FIELD)
-@AllArgsConstructor
-@NoArgsConstructor
-public class WebApplicationModel {
+public class MavenResponse {
 
-    @XmlAttribute
-    private String contextRoot;
-
-    @XmlAttribute
-    private String location;
-
+    private MavenResponseResponse response;
+    private int numFound;
 }

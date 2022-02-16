@@ -17,12 +17,13 @@ package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.DataSourceModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyDataSourceModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyDataSourcePropertiesModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.FilesetModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyJdbcDriverModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyLibraryModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.ServerModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyDataSourceModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyDataSourcePropertiesModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.FilesetModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyJdbcDriverModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyLibraryModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.ServerModel;
+import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
@@ -104,11 +105,11 @@ public class OpenLibertyUtil {
                 Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, "dependency");
                 String database = projectModel.getDatasource().getDb();
 
-                Map<String, Object> dependen = DependenciesUtil.getByDatabase(database);
+                DependencyModel dependen = DependenciesUtil.getByDatabase(database);
 
-                ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.get("groupId"));
-                ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.get("artifactId"));
-                ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.get("version"));
+                ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.getGroupId());
+                ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.getArtifactId());
+                ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.getVersion());
                 copyDependencies.addChild(dependencyGroup);
 
                 ProjectModelUtil.saveModel(mavenProject, model);
