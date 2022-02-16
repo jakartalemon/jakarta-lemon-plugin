@@ -13,28 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.server.liberty.model;
+package com.apuntesdejava.lemon.jakarta.liberty.model;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
-import lombok.AllArgsConstructor;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
+@XmlRootElement(name = "server")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class FilesetModel {
+public class ServerModel {
 
     @XmlAttribute
-    private String dir;
+    private String description;
 
-    @XmlAttribute
-    private String includes;
+    private FeatureManagerModel featureManager = new FeatureManagerModel();
+
+    private HttpEndpointModel httpEndpoint = new HttpEndpointModel();
+
+    private ApplicationManagerModel applicationManager = new ApplicationManagerModel();
+
+    private WebApplicationModel webApplication = new WebApplicationModel();
+
+    private SslModel ssl = new SslModel();
+
+    private OpenLibertyLibraryModel library;
+
+    private OpenLibertyDataSourceModel dataSource;
 }

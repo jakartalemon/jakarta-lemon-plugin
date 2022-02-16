@@ -13,13 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.server.liberty.model;
+package com.apuntesdejava.lemon.jakarta.model;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,18 +26,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@XmlAccessorType(XmlAccessType.FIELD)
-public class FeatureManagerModel {
+public class DependencyModel {
 
-    private Set<String> feature = new LinkedHashSet<>(
-            List.of(
-                    "jakartaee-8.0",
-                    "microProfile-4.1",
-                    "jpa-2.2",
-                    "jaxrs-2.1",
-                    "jsonp-1.1",
-                    "cdi-2.0",
-                    "mpConfig-2.0"
-            )
-    );
+    private String groupId;
+    private String artifactId;
+    private String version;
 }
