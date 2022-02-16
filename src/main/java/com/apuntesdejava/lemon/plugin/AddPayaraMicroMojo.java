@@ -17,26 +17,19 @@ package com.apuntesdejava.lemon.plugin;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
-import com.apuntesdejava.lemon.plugin.util.DependenciesUtil;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
-import java.io.IOException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import org.apache.maven.model.BuildBase;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.Plugin;
-import org.apache.maven.model.PluginExecution;
-import org.apache.maven.model.Profile;
+import org.apache.maven.model.*;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Properties;
 
 /**
  *
@@ -56,7 +49,7 @@ public class AddPayaraMicroMojo extends AbstractMojo {
     private MavenProject mavenProject;
 
     @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
+    public void execute() {
         Optional<ProjectModel> opt = ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile);
         if (opt.isPresent()) {
             this.projectModel = opt.get();
@@ -119,13 +112,9 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                 Xpp3Dom artifactItems = ProjectModelUtil.addChildren(conf, "artifactItems");
                 Xpp3Dom artifactItem = ProjectModelUtil.addChildren(artifactItems, "artifactItem");
 
-                String database = projectModel.getDatasource().getDb();
+                ProjectModelUtil.addDependenciesDatabase(artifactItem,  projectModel.getDatasource().getDb());
 
-                Map<String, Object> dependen = DependenciesUtil.getByDatabase(database);
-                ProjectModelUtil.addChildren(artifactItem, "groupId").setValue((String) dependen.get("groupId"));
-                ProjectModelUtil.addChildren(artifactItem, "artifactId").setValue((String) dependen.get("artifactId"));
-                ProjectModelUtil.addChildren(artifactItem, "version").setValue((String) dependen.get("version"));
-                ProjectModelUtil.addChildren(artifactItem, "type").setValue("jar");
+
             }
 
             ProjectModelUtil.saveModel(mavenProject, model);

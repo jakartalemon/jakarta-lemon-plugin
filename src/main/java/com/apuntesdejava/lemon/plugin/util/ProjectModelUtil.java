@@ -18,31 +18,17 @@ package com.apuntesdejava.lemon.plugin.util;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.maven.model.BuildBase;
-import org.apache.maven.model.ConfigurationContainer;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.Plugin;
-import org.apache.maven.model.PluginContainer;
-import org.apache.maven.model.PluginManagement;
-import org.apache.maven.model.Profile;
+import org.apache.maven.model.*;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+
+import java.io.*;
+import java.util.*;
 
 /**
  *
@@ -131,7 +117,7 @@ public class ProjectModelUtil {
         writer.write(new FileWriter(projectFile), model);
     }
 
-    public static Model getModel(MavenProject mavenProject) throws FileNotFoundException, IOException, XmlPullParserException {
+    public static Model getModel(MavenProject mavenProject) throws  IOException, XmlPullParserException {
         File projectFile = mavenProject.getFile();
         MavenXpp3Reader reader = new MavenXpp3Reader();
         return reader.read(new FileReader(projectFile));
@@ -146,6 +132,14 @@ public class ProjectModelUtil {
                     parent.addChild(xpp3Dom);
                     return xpp3Dom;
                 });
+    }
+
+    public static void addDependenciesDatabase(Xpp3Dom dependency,String database){
+        Map<String, Object> dependen = DependenciesUtil.getByDatabase(database);
+
+        ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.get("groupId"));
+        ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.get("artifactId"));
+        ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.get("version"));
     }
 
     private ProjectModelUtil() {

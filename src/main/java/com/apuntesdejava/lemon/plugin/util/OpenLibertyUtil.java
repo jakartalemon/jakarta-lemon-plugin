@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
+
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Model;
@@ -71,11 +72,10 @@ public class OpenLibertyUtil {
             properties.setUser(datasourceModel.getUser());
             properties.setPassword(datasourceModel.getPassword());
             Map<String, String> props = datasourceModel.getProperties();
-            props.entrySet().stream().forEach(entry -> {
-                String propName = entry.getKey();
+            props.forEach((propName, value) -> {
                 if (PropertyUtils.isWriteable(properties, propName)) {
                     try {
-                        PropertyUtils.setProperty(properties, propName, entry.getValue());
+                        PropertyUtils.setProperty(properties, propName, value);
                     } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
                         log.warn(ex.getMessage());
                     }
@@ -102,13 +102,8 @@ public class OpenLibertyUtil {
                 location.setValue("jdbc");
 
                 Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, "dependency");
-                String database = projectModel.getDatasource().getDb();
+                ProjectModelUtil.addDependenciesDatabase(dependency, projectModel.getDatasource().getDb());
 
-                Map<String, Object> dependen = DependenciesUtil.getByDatabase(database);
-
-                ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.get("groupId"));
-                ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.get("artifactId"));
-                ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.get("version"));
                 copyDependencies.addChild(dependencyGroup);
 
                 ProjectModelUtil.saveModel(mavenProject, model);
