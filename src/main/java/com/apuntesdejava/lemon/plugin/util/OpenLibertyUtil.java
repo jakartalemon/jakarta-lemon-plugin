@@ -17,12 +17,12 @@ package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.DataSourceModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyDataSourceModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyDataSourcePropertiesModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.FilesetModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyJdbcDriverModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.OpenLibertyLibraryModel;
-import com.apuntesdejava.lemon.jakarta.server.liberty.model.ServerModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyDataSourceModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyDataSourcePropertiesModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.FilesetModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyJdbcDriverModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyLibraryModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.ServerModel;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
@@ -44,7 +44,6 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Profile;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
-//import org.apache.maven.shared.utils.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**

@@ -33,33 +33,18 @@ public class Constants {
                     "driver", "com.mysql.cj.jdbc.Driver",
                     "datasource", "com.mysql.cj.jdbc.MysqlDataSource",
                     "pool", "com.mysql.cj.jdbc.MysqlConnectionPoolDataSource",
-                    "search", "q=g:mysql+AND+a:mysql-connector-java",
-                    "dependency", Map.of(
-                            "version", "8.0.27",
-                            "groupId", "mysql",
-                            "artifactId", "mysql-connector-java"
-                    )
+                    "search", "g:mysql+AND+a:mysql-connector-java" 
             ),
             "postgresql", Map.of(
                     "driver", "org.postgresql.Driver",
                     "datasource", "org.postgresql.jdbc3.Jdbc3ConnectionPool",
-                    "search", "q=g:org.postgresql+AND+a:postgresql",
-                    "dependency", Map.of(
-                            "version", "42.3.1",
-                            "groupId", "org.postgresql",
-                            "artifactId", "postgresql"
-                    )
+                    "search", "g:org.postgresql+AND+a:postgresql" 
             ),
             "mariadb", Map.of(
                     "driver", "org.mariadb.jdbc.Driver",
                     "datasource", "org.mariadb.jdbc.MariaDbDataSource",
                     "pool", "org.mariadb.jdbc.MariaDbPoolDataSource",
-                    "search", "q=g:org.mariadb.jdbc+AND+a:mariadb-java-client",
-                    "dependency", Map.of(
-                            "version", "2.7.4",
-                            "groupId", "org.mariadb.jdbc",
-                            "artifactId", "mariadb-java-client"
-                    )
+                    "search", "g:org.mariadb.jdbc+AND+a:mariadb-java-client" 
             )
     );
 

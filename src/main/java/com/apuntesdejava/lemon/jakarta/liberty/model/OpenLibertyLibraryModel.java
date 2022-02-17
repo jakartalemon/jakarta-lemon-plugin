@@ -13,24 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.server.liberty.model;
+package com.apuntesdejava.lemon.jakarta.liberty.model;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @XmlAccessorType(XmlAccessType.FIELD)
-public class SslModel {
+public class OpenLibertyLibraryModel {
 
     @XmlAttribute
-    private String id = "defaultSSLConfig";
+    private String id;
 
-    @XmlAttribute
-    private String trustDefaultCerts = "true";
+    private FilesetModel fileset;
 }

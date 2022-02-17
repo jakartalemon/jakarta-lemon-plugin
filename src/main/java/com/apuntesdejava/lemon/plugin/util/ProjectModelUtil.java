@@ -16,6 +16,7 @@
 package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -117,7 +118,7 @@ public class ProjectModelUtil {
         writer.write(new FileWriter(projectFile), model);
     }
 
-    public static Model getModel(MavenProject mavenProject) throws  IOException, XmlPullParserException {
+    public static Model getModel(MavenProject mavenProject) throws IOException, XmlPullParserException {
         File projectFile = mavenProject.getFile();
         MavenXpp3Reader reader = new MavenXpp3Reader();
         return reader.read(new FileReader(projectFile));
@@ -134,12 +135,14 @@ public class ProjectModelUtil {
                 });
     }
 
-    public static void addDependenciesDatabase(Xpp3Dom dependency,String database){
-        Map<String, Object> dependen = DependenciesUtil.getByDatabase(database);
+    public static void addDependenciesDatabase(Xpp3Dom dependency, String database) {
 
-        ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.get("groupId"));
-        ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.get("artifactId"));
-        ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.get("version"));
+        DependencyModel dependen = DependenciesUtil.getByDatabase(database);
+
+        ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.getGroupId());
+        ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.getArtifactId());
+        ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.getVersion());
+
     }
 
     private ProjectModelUtil() {

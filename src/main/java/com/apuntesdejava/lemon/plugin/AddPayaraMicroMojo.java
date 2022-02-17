@@ -16,6 +16,7 @@
 package com.apuntesdejava.lemon.plugin;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
