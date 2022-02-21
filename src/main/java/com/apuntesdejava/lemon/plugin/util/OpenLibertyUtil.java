@@ -17,9 +17,9 @@ package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.DataSourceModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.liberty.model.FilesetModel;
 import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyDataSourceModel;
 import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyDataSourcePropertiesModel;
-import com.apuntesdejava.lemon.jakarta.liberty.model.FilesetModel;
 import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyJdbcDriverModel;
 import com.apuntesdejava.lemon.jakarta.liberty.model.OpenLibertyLibraryModel;
 import com.apuntesdejava.lemon.jakarta.liberty.model.ServerModel;
@@ -27,9 +27,6 @@ import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.Unmarshaller;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.project.MavenProject;
-
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
@@ -37,12 +34,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
-
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Profile;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
@@ -53,16 +51,19 @@ public class OpenLibertyUtil {
 
     private static final Path SERVER_XML_PATH = Paths.get("src", "main", "liberty", "config", "server.xml");
 
-    private OpenLibertyUtil() {
-
-    }
 
     public static void createDataSource(Log log, ProjectModel projectModel, MavenProject mavenProject) {
         try {
             log.debug("Updating server.xml");
             ServerModel serverModel = getServerModel(log, mavenProject);
             serverModel.getFeatureManager().getFeature().add("jdbc-4.3");
-            serverModel.setLibrary(new OpenLibertyLibraryModel("jdbcLib", new FilesetModel("jdbc", "*.jar"))
+            serverModel.setLibrary(
+                    new OpenLibertyLibraryModel(
+                            "jdbcLib", new FilesetModel(
+                                    "jdbc",
+                                    "*.jar"
+                            )
+                    )
             );
             String jndiName = "jdbc/" + mavenProject.getArtifactId();
             OpenLibertyDataSourcePropertiesModel properties = new OpenLibertyDataSourcePropertiesModel();
@@ -103,8 +104,6 @@ public class OpenLibertyUtil {
                 Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, "dependency");
                 ProjectModelUtil.addDependenciesDatabase(dependency, projectModel.getDatasource().getDb());
 
-                copyDependencies.addChild(dependencyGroup);
-
                 ProjectModelUtil.saveModel(mavenProject, model);
             }
 
@@ -143,6 +142,9 @@ public class OpenLibertyUtil {
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
         marshaller.marshal(serverModel, serverXmlPath.toFile());
 
+    }
+    private OpenLibertyUtil() {
+        
     }
 
 }

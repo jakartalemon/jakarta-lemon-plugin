@@ -145,6 +145,25 @@ public class ProjectModelUtil {
 
     }
 
+    public static void addDependenciesDatabase(Model model, String database) {
+        DependencyModel dependen = DependenciesUtil.getByDatabase(database);
+        List<Dependency> dependencies = model.getDependencies();
+        dependencies.stream()
+                .filter(item
+                        -> item.getGroupId().equals(dependen.getGroupId())
+                && item.getArtifactId().equals(dependen.getArtifactId())
+                ).findFirst()
+                .orElseGet(() -> {
+                    Dependency dd = new Dependency();
+                    dd.setGroupId(dependen.getGroupId());
+                    dd.setArtifactId(dependen.getArtifactId());
+                    dd.setVersion(dependen.getVersion());
+                    dependencies.add(dd);
+                    return dd;
+                });
+
+    }
+
     private ProjectModelUtil() {
 
     }

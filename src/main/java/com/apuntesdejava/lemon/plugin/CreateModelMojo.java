@@ -3,10 +3,8 @@ package com.apuntesdejava.lemon.plugin;
 import com.apuntesdejava.lemon.jakarta.jpa.model.EntityModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
-import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
-import com.apuntesdejava.lemon.plugin.util.DependenciesUtil;
 import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
@@ -30,12 +28,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.model.Model;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -45,8 +45,6 @@ import org.xml.sax.SAXException;
 public class CreateModelMojo extends AbstractMojo {
 
     private static final int TAB = 4;
-
-    private static final String VERSION = "version";
 
     private static void removeLastComma(List<String> list) {
         list.set(list.size() - 1, StringUtils.removeEnd(list.get(list.size() - 1), ","));
@@ -349,44 +347,16 @@ public class CreateModelMojo extends AbstractMojo {
     }
 
     private void addDBDependencies() {
-        getLog().debug("Add DB Dependencies");
-        String database = projectModel.getDatasource().getDb();
+        try {
+            getLog().debug("Add DB Dependencies");
+            String database = projectModel.getDatasource().getDb();
 
-        DependencyModel dependen = DependenciesUtil.getByDatabase(database);
-        String version = dependen.getVersion();
-        String groupId = dependen.getGroupId();
-        String artifactId = dependen.getArtifactId();
-        boolean found = mavenProject.getDependencies()
-                .stream()
-                .filter(item
-                        -> StringUtils.equals(item.getGroupId(), groupId)
-                && StringUtils.equals(item.getArtifactId(), artifactId)
-                ).count() > 0;
-        if (!found) {
-            try {
-                Document doc = XmlUtil.getFile(mavenProject.getFile());
+            Model model = ProjectModelUtil.getModel(mavenProject);
+            ProjectModelUtil.addDependenciesDatabase(model, database);
 
-                NodeList dependenciesNodeList = XmlUtil.getNodeListByPath(doc, "/project/dependencies");
-                Element dependenciesElem = (Element) dependenciesNodeList.item(0);
-                Element dependecyDriver = doc.createElement("dependency");
-
-                Element groupIdElem = doc.createElement("groupId");
-                groupIdElem.setTextContent(groupId);
-                Element artifactIdElem = doc.createElement("artifactId");
-                artifactIdElem.setTextContent(artifactId);
-                Element versionElem = doc.createElement(VERSION);
-                versionElem.setTextContent(version);
-
-                dependecyDriver.appendChild(groupIdElem);
-                dependecyDriver.appendChild(artifactIdElem);
-                dependecyDriver.appendChild(versionElem);
-
-                dependenciesElem.appendChild(dependecyDriver);
-                XmlUtil.writeXml(doc, mavenProject.getFile());
-
-            } catch (ParserConfigurationException | TransformerException | SAXException | XPathExpressionException | IOException ex) {
-                getLog().error(ex.getMessage(), ex);
-            }
+            ProjectModelUtil.saveModel(mavenProject, model);
+        } catch (IOException | XmlPullParserException ex) {
+            getLog().error(ex.getMessage(), ex);
         }
 
     }
