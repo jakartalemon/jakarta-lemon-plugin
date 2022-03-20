@@ -27,8 +27,9 @@ public class OpenApiModel {
 
     private String openapi;
     private InfoModel info;
-    
+
     private ServerModel[] servers;
-    
-    private Map<String,PathModel> paths;
+
+    private Map<String, PathModel> paths;
+    private Map<String, Object> components;
 }
