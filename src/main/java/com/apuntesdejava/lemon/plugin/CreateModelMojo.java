@@ -124,7 +124,7 @@ public class CreateModelMojo extends AbstractMojo {
             lines.add("import " + projectModel.getPackageName() + ".model." + entity.getName() + ";");
             lines.add("import javax.enterprise.context.ApplicationScoped;");
             lines.add("import javax.inject.Inject;");
-            lines.add("import javax.persistence.EntityManager;\n");
+            lines.add("import jakarta.persistence.EntityManager;\n");
             lines.add("@ApplicationScoped");
             Optional<Map.Entry<String, FieldModel>> pk = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk()).findFirst();
             String idClass = "Object";
@@ -271,13 +271,13 @@ public class CreateModelMojo extends AbstractMojo {
             lines.add("package " + projectModel.getPackageName() + "." + subPackageName + ";\n");
             lines.add("@lombok.Data");
             if (StringUtils.isNotBlank(entity.getTableName())) {
-                lines.add(String.format("@javax.persistence.Table(name = \"%s\" )", entity.getTableName()));
+                lines.add(String.format("@jakarta.persistence.Table(name = \"%s\" )", entity.getTableName()));
             }
-            lines.add("@javax.persistence.Entity");
+            lines.add("@jakarta.persistence.Entity");
             if (entity.getFinders() != null) {
                 entity.getFinders().entrySet().stream().filter(entry -> entry.getValue().isNativeQuery())
                         .forEach(entry -> {
-                            lines.add("@javax.persistence.NamedNativeQuery(");
+                            lines.add("@jakarta.persistence.NamedNativeQuery(");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("name = \"$s.findBy%s\",", entity.getName(), entry.getKey()));
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "query = \"" + entry.getValue().getQuery() + ",\n");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "resultClass = " + entry.getValue().getReturnValueType());
@@ -285,7 +285,7 @@ public class CreateModelMojo extends AbstractMojo {
                         });
                 entity.getFinders().entrySet().stream().filter(entry -> !entry.getValue().isNativeQuery())
                         .forEach(entry -> {
-                            lines.add("@javax.persistence.NamedQuery(");
+                            lines.add("@jakarta.persistence.NamedQuery(");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "name = \"" + entity.getName() + ".findBy" + entry.getKey() + "\",");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "query = \"" + entry.getValue().getQuery() + "\"");
                             lines.add(")");
@@ -295,14 +295,14 @@ public class CreateModelMojo extends AbstractMojo {
             if (entity.getFields() != null) {
                 entity.getFields().forEach((key, value) -> {
                     if (value.isPk()) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.Id");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@jakarta.persistence.Id");
                     }
                     if (StringUtils.isNotBlank(value.getJoin())) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("@javax.persistence.%s", value.getJoin()));
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("@jakarta.persistence.%s", value.getJoin()));
                     }
                     if (StringUtils.isNotBlank(value.getColumnName())) {
                         if (StringUtils.isBlank(value.getJoin())) {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.Column(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@jakarta.persistence.Column(");
                             List<String> attrsList = new ArrayList<>();
                             attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "name = \"" + value.getColumnName() + "\",");
                             if (value.getLength() != null && value.getLength() > 0) {
@@ -312,7 +312,7 @@ public class CreateModelMojo extends AbstractMojo {
                             lines.addAll(attrsList);
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
                         } else {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.JoinColumn(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@jakarta.persistence.JoinColumn(");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + String.format("name = \"%s\"", value.getColumnName()));
                             lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
 
@@ -325,8 +325,8 @@ public class CreateModelMojo extends AbstractMojo {
                                         EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
                                         GenerationType.AUTO
                                 );
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.GeneratedValue(");
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "strategy = javax.persistence.GenerationType." + generatedValueType.name());
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@jakarta.persistence.GeneratedValue(");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
                         lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
                     }
                     lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "private " + value.getType() + " " + key + ";\n");
@@ -414,7 +414,7 @@ public class CreateModelMojo extends AbstractMojo {
                                 propertyElem = createElement(doc, "property")
                         )
                 );
-                propertyElem.setAttribute("name", "javax.persistence.schema-generation.database.action");
+                propertyElem.setAttribute("name", "jakarta.persistence.schema-generation.database.action");
                 propertyElem.setAttribute("value", "create");
 
                 rootElement.appendChild(persistenceUnitElem);

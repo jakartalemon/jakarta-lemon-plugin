@@ -20,6 +20,7 @@ import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import org.apache.maven.model.*;
@@ -36,6 +37,14 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
  */
 @Mojo(name = "add-payara-micro")
 public class AddPayaraMicroMojo extends AbstractMojo {
+
+    private static final List<List<String>> options = List.of(
+            List.of("--autoBindHttp"),
+            List.of("--deploy", "${project.build.directory}/${project.build.finalName}"),
+            List.of("--postbootcommandfile", "post-boot-commands.txt"),
+            List.of("--contextroot", "/"),
+            List.of("--addlibs", "target/lib")
+    );
 
     @Parameter(
             property = "model",
@@ -62,7 +71,7 @@ public class AddPayaraMicroMojo extends AbstractMojo {
             Model model = ProjectModelUtil.getModel(mavenProject);
             Profile profile = ProjectModelUtil.getProfile(model, "payara-micro");
             Properties props = ProjectModelUtil.getProperties(profile);
-            props.setProperty("version.payara", "5.2021.10");
+            props.setProperty("version.payara", "5.2022.1");
             BuildBase build = ProjectModelUtil.getBuild(profile);
             Optional<Plugin> payaraPlugin = ProjectModelUtil.addPlugin(build, "fish.payara.maven.plugins", "payara-micro-maven-plugin", "1.4.0");
             if (payaraPlugin.isPresent()) {
@@ -72,12 +81,13 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                 ProjectModelUtil.addChildren(conf, "deployWar").setValue("false");
                 Xpp3Dom commandLineOptions = ProjectModelUtil.addChildren(conf, "commandLineOptions");
 
-                Xpp3Dom opt1 = ProjectModelUtil.addChildren(commandLineOptions, "option");
-                ProjectModelUtil.addChildren(opt1, "key").setValue("--autoBindHttp");
-
-                Xpp3Dom opt2 = ProjectModelUtil.addChildren(commandLineOptions, "option");
-                ProjectModelUtil.addChildren(opt2, "key").setValue("--deploy");
-                ProjectModelUtil.addChildren(opt2, "value").setValue("${project.build.directory}/${project.build.finalName}");
+                options.forEach(option -> {
+                    Xpp3Dom opt = ProjectModelUtil.addChildren(commandLineOptions, "option", true);
+                    ProjectModelUtil.addChildren(opt, "key").setValue(option.get(0));
+                    if (option.size() > 1) {
+                        ProjectModelUtil.addChildren(opt, "value").setValue(option.get(1));
+                    }
+                });
 
                 DatasourceDefinitionStyleType style = DatasourceDefinitionStyleType.findByValue(projectModel.getDatasource().getStyle());
                 if (style == DatasourceDefinitionStyleType.PAYARA_RESOURCES) {
@@ -111,8 +121,7 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                 Xpp3Dom artifactItems = ProjectModelUtil.addChildren(conf, "artifactItems");
                 Xpp3Dom artifactItem = ProjectModelUtil.addChildren(artifactItems, "artifactItem");
 
-                ProjectModelUtil.addDependenciesDatabase(artifactItem,  projectModel.getDatasource().getDb());
-
+                ProjectModelUtil.addDependenciesDatabase(artifactItem, projectModel.getDatasource().getDb());
 
             }
 

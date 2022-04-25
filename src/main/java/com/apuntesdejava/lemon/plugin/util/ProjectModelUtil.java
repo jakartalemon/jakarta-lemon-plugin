@@ -125,14 +125,22 @@ public class ProjectModelUtil {
     }
 
     public static Xpp3Dom addChildren(Xpp3Dom parent, String name) {
-        return Arrays.stream(parent.getChildren())
-                .filter(item -> item.getName().equals(name))
-                .findFirst()
-                .orElseGet(() -> {
-                    Xpp3Dom xpp3Dom = new Xpp3Dom(name);
-                    parent.addChild(xpp3Dom);
-                    return xpp3Dom;
-                });
+        return addChildren(parent, name, false);
+    }
+
+    public static Xpp3Dom addChildren(Xpp3Dom parent, String name, boolean ignoreDuplicate) {
+        return ignoreDuplicate
+                ? createChildren(parent, name)
+                : Arrays.stream(parent.getChildren())
+                        .filter(item -> item.getName().equals(name))
+                        .findFirst()
+                        .orElseGet(() -> createChildren(parent, name));
+    }
+
+    private static Xpp3Dom createChildren(Xpp3Dom parent, String name) {
+        Xpp3Dom xpp3Dom = new Xpp3Dom(name);
+        parent.addChild(xpp3Dom);
+        return xpp3Dom;
     }
 
     public static void addDependenciesDatabase(Xpp3Dom dependency, String database) {
