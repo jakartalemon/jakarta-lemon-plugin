@@ -154,8 +154,11 @@ public class ProjectModelUtil {
     }
 
     public static void addDependenciesDatabase(Model model, String database) {
-        DependencyModel dependen = DependenciesUtil.getByDatabase(database);
-        List<Dependency> dependencies = model.getDependencies();
+        addDependency(DependenciesUtil.getByDatabase(database), model.getDependencies());
+
+    }
+
+    private static void addDependency(DependencyModel dependen, List<Dependency> dependencies) {
         dependencies.stream()
                 .filter(item
                         -> item.getGroupId().equals(dependen.getGroupId())
@@ -169,7 +172,13 @@ public class ProjectModelUtil {
                     dependencies.add(dd);
                     return dd;
                 });
+    }
 
+    public static void addDependency(Model model, String groupId, String artefactId, String scope) {
+        addDependency(
+                DependenciesUtil.getLastVersionDependency("g:" + groupId + "+AND+a:" + artefactId),
+                model.getDependencies()
+        );
     }
 
     private ProjectModelUtil() {

@@ -5,6 +5,7 @@ import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
+import com.apuntesdejava.lemon.plugin.util.Constants;
 import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
@@ -43,8 +44,6 @@ import org.xml.sax.SAXException;
 
 @Mojo(name = "create-model")
 public class CreateModelMojo extends AbstractMojo {
-
-    private static final int TAB = 4;
 
     private static void removeLastComma(List<String> list) {
         list.set(list.size() - 1, StringUtils.removeEnd(list.get(list.size() - 1), ","));
@@ -133,17 +132,17 @@ public class CreateModelMojo extends AbstractMojo {
             }
             lines.add("public class " + className + " extends AbstractRepository<" + idClass + ", " + entity.getName() + "> {\n");
 
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@Inject");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "private EntityManager em;\n");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Inject");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private EntityManager em;\n");
 
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "public " + className + "() {");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "super(" + entity.getName() + ".class);");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "}\n");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public " + className + "() {");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "super(" + entity.getName() + ".class);");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@Override");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "protected EntityManager getEntityManager() {");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "return em;");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "}\n");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Override");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "protected EntityManager getEntityManager() {");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em;");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
             if (entity.getFinders() != null && !entity.getFinders().isEmpty()) {
                 getLog().debug("creando métodos de búsqueda");
@@ -153,28 +152,28 @@ public class CreateModelMojo extends AbstractMojo {
                         StringBuilder param = new StringBuilder();
                         param.append("(\n");
                         value.getParameters().forEach((paramName, type) -> {
-                            param.append(StringUtils.repeat(StringUtils.SPACE, TAB * 2));
+                            param.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2));
                             param.append(type).append(' ');
                             param.append(paramName).append(',');
                         });
                         param.setLength(param.length() - 1);
-                        param.append("\n").append(StringUtils.repeat(StringUtils.SPACE, TAB)).append(")");
+                        param.append("\n").append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append(")");
                         params = param.toString();
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "public " + value.getReturnValueType() + " findBy" + name + params + " {");
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "return em." + (value.isNativeQuery() ? "createNativeQuery" : "createNamedQuery")
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public " + value.getReturnValueType() + " findBy" + name + params + " {");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em." + (value.isNativeQuery() ? "createNativeQuery" : "createNamedQuery")
                             + "(\"" + entity.getName() + ".findBy" + name + "\"," + entity.getName() + ".class)");
                     if (value.getParameters() != null) {
                         value.getParameters().forEach((paramName, param) -> {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")");
                         });
                     }
                     if (value.isUnique()) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 3) + ".getSingleResult();");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".getSingleResult();");
                     } else {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 3) + ".getResultList();");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".getResultList();");
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "}\n");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
                 });
             }
 
@@ -202,14 +201,14 @@ public class CreateModelMojo extends AbstractMojo {
             String idClass = pk.isPresent() ? pk.get().getValue().getType() : "Object";
             lines.append("public class ").append(className).append(" extends AbstractService<").append(idClass).append(',').append(entity.getName()).append(',').append(repositoryClass).append('>').append('{').append('\n');
 
-            lines.append('\n').append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("@Inject\n")
-                    .append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("private ").append(repositoryClass).append(" repository;\n");
+            lines.append('\n').append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("@Inject\n")
+                    .append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("private ").append(repositoryClass).append(" repository;\n");
 
             lines.append("\n\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("@Override\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("public ").append(repositoryClass).append(" getRepository(){\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, TAB * 2)).append("return repository;\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("}\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("@Override\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("public ").append(repositoryClass).append(" getRepository(){\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)).append("return repository;\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("}\n");
 
             lines.append('}');
             Files.writeString(target, lines.toString());
@@ -278,16 +277,16 @@ public class CreateModelMojo extends AbstractMojo {
                 entity.getFinders().entrySet().stream().filter(entry -> entry.getValue().isNativeQuery())
                         .forEach(entry -> {
                             lines.add("@jakarta.persistence.NamedNativeQuery(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("name = \"$s.findBy%s\",", entity.getName(), entry.getKey()));
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "query = \"" + entry.getValue().getQuery() + ",\n");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "resultClass = " + entry.getValue().getReturnValueType());
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + String.format("name = \"$s.findBy%s\",", entity.getName(), entry.getKey()));
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "query = \"" + entry.getValue().getQuery() + ",\n");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "resultClass = " + entry.getValue().getReturnValueType());
                             lines.add(")");
                         });
                 entity.getFinders().entrySet().stream().filter(entry -> !entry.getValue().isNativeQuery())
                         .forEach(entry -> {
                             lines.add("@jakarta.persistence.NamedQuery(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "name = \"" + entity.getName() + ".findBy" + entry.getKey() + "\",");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "query = \"" + entry.getValue().getQuery() + "\"");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "name = \"" + entity.getName() + ".findBy" + entry.getKey() + "\",");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "query = \"" + entry.getValue().getQuery() + "\"");
                             lines.add(")");
                         });
             }
@@ -295,26 +294,26 @@ public class CreateModelMojo extends AbstractMojo {
             if (entity.getFields() != null) {
                 entity.getFields().forEach((key, value) -> {
                     if (value.isPk()) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@jakarta.persistence.Id");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.Id");
                     }
                     if (StringUtils.isNotBlank(value.getJoin())) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("@jakarta.persistence.%s", value.getJoin()));
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + String.format("@jakarta.persistence.%s", value.getJoin()));
                     }
                     if (StringUtils.isNotBlank(value.getColumnName())) {
                         if (StringUtils.isBlank(value.getJoin())) {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@jakarta.persistence.Column(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.Column(");
                             List<String> attrsList = new ArrayList<>();
-                            attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "name = \"" + value.getColumnName() + "\",");
+                            attrsList.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "name = \"" + value.getColumnName() + "\",");
                             if (value.getLength() != null && value.getLength() > 0) {
-                                attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "length = " + value.getLength() + ",");
+                                attrsList.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "length = " + value.getLength() + ",");
                             }
                             removeLastComma(attrsList);
                             lines.addAll(attrsList);
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                         } else {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@jakarta.persistence.JoinColumn(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + String.format("name = \"%s\"", value.getColumnName()));
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.JoinColumn(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + String.format("name = \"%s\"", value.getColumnName()));
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
 
                         }
                     }
@@ -325,11 +324,11 @@ public class CreateModelMojo extends AbstractMojo {
                                         EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
                                         GenerationType.AUTO
                                 );
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@jakarta.persistence.GeneratedValue(");
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "private " + value.getType() + " " + key + ";\n");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private " + value.getType() + " " + key + ";\n");
                 });
             }
             lines.add("}");

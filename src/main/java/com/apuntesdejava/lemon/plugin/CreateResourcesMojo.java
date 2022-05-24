@@ -16,7 +16,9 @@
 package com.apuntesdejava.lemon.plugin;
 
 import com.apuntesdejava.lemon.jakarta.openapi.model.OpenApiModel;
+import com.apuntesdejava.lemon.jakarta.openapi.model.OperationModel;
 import com.apuntesdejava.lemon.jakarta.openapi.model.PathModel;
+import com.apuntesdejava.lemon.plugin.util.Constants;
 import com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -141,19 +143,39 @@ public class CreateResourcesMojo extends AbstractMojo {
             List<String> lines;
             if (Files.exists(classPath)) {
                 lines = Files.readAllLines(classPath);
+                lines.removeIf(line -> StringUtils.equals(line, "}"));
             } else {
                 lines = new ArrayList<>();
                 lines.add("package " + mavenProject.getGroupId() + ".resources;");
                 lines.add("\nimport jakarta.ws.rs.*;");
+                lines.add("import jakarta.ws.rs.core.*;");
                 lines.add("\n@Path(\"" + resourceName + "\")");
                 lines.add("public class " + resourceClassName + " {");
-                lines.add("}");
+
             }
+            if (pathModel.getGet() != null) {
+                createOperation(lines, "@GET", pathModel.getGet());
+            } else if (pathModel.getPost() != null) {
+                createOperation(lines, "@POST", pathModel.getPost());
+            } else if (pathModel.getPut() != null) {
+                createOperation(lines, "@PUT", pathModel.getPut());
+            } else if (pathModel.getDelete() != null) {
+                createOperation(lines, "@DELETE", pathModel.getDelete());
+            }
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return Response.ok().build();");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}");
+
+            lines.add("}");
 
             Files.write(classPath, lines);
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
+    }
+
+    private void createOperation(List<String> lines, String method, OperationModel operationModel) {
+        lines.add('\n' + StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + method);
+        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public Response " + operationModel.getOperationId() + "() {");
     }
 
 }

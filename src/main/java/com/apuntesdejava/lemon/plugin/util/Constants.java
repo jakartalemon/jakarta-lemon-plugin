@@ -23,6 +23,8 @@ import java.util.Map;
  */
 public class Constants {
 
+    public static final int TAB = 4;
+
     private Constants() {
     }
 
