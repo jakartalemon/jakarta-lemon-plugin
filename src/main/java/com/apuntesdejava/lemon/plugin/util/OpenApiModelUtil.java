@@ -46,11 +46,11 @@ public class OpenApiModelUtil {
         return OpenApiModelUtilHolder.INSTANCE;
     }
 
-    public String createClass(Log log,String packageName, MavenProject mavenProject, String schemaName, Map<String, Map<String, String>> properties) {
+    public String createClass(Log log, String packageName, MavenProject mavenProject, String schemaName, Map<String, Map<String, String>> properties) {
         try {
             Path basedir = mavenProject.getBasedir().toPath();
             log.debug("basedir:" + basedir);
-            log.debug("schemaName:" + schemaName); 
+            log.debug("schemaName:" + schemaName);
             if (schemaName.endsWith("Request")) {
                 packageName += ".request";
             } else if (schemaName.endsWith("Response")) {
@@ -67,15 +67,7 @@ public class OpenApiModelUtil {
             content.add("public class " + schemaName + " {\n");
             properties.entrySet().forEach((entry0) -> {
                 String fieldName = entry0.getKey();
-                String type = entry0.getValue().get("type");
-                switch (type) {
-                    case "string":
-                        type = "String";
-                        break;
-                    case "integer":
-                        type = "Integer";
-                        break;
-                }
+                String type = getJavaType(entry0.getValue().get("type"));
                 content.add(StringUtils.repeat(StringUtils.SPACE, 4) + "private " + type + " " + fieldName + ";");
             });
             content.add("}");
@@ -87,6 +79,16 @@ public class OpenApiModelUtil {
             log.error(ex.getMessage(), ex);
         }
         return null;
+    }
+
+    public static String getJavaType(String schemaType) {
+        switch (schemaType) {
+            case "string":
+                return "String";
+            case "integer":
+                return "Integer";
+        }
+        return schemaType;
     }
 
     private static class OpenApiModelUtilHolder {

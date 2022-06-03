@@ -16,6 +16,7 @@
 package com.apuntesdejava.lemon.jakarta.openapi.model;
 
 import jakarta.json.bind.annotation.JsonbProperty;
+import java.util.Map;
 import lombok.Data;
 
 /**
@@ -27,4 +28,12 @@ public class ReferenceModel {
 
     @JsonbProperty(value = "$ref")
     private String ref;
+
+    private String in;
+
+    private String name;
+
+    private boolean required;
+
+    private Map<String, String> schema;
 }
