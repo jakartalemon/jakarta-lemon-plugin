@@ -78,17 +78,19 @@ public class CreateModelMojo extends AbstractMojo {
         try {
             getLog().debug("Building model");
             String groupId = mavenProject.getGroupId();
-            projectModel.setPackageName(groupId);
+            String packageName = StringUtils.replaceChars(groupId + '.' + mavenProject.getArtifactId(), '-', '.');
+            projectModel.setPackageName(packageName);
             projectModel.setProjectName(mavenProject.getId());
             Path baseDirPath = mavenProject.getBasedir().toPath();
             getLog().debug("groupId:" + groupId);
+            getLog().debug("packageName:" + packageName);
             getLog().debug("baseDir:" + baseDirPath);
 
             Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
             Path resourcesMainSrc = baseDirPath.resolve("src").resolve("main").resolve("resources");
             Path javaTestSrc = baseDirPath.resolve("src").resolve("test").resolve("java");
             Path packageBasePath = javaMainSrc;
-            String[] packagePaths = groupId.split("\\.");
+            String[] packagePaths = packageName.split("\\.");
             for (String packagePath : packagePaths) {
                 packageBasePath = packageBasePath.resolve(packagePath);
             }

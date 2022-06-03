@@ -46,12 +46,11 @@ public class OpenApiModelUtil {
         return OpenApiModelUtilHolder.INSTANCE;
     }
 
-    public String createClass(Log log, MavenProject mavenProject, String schemaName, Map<String, Map<String, String>> properties) {
+    public String createClass(Log log,String packageName, MavenProject mavenProject, String schemaName, Map<String, Map<String, String>> properties) {
         try {
             Path basedir = mavenProject.getBasedir().toPath();
             log.debug("basedir:" + basedir);
-            log.debug("schemaName:" + schemaName);
-            String packageName = (mavenProject.getGroupId() + '.' + mavenProject.getArtifactId() + ".model");
+            log.debug("schemaName:" + schemaName); 
             if (schemaName.endsWith("Request")) {
                 packageName += ".request";
             } else if (schemaName.endsWith("Response")) {

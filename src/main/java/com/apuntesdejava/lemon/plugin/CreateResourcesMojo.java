@@ -53,6 +53,7 @@ public class CreateResourcesMojo extends AbstractMojo {
     private MavenProject mavenProject;
     private OpenApiModel openApiModel;
     private final Map<String, String> componentsMap = new LinkedHashMap<>();
+    private String packageName;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -64,6 +65,7 @@ public class CreateResourcesMojo extends AbstractMojo {
             getLog().debug("modelProjectFile:" + path);
             Optional<OpenApiModel> openApiModel = OpenApiModelUtil.getInstance().getModel(path);
             getLog().debug("openApiModel:" + openApiModel);
+            this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-', '.');
             if (openApiModel.isPresent()) {
                 this.openApiModel = openApiModel.get();
                 createComponents();
@@ -82,9 +84,10 @@ public class CreateResourcesMojo extends AbstractMojo {
             getLog().info("schema:" + item);
             String schemaName = item.getKey();
             String type = (String) item.getValue().get("type");
+
             switch (type) {
                 case "object":
-                    String className = OpenApiModelUtil.getInstance().createClass(getLog(), mavenProject,
+                    String className = OpenApiModelUtil.getInstance().createClass(getLog(), packageName, mavenProject,
                             schemaName, (Map<String, Map<String, String>>) item.getValue().get("properties"));
                     componentsMap.put(schemaName, className);
                     break;
@@ -117,7 +120,7 @@ public class CreateResourcesMojo extends AbstractMojo {
             getLog().debug("Root path:" + rootPath);
             Path baseDirPath = mavenProject.getBasedir().toPath();
             Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
-            String groupId = mavenProject.getGroupId();
+            String groupId = packageName; // mavenProject.getGroupId();
             String[] packagePaths = groupId.split("\\.");
             Path packageBasePath = javaMainSrc;
             for (String packagePath : packagePaths) {
@@ -146,7 +149,7 @@ public class CreateResourcesMojo extends AbstractMojo {
                 lines.removeIf(line -> StringUtils.equals(line, "}"));
             } else {
                 lines = new ArrayList<>();
-                lines.add("package " + mavenProject.getGroupId() + ".resources;");
+                lines.add("package " + packageName + ".resources;");
                 lines.add("\nimport jakarta.ws.rs.*;");
                 lines.add("import jakarta.ws.rs.core.*;");
                 lines.add("\n@Path(\"" + resourceName + "\")");
