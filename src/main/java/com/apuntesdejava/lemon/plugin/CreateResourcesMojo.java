@@ -15,6 +15,23 @@
  */
 package com.apuntesdejava.lemon.plugin;
 
+import com.apuntesdejava.lemon.jakarta.openapi.model.OpenApiModel;
+import com.apuntesdejava.lemon.jakarta.openapi.model.OperationModel;
+import com.apuntesdejava.lemon.jakarta.openapi.model.PathModel;
+import com.apuntesdejava.lemon.plugin.util.Constants;
+import com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil;
+import static com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil.getJavaType;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import static java.util.stream.Collectors.joining;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -37,9 +54,164 @@ public class CreateResourcesMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
+    private OpenApiModel openApiModel;
+    private final Map<String, String> componentsMap = new LinkedHashMap<>();
+    private String packageName;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        try {
+            Path path = mavenProject
+                    .getBasedir()
+                    .toPath()
+                    .resolve(modelProjectFile);
+            getLog().debug("modelProjectFile:" + path);
+            Optional<OpenApiModel> openApiModel = OpenApiModelUtil.getInstance().getModel(path);
+            getLog().debug("openApiModel:" + openApiModel);
+            this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-', '.');
+            if (openApiModel.isPresent()) {
+                this.openApiModel = openApiModel.get();
+                createComponents();
+                createResources();
+            }
+        } catch (IOException ex) {
+            getLog().error(ex.getMessage(), ex);
+        }
+    }
+
+    private void createComponents() {
+        getLog().debug("Creating components");
+        Map<String, Object> components = openApiModel.getComponents();
+        ((Map) components.get("schemas")).entrySet().forEach(schema -> {
+            Map.Entry<String, Map<String, Object>> item = (Map.Entry<String, Map<String, Object>>) schema;
+            getLog().info("schema:" + item);
+            String schemaName = item.getKey();
+            String type = (String) item.getValue().get("type");
+
+            switch (type) {
+                case "object":
+                    String className = OpenApiModelUtil.getInstance().createClass(getLog(), packageName, mavenProject,
+                            schemaName, (Map<String, Map<String, String>>) item.getValue().get("properties"));
+                    componentsMap.put(schemaName, className);
+                    break;
+            }
+
+        });
+        getLog().debug("components:" + components);
+    }
+
+    private void createResources() {
+        try {
+            getLog().debug("Creating paths");
+            List<String> paths = new ArrayList<>(openApiModel.getPaths().keySet());
+            int pos = 0;
+
+            String aPath = paths.get(0);
+            //halland root path para ignorarlo en las rutas
+
+            chars:
+            for (int i = 0; i < aPath.length(); i++) {
+                char rec = aPath.charAt(i);
+                for (String path : paths) {
+                    if (i > path.length() || path.charAt(i) != rec) {
+                        break chars;
+                    }
+                }
+                pos++;
+            }
+            String rootPath = aPath.substring(0, pos);
+            getLog().debug("Root path:" + rootPath);
+            Path baseDirPath = mavenProject.getBasedir().toPath();
+            Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
+            String groupId = packageName; // mavenProject.getGroupId();
+            String[] packagePaths = groupId.split("\\.");
+            Path packageBasePath = javaMainSrc;
+            for (String packagePath : packagePaths) {
+                packageBasePath = packageBasePath.resolve(packagePath);
+
+            }
+            final Path packageBaseResources = packageBasePath.resolve("resources");
+            Files.createDirectories(packageBaseResources);
+
+            openApiModel.getPaths().entrySet().forEach(entry -> createResource(StringUtils.substringAfter(entry.getKey(), rootPath), entry.getValue(), packageBaseResources));
+        } catch (IOException ex) {
+            getLog().error(ex.getMessage(), ex);
+        }
+    }
+
+    private void createResource(String pathName, PathModel pathModel, Path packageBaseResources) {
+        try {
+            getLog().debug("path:" + pathName + "\tpathModel:" + pathModel + "\tpackageBaseResources:" + packageBaseResources);
+            getLog().info("Creating " + pathName);
+            String resourceName = StringUtils.substringBefore(pathName, "/");
+            String resourceClassName = StringUtils.capitalize(resourceName) + "Resource";
+            Path classPath = packageBaseResources.resolve(resourceClassName + ".java");
+            List<String> lines;
+            if (Files.exists(classPath)) {
+                lines = Files.readAllLines(classPath);
+                lines.removeIf(line -> StringUtils.equals(line, "}"));
+            } else {
+                lines = new ArrayList<>();
+                lines.add("package " + packageName + ".resources;");
+                lines.add("\nimport jakarta.ws.rs.*;");
+                lines.add("import jakarta.ws.rs.core.*;");
+                lines.add("\n@Path(\"" + resourceName + "\")");
+                lines.add("public class " + resourceClassName + " {");
+
+            }
+            if (pathModel.getGet() != null) {
+                createOperation(lines, "@GET", pathModel.getGet(), pathName, resourceName);
+            } else if (pathModel.getPost() != null) {
+                createOperation(lines, "@POST", pathModel.getPost(), pathName, resourceName);
+            } else if (pathModel.getPut() != null) {
+                createOperation(lines, "@PUT", pathModel.getPut(), pathName, resourceName);
+            } else if (pathModel.getDelete() != null) {
+                createOperation(lines, "@DELETE", pathModel.getDelete(), pathName, resourceName);
+            }
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return Response.ok().build();");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}");
+
+            lines.add("}");
+
+            Files.write(classPath, lines);
+        } catch (IOException ex) {
+            getLog().error(ex.getMessage(), ex);
+        }
+    }
+
+    private void createOperation(List<String> lines, String method, OperationModel operationModel, String pathName, String resourceName) {
+        boolean paramsIn = operationModel.getParameters() == null
+                ? false
+                : Arrays.stream(operationModel.getParameters()).filter(param -> StringUtils.equals(param.getIn(), "path"))
+                        .findFirst().isPresent();
+        lines.add(StringUtils.EMPTY);
+        if (paramsIn) {
+            String operationPath = StringUtils.substringBetween(StringUtils.substringAfter(pathName, resourceName), "{", "}");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Path(\"{" + operationPath + "}\")");
+        }
+        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + method);
+        String parameters = operationModel.getParameters() == null
+                ? StringUtils.EMPTY
+                : Arrays.stream(operationModel.getParameters())
+                        .map(param -> {
+                            StringBuilder result = new StringBuilder();
+                            switch (param.getIn()) {
+                                case "path":
+                                    result.append("@PathParam(\"").append(param.getName()).append("\") ");
+                                    break;
+                            }
+                            result.append(getJavaType(param.getSchema().get("type")))
+                                    .append(' ')
+                                    .append(param.getName());
+                            return result.toString();
+                        }).collect(joining(","));
+        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                + StringUtils.replaceEach(
+                        "public Response {operationId} ({parameters}) {",
+                        new String[]{"{operationId}", "{parameters}"},
+                        new String[]{operationModel.getOperationId(), parameters}
+                )
+        );
     }
 
 }

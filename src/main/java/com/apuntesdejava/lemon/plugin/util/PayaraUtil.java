@@ -116,7 +116,7 @@ public class PayaraUtil {
             line.append(String.format("user=%s:", dataSource.getUser()));
             line.append(String.format("password=%s:", dataSource.getPassword()));
             line.append(String.format("url=%s:", replaceChars(dataSource.getUrl())));
-            dataSource.getProperties().entrySet().forEach(entry -> line.append(String.format("%s=%s:", entry.getKey(), entry.getValue())));
+            dataSource.getProperties().forEach((key, value) -> line.append(String.format("%s=%s:", key, value)));
             line.setLength(line.length() - 1);//quitando último dos puntos
             line.append(' ').append(poolName);
             lines.add(line.toString());

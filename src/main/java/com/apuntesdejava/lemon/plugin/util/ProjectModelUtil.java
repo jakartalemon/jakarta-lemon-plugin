@@ -16,33 +16,20 @@
 package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
+import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.maven.model.BuildBase;
-import org.apache.maven.model.ConfigurationContainer;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.Plugin;
-import org.apache.maven.model.PluginContainer;
-import org.apache.maven.model.PluginManagement;
-import org.apache.maven.model.Profile;
+import org.apache.maven.model.*;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+
+import java.io.*;
+import java.util.*;
 
 /**
  *
@@ -131,21 +118,67 @@ public class ProjectModelUtil {
         writer.write(new FileWriter(projectFile), model);
     }
 
-    public static Model getModel(MavenProject mavenProject) throws FileNotFoundException, IOException, XmlPullParserException {
+    public static Model getModel(MavenProject mavenProject) throws IOException, XmlPullParserException {
         File projectFile = mavenProject.getFile();
         MavenXpp3Reader reader = new MavenXpp3Reader();
         return reader.read(new FileReader(projectFile));
     }
 
     public static Xpp3Dom addChildren(Xpp3Dom parent, String name) {
-        return Arrays.stream(parent.getChildren())
-                .filter(item -> item.getName().equals(name))
-                .findFirst()
+        return addChildren(parent, name, false);
+    }
+
+    public static Xpp3Dom addChildren(Xpp3Dom parent, String name, boolean ignoreDuplicate) {
+        return ignoreDuplicate
+                ? createChildren(parent, name)
+                : Arrays.stream(parent.getChildren())
+                        .filter(item -> item.getName().equals(name))
+                        .findFirst()
+                        .orElseGet(() -> createChildren(parent, name));
+    }
+
+    private static Xpp3Dom createChildren(Xpp3Dom parent, String name) {
+        Xpp3Dom xpp3Dom = new Xpp3Dom(name);
+        parent.addChild(xpp3Dom);
+        return xpp3Dom;
+    }
+
+    public static void addDependenciesDatabase(Xpp3Dom dependency, String database) {
+
+        DependencyModel dependen = DependenciesUtil.getByDatabase(database);
+
+        ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.getGroupId());
+        ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.getArtifactId());
+        ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.getVersion());
+
+    }
+
+    public static void addDependenciesDatabase(Model model, String database) {
+        addDependency(DependenciesUtil.getByDatabase(database), model.getDependencies());
+
+    }
+
+    private static void addDependency(DependencyModel dependen, List<Dependency> dependencies) {
+        dependencies.stream()
+                .filter(item
+                        -> item.getGroupId().equals(dependen.getGroupId())
+                && item.getArtifactId().equals(dependen.getArtifactId())
+                ).findFirst()
                 .orElseGet(() -> {
-                    Xpp3Dom xpp3Dom = new Xpp3Dom(name);
-                    parent.addChild(xpp3Dom);
-                    return xpp3Dom;
+                    Dependency dd = new Dependency();
+                    dd.setGroupId(dependen.getGroupId());
+                    dd.setArtifactId(dependen.getArtifactId());
+                    dd.setVersion(dependen.getVersion());
+                    dependencies.add(dd);
+                    return dd;
                 });
+    }
+
+    public static void addDependency(Model model, String groupId, String artefactId, String scope) {
+        addDependency(
+                DependenciesUtil.getLastVersionDependency("g:" + groupId + "+AND+a:" + artefactId),
+                model.getDependencies()
+        );
     }
 
     private ProjectModelUtil() {

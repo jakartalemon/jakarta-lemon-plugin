@@ -3,10 +3,9 @@ package com.apuntesdejava.lemon.plugin;
 import com.apuntesdejava.lemon.jakarta.jpa.model.EntityModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
-import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
-import com.apuntesdejava.lemon.plugin.util.DependenciesUtil;
+import com.apuntesdejava.lemon.plugin.util.Constants;
 import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
@@ -30,12 +29,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.model.Model;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -43,10 +44,6 @@ import org.xml.sax.SAXException;
 
 @Mojo(name = "create-model")
 public class CreateModelMojo extends AbstractMojo {
-
-    private static final int TAB = 4;
-
-    private static final String VERSION = "version";
 
     private static void removeLastComma(List<String> list) {
         list.set(list.size() - 1, StringUtils.removeEnd(list.get(list.size() - 1), ","));
@@ -81,17 +78,19 @@ public class CreateModelMojo extends AbstractMojo {
         try {
             getLog().debug("Building model");
             String groupId = mavenProject.getGroupId();
-            projectModel.setPackageName(groupId);
+            String packageName = StringUtils.replaceChars(groupId + '.' + mavenProject.getArtifactId(), '-', '.');
+            projectModel.setPackageName(packageName);
             projectModel.setProjectName(mavenProject.getId());
             Path baseDirPath = mavenProject.getBasedir().toPath();
             getLog().debug("groupId:" + groupId);
+            getLog().debug("packageName:" + packageName);
             getLog().debug("baseDir:" + baseDirPath);
 
             Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
             Path resourcesMainSrc = baseDirPath.resolve("src").resolve("main").resolve("resources");
             Path javaTestSrc = baseDirPath.resolve("src").resolve("test").resolve("java");
             Path packageBasePath = javaMainSrc;
-            String[] packagePaths = groupId.split("\\.");
+            String[] packagePaths = packageName.split("\\.");
             for (String packagePath : packagePaths) {
                 packageBasePath = packageBasePath.resolve(packagePath);
             }
@@ -126,7 +125,7 @@ public class CreateModelMojo extends AbstractMojo {
             lines.add("import " + projectModel.getPackageName() + ".model." + entity.getName() + ";");
             lines.add("import javax.enterprise.context.ApplicationScoped;");
             lines.add("import javax.inject.Inject;");
-            lines.add("import javax.persistence.EntityManager;\n");
+            lines.add("import jakarta.persistence.EntityManager;\n");
             lines.add("@ApplicationScoped");
             Optional<Map.Entry<String, FieldModel>> pk = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk()).findFirst();
             String idClass = "Object";
@@ -135,17 +134,17 @@ public class CreateModelMojo extends AbstractMojo {
             }
             lines.add("public class " + className + " extends AbstractRepository<" + idClass + ", " + entity.getName() + "> {\n");
 
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@Inject");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "private EntityManager em;\n");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Inject");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private EntityManager em;\n");
 
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "public " + className + "() {");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "super(" + entity.getName() + ".class);");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "}\n");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public " + className + "() {");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "super(" + entity.getName() + ".class);");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@Override");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "protected EntityManager getEntityManager() {");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "return em;");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "}\n");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Override");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "protected EntityManager getEntityManager() {");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em;");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
             if (entity.getFinders() != null && !entity.getFinders().isEmpty()) {
                 getLog().debug("creando métodos de búsqueda");
@@ -155,28 +154,28 @@ public class CreateModelMojo extends AbstractMojo {
                         StringBuilder param = new StringBuilder();
                         param.append("(\n");
                         value.getParameters().forEach((paramName, type) -> {
-                            param.append(StringUtils.repeat(StringUtils.SPACE, TAB * 2));
+                            param.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2));
                             param.append(type).append(' ');
                             param.append(paramName).append(',');
                         });
                         param.setLength(param.length() - 1);
-                        param.append("\n").append(StringUtils.repeat(StringUtils.SPACE, TAB)).append(")");
+                        param.append("\n").append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append(")");
                         params = param.toString();
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "public " + value.getReturnValueType() + " findBy" + name + params + " {");
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "return em." + (value.isNativeQuery() ? "createNativeQuery" : "createNamedQuery")
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public " + value.getReturnValueType() + " findBy" + name + params + " {");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em." + (value.isNativeQuery() ? "createNativeQuery" : "createNamedQuery")
                             + "(\"" + entity.getName() + ".findBy" + name + "\"," + entity.getName() + ".class)");
                     if (value.getParameters() != null) {
                         value.getParameters().forEach((paramName, param) -> {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")");
                         });
                     }
                     if (value.isUnique()) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 3) + ".getSingleResult();");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".getSingleResult();");
                     } else {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 3) + ".getResultList();");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".getResultList();");
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "}\n");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
                 });
             }
 
@@ -204,14 +203,14 @@ public class CreateModelMojo extends AbstractMojo {
             String idClass = pk.isPresent() ? pk.get().getValue().getType() : "Object";
             lines.append("public class ").append(className).append(" extends AbstractService<").append(idClass).append(',').append(entity.getName()).append(',').append(repositoryClass).append('>').append('{').append('\n');
 
-            lines.append('\n').append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("@Inject\n")
-                    .append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("private ").append(repositoryClass).append(" repository;\n");
+            lines.append('\n').append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("@Inject\n")
+                    .append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("private ").append(repositoryClass).append(" repository;\n");
 
             lines.append("\n\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("@Override\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("public ").append(repositoryClass).append(" getRepository(){\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, TAB * 2)).append("return repository;\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, TAB)).append("}\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("@Override\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("public ").append(repositoryClass).append(" getRepository(){\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)).append("return repository;\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("}\n");
 
             lines.append('}');
             Files.writeString(target, lines.toString());
@@ -273,23 +272,23 @@ public class CreateModelMojo extends AbstractMojo {
             lines.add("package " + projectModel.getPackageName() + "." + subPackageName + ";\n");
             lines.add("@lombok.Data");
             if (StringUtils.isNotBlank(entity.getTableName())) {
-                lines.add(String.format("@javax.persistence.Table(name = \"%s\" )", entity.getTableName()));
+                lines.add(String.format("@jakarta.persistence.Table(name = \"%s\" )", entity.getTableName()));
             }
-            lines.add("@javax.persistence.Entity");
+            lines.add("@jakarta.persistence.Entity");
             if (entity.getFinders() != null) {
                 entity.getFinders().entrySet().stream().filter(entry -> entry.getValue().isNativeQuery())
                         .forEach(entry -> {
-                            lines.add("@javax.persistence.NamedNativeQuery(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("name = \"$s.findBy%s\",", entity.getName(), entry.getKey()));
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "query = \"" + entry.getValue().getQuery() + ",\n");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "resultClass = " + entry.getValue().getReturnValueType());
+                            lines.add("@jakarta.persistence.NamedNativeQuery(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + String.format("name = \"$s.findBy%s\",", entity.getName(), entry.getKey()));
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "query = \"" + entry.getValue().getQuery() + ",\n");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "resultClass = " + entry.getValue().getReturnValueType());
                             lines.add(")");
                         });
                 entity.getFinders().entrySet().stream().filter(entry -> !entry.getValue().isNativeQuery())
                         .forEach(entry -> {
-                            lines.add("@javax.persistence.NamedQuery(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "name = \"" + entity.getName() + ".findBy" + entry.getKey() + "\",");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "query = \"" + entry.getValue().getQuery() + "\"");
+                            lines.add("@jakarta.persistence.NamedQuery(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "name = \"" + entity.getName() + ".findBy" + entry.getKey() + "\",");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "query = \"" + entry.getValue().getQuery() + "\"");
                             lines.add(")");
                         });
             }
@@ -297,26 +296,26 @@ public class CreateModelMojo extends AbstractMojo {
             if (entity.getFields() != null) {
                 entity.getFields().forEach((key, value) -> {
                     if (value.isPk()) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.Id");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.Id");
                     }
                     if (StringUtils.isNotBlank(value.getJoin())) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + String.format("@javax.persistence.%s", value.getJoin()));
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + String.format("@jakarta.persistence.%s", value.getJoin()));
                     }
                     if (StringUtils.isNotBlank(value.getColumnName())) {
                         if (StringUtils.isBlank(value.getJoin())) {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.Column(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.Column(");
                             List<String> attrsList = new ArrayList<>();
-                            attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "name = \"" + value.getColumnName() + "\",");
+                            attrsList.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "name = \"" + value.getColumnName() + "\",");
                             if (value.getLength() != null && value.getLength() > 0) {
-                                attrsList.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "length = " + value.getLength() + ",");
+                                attrsList.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "length = " + value.getLength() + ",");
                             }
                             removeLastComma(attrsList);
                             lines.addAll(attrsList);
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                         } else {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.JoinColumn(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + String.format("name = \"%s\"", value.getColumnName()));
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.JoinColumn(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + String.format("name = \"%s\"", value.getColumnName()));
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
 
                         }
                     }
@@ -327,11 +326,11 @@ public class CreateModelMojo extends AbstractMojo {
                                         EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
                                         GenerationType.AUTO
                                 );
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "@javax.persistence.GeneratedValue(");
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB * 2) + "strategy = javax.persistence.GenerationType." + generatedValueType.name());
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + ")");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, TAB) + "private " + value.getType() + " " + key + ";\n");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private " + value.getType() + " " + key + ";\n");
                 });
             }
             lines.add("}");
@@ -349,44 +348,16 @@ public class CreateModelMojo extends AbstractMojo {
     }
 
     private void addDBDependencies() {
-        getLog().debug("Add DB Dependencies");
-        String database = projectModel.getDatasource().getDb();
+        try {
+            getLog().debug("Add DB Dependencies");
+            String database = projectModel.getDatasource().getDb();
 
-        DependencyModel dependen = DependenciesUtil.getByDatabase(database);
-        String version = dependen.getVersion();
-        String groupId = dependen.getGroupId();
-        String artifactId = dependen.getArtifactId();
-        boolean found = mavenProject.getDependencies()
-                .stream()
-                .filter(item
-                        -> StringUtils.equals(item.getGroupId(), groupId)
-                && StringUtils.equals(item.getArtifactId(), artifactId)
-                ).count() > 0;
-        if (!found) {
-            try {
-                Document doc = XmlUtil.getFile(mavenProject.getFile());
+            Model model = ProjectModelUtil.getModel(mavenProject);
+            ProjectModelUtil.addDependenciesDatabase(model, database);
 
-                NodeList dependenciesNodeList = XmlUtil.getNodeListByPath(doc, "/project/dependencies");
-                Element dependenciesElem = (Element) dependenciesNodeList.item(0);
-                Element dependecyDriver = doc.createElement("dependency");
-
-                Element groupIdElem = doc.createElement("groupId");
-                groupIdElem.setTextContent(groupId);
-                Element artifactIdElem = doc.createElement("artifactId");
-                artifactIdElem.setTextContent(artifactId);
-                Element versionElem = doc.createElement(VERSION);
-                versionElem.setTextContent(version);
-
-                dependecyDriver.appendChild(groupIdElem);
-                dependecyDriver.appendChild(artifactIdElem);
-                dependecyDriver.appendChild(versionElem);
-
-                dependenciesElem.appendChild(dependecyDriver);
-                XmlUtil.writeXml(doc, mavenProject.getFile());
-
-            } catch (ParserConfigurationException | TransformerException | SAXException | XPathExpressionException | IOException ex) {
-                getLog().error(ex.getMessage(), ex);
-            }
+            ProjectModelUtil.saveModel(mavenProject, model);
+        } catch (IOException | XmlPullParserException ex) {
+            getLog().error(ex.getMessage(), ex);
         }
 
     }
@@ -444,7 +415,7 @@ public class CreateModelMojo extends AbstractMojo {
                                 propertyElem = createElement(doc, "property")
                         )
                 );
-                propertyElem.setAttribute("name", "javax.persistence.schema-generation.database.action");
+                propertyElem.setAttribute("name", "jakarta.persistence.schema-generation.database.action");
                 propertyElem.setAttribute("value", "create");
 
                 rootElement.appendChild(persistenceUnitElem);
