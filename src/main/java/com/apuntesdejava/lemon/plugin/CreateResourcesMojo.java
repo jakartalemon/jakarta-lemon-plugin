@@ -18,6 +18,7 @@ package com.apuntesdejava.lemon.plugin;
 import com.apuntesdejava.lemon.jakarta.openapi.model.OpenApiModel;
 import com.apuntesdejava.lemon.jakarta.openapi.model.OperationModel;
 import com.apuntesdejava.lemon.jakarta.openapi.model.PathModel;
+import com.apuntesdejava.lemon.jakarta.openapi.model.ResponseModel;
 import com.apuntesdejava.lemon.plugin.util.Constants;
 import com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil;
 import static com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil.getJavaType;
@@ -159,16 +160,47 @@ public class CreateResourcesMojo extends AbstractMojo {
                 lines.add("public class " + resourceClassName + " {");
 
             }
+            OperationModel operation = null;
             if (pathModel.getGet() != null) {
-                createOperation(lines, "@GET", pathModel.getGet(), pathName, resourceName);
+                createOperation(lines, "@GET", operation = pathModel.getGet(), pathName, resourceName);
             } else if (pathModel.getPost() != null) {
-                createOperation(lines, "@POST", pathModel.getPost(), pathName, resourceName);
+                createOperation(lines, "@POST", operation = pathModel.getPost(), pathName, resourceName);
             } else if (pathModel.getPut() != null) {
-                createOperation(lines, "@PUT", pathModel.getPut(), pathName, resourceName);
+                createOperation(lines, "@PUT", operation = pathModel.getPut(), pathName, resourceName);
             } else if (pathModel.getDelete() != null) {
-                createOperation(lines, "@DELETE", pathModel.getDelete(), pathName, resourceName);
+                createOperation(lines, "@DELETE", operation = pathModel.getDelete(), pathName, resourceName);
             }
-            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return Response.ok().build();");
+//preparando response
+            ResponseModel response = operation.getResponses().getOrDefault("default", operation.getResponses().get("200"));
+            if (response != null && response.getContent() != null) {
+                Map<String, Object> content = (Map<String, Object>) response.getContent().values().stream().findFirst().get();
+                var schema = (Map<String, Object>) content.get("schema");
+                var type = (String) schema.get("type");
+                var items = (Map<String, String>) schema.get("items");
+                var $ref = items != null
+                        ? items.get("$ref")
+                        : (String) schema.get("$ref");
+                String modelResponse = "", onlyClassName = "";
+                if (StringUtils.isNotBlank($ref)) {
+                    modelResponse = componentsMap.get(StringUtils.substringAfterLast($ref, "/"));
+                    String line = "import " + modelResponse + ";";
+                    if (!lines.contains(line)) {
+                        lines.add(2, line);
+                    }
+                    onlyClassName = StringUtils.substringAfterLast(modelResponse, ".");
+                }
+                if (StringUtils.equalsAnyIgnoreCase(type, "array")) {
+                    lines.add(2, "import java.util.Collections;");
+                    lines.add(2, "import java.util.List;");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "List<" + onlyClassName + "> response = Collections.emptyList();");
+
+                } else {
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + onlyClassName + " response = new " + onlyClassName + "();");
+                }
+                lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return Response.ok(response).build();");
+            } else {
+                lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return Response.ok().build();");
+            }
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}");
 
             lines.add("}");
@@ -180,14 +212,19 @@ public class CreateResourcesMojo extends AbstractMojo {
     }
 
     private void createOperation(List<String> lines, String method, OperationModel operationModel, String pathName, String resourceName) {
+        lines.add(StringUtils.EMPTY);
         boolean paramsIn = operationModel.getParameters() == null
                 ? false
                 : Arrays.stream(operationModel.getParameters()).filter(param -> StringUtils.equals(param.getIn(), "path"))
                         .findFirst().isPresent();
-        lines.add(StringUtils.EMPTY);
         if (paramsIn) {
             String operationPath = StringUtils.substringBetween(StringUtils.substringAfter(pathName, resourceName), "{", "}");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Path(\"{" + operationPath + "}\")");
+        }
+        ResponseModel response = operationModel.getResponses().getOrDefault("default", operationModel.getResponses().get("200"));
+        if (response != null && response.getContent() != null) {
+            String mimeType = response.getContent().keySet().stream().collect(joining("\",\""));
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Produces(\"" + mimeType + "\")");
         }
         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + method);
         String parameters = operationModel.getParameters() == null
@@ -207,7 +244,7 @@ public class CreateResourcesMojo extends AbstractMojo {
                         }).collect(joining(","));
         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
                 + StringUtils.replaceEach(
-                        "public Response {operationId} ({parameters}) {",
+                        "public Response {operationId}({parameters}) {",
                         new String[]{"{operationId}", "{parameters}"},
                         new String[]{operationModel.getOperationId(), parameters}
                 )

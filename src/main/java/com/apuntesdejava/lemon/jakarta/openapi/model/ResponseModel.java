@@ -23,12 +23,11 @@ import lombok.Data;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Data
-public class OperationModel {
+public class ResponseModel {
 
-    private String[] tags;
-    private String summary;
-    private String operationId;
-    private ReferenceModel[] parameters;
-    private RequestBodyModel requestBody;
-    private Map<String, ResponseModel> responses;
+    private String description;
+
+    private Map<String, Object> headers;
+    private Map<String, Object> content;
+    private Map<String, Object> links;
 }
