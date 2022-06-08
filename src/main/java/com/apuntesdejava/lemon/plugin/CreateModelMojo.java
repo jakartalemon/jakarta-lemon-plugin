@@ -123,8 +123,8 @@ public class CreateModelMojo extends AbstractMojo {
             List<String> lines = new ArrayList<>();
             lines.add("package " + projectModel.getPackageName() + ".repositories;\n");
             lines.add("import " + projectModel.getPackageName() + ".model." + entity.getName() + ";");
-            lines.add("import javax.enterprise.context.ApplicationScoped;");
-            lines.add("import javax.inject.Inject;");
+            lines.add("import jakarta.enterprise.context.ApplicationScoped;");
+            lines.add("import jakarta.inject.Inject;");
             lines.add("import jakarta.persistence.EntityManager;\n");
             lines.add("@ApplicationScoped");
             Optional<Map.Entry<String, FieldModel>> pk = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk()).findFirst();
@@ -196,8 +196,8 @@ public class CreateModelMojo extends AbstractMojo {
             StringBuilder repositoryClass = new StringBuilder().append(entity.getName()).append("Repository");
             lines.append("import ").append(projectModel.getPackageName()).append(".repositories.").append(repositoryClass).append(";\n");
             lines.append("import ").append(projectModel.getPackageName()).append(".model.").append(entity.getName()).append(';').append('\n');
-            lines.append("import javax.enterprise.context.ApplicationScoped;\n");
-            lines.append("import javax.inject.Inject;\n\n");
+            lines.append("import jakarta.enterprise.context.ApplicationScoped;\n");
+            lines.append("import jakarta.inject.Inject;\n\n");
             lines.append("@ApplicationScoped\n");
             Optional<Map.Entry<String, FieldModel>> pk = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk()).findFirst();
             String idClass = pk.isPresent() ? pk.get().getValue().getType() : "Object";
