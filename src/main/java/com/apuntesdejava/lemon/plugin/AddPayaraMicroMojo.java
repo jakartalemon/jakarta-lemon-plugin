@@ -17,6 +17,7 @@ package com.apuntesdejava.lemon.plugin;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
+import com.apuntesdejava.lemon.plugin.util.DependenciesUtil;
 import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import java.io.IOException;
@@ -69,9 +70,10 @@ public class AddPayaraMicroMojo extends AbstractMojo {
         try {
             getLog().debug("Add Payara Micro Plugin");
             Model model = ProjectModelUtil.getModel(mavenProject);
+            var dependencyModel = DependenciesUtil.getLastVersionDependency("g:fish.payara.extras+AND+a:payara-micro");
             Profile profile = ProjectModelUtil.getProfile(model, "payara-micro");
             Properties props = ProjectModelUtil.getProperties(profile);
-            props.setProperty("version.payara", "5.2022.1");
+            props.setProperty("version.payara", dependencyModel.getVersion());
             BuildBase build = ProjectModelUtil.getBuild(profile);
             Optional<Plugin> payaraPlugin = ProjectModelUtil.addPlugin(build, "fish.payara.maven.plugins", "payara-micro-maven-plugin", "1.4.0");
             if (payaraPlugin.isPresent()) {
