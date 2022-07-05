@@ -15,9 +15,9 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.openapi.model.OpenApiModel;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -27,8 +27,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
@@ -46,7 +44,7 @@ public class OpenApiModelUtil {
         return OpenApiModelUtilHolder.INSTANCE;
     }
 
-    public String createClass(Log log, String packageName, MavenProject mavenProject, String schemaName, Map<String, Map<String, String>> properties) {
+    public String createClass(Log log, String packageName, MavenProject mavenProject, String schemaName, JsonObject properties) {
         try {
             Path basedir = mavenProject.getBasedir().toPath();
             log.debug("basedir:" + basedir);
@@ -67,7 +65,7 @@ public class OpenApiModelUtil {
             content.add("public class " + schemaName + " {\n");
             properties.entrySet().forEach((entry0) -> {
                 String fieldName = entry0.getKey();
-                String type = getJavaType(entry0.getValue().get("type"));
+                String type = getJavaType(entry0.getValue().asJsonObject().getString("type"));
                 content.add(StringUtils.repeat(StringUtils.SPACE, 4) + "private " + type + " " + fieldName + ";");
             });
             content.add("}");
@@ -96,10 +94,10 @@ public class OpenApiModelUtil {
         private static final OpenApiModelUtil INSTANCE = new OpenApiModelUtil();
     }
 
-    public Optional<OpenApiModel> getModel(Path modelProjectFile) throws FileNotFoundException, IOException {
+    public JsonObject getModel(Path modelProjectFile) throws FileNotFoundException, IOException {
         try ( InputStream in = new FileInputStream(modelProjectFile.toFile())) {
-            Jsonb jsonb = JsonbBuilder.create();
-            return Optional.ofNullable(jsonb.fromJson(in, OpenApiModel.class));
+            JsonReader reader = Json.createReader(in);
+            return reader.readObject();
         }
     }
 }

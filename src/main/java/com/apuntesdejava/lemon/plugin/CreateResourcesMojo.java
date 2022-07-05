@@ -15,23 +15,10 @@
  */
 package com.apuntesdejava.lemon.plugin;
 
-import com.apuntesdejava.lemon.jakarta.openapi.model.OpenApiModel;
-import com.apuntesdejava.lemon.jakarta.openapi.model.OperationModel;
-import com.apuntesdejava.lemon.jakarta.openapi.model.PathModel;
-import com.apuntesdejava.lemon.jakarta.openapi.model.ResponseModel;
 import com.apuntesdejava.lemon.plugin.util.Constants;
 import com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil;
-import static com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil.getJavaType;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import static java.util.stream.Collectors.joining;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -40,8 +27,16 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+
+import static com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil.getJavaType;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
 /**
- *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @Mojo(name = "create-rest")
@@ -55,9 +50,9 @@ public class CreateResourcesMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
-    private OpenApiModel openApiModel;
     private final Map<String, String> componentsMap = new LinkedHashMap<>();
     private String packageName;
+    private JsonObject openApiModel;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -67,14 +62,11 @@ public class CreateResourcesMojo extends AbstractMojo {
                     .toPath()
                     .resolve(modelProjectFile);
             getLog().debug("modelProjectFile:" + path);
-            Optional<OpenApiModel> openApiModel = OpenApiModelUtil.getInstance().getModel(path);
+            this.openApiModel = OpenApiModelUtil.getInstance().getModel(path);
             getLog().debug("openApiModel:" + openApiModel);
             this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-', '.');
-            if (openApiModel.isPresent()) {
-                this.openApiModel = openApiModel.get();
-                createComponents();
-                createResources();
-            }
+            createComponents();
+            createResources();
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
@@ -82,17 +74,17 @@ public class CreateResourcesMojo extends AbstractMojo {
 
     private void createComponents() {
         getLog().debug("Creating components");
-        Map<String, Object> components = openApiModel.getComponents();
-        ((Map) components.get("schemas")).entrySet().forEach(schema -> {
-            Map.Entry<String, Map<String, Object>> item = (Map.Entry<String, Map<String, Object>>) schema;
+        JsonObject components = openApiModel.getJsonObject("components");
+        components.getJsonObject("schemas").forEach((schemaName, item) -> {
+            //Map.Entry<String, Map<String, Object>> item = (Map.Entry<String, Map<String, Object>>) schema;
             getLog().info("schema:" + item);
-            String schemaName = item.getKey();
-            String type = (String) item.getValue().get("type");
+            // String schemaName = item.getKey(); 
+            String type = item.asJsonObject().getString("type");
 
             switch (type) {
                 case "object":
                     String className = OpenApiModelUtil.getInstance().createClass(getLog(), packageName, mavenProject,
-                            schemaName, (Map<String, Map<String, String>>) item.getValue().get("properties"));
+                            schemaName, item.asJsonObject().getJsonObject("properties"));
                     componentsMap.put(schemaName, className);
                     break;
             }
@@ -104,7 +96,10 @@ public class CreateResourcesMojo extends AbstractMojo {
     private void createResources() {
         try {
             getLog().debug("Creating paths");
-            List<String> paths = new ArrayList<>(openApiModel.getPaths().keySet());
+            List<String> paths = openApiModel.getJsonObject("paths")
+                    .entrySet()
+                    .stream()
+                    .map(entry -> entry.getKey()).collect(toList());
             int pos = 0;
 
             String aPath = paths.get(0);
@@ -134,13 +129,15 @@ public class CreateResourcesMojo extends AbstractMojo {
             final Path packageBaseResources = packageBasePath.resolve("resources");
             Files.createDirectories(packageBaseResources);
 
-            openApiModel.getPaths().entrySet().forEach(entry -> createResource(StringUtils.substringAfter(entry.getKey(), rootPath), entry.getValue(), packageBaseResources));
+            openApiModel.getJsonObject("paths")
+                    .entrySet()
+                    .forEach(entry -> createResource(StringUtils.substringAfter(entry.getKey(), rootPath), entry.getValue().asJsonObject(), packageBaseResources));
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
     }
 
-    private void createResource(String pathName, PathModel pathModel, Path packageBaseResources) {
+    private void createResource(String pathName, JsonObject pathModel, Path packageBaseResources) {
         try {
             getLog().debug("path:" + pathName + "\tpathModel:" + pathModel + "\tpackageBaseResources:" + packageBaseResources);
             getLog().info("Creating " + pathName);
@@ -160,29 +157,30 @@ public class CreateResourcesMojo extends AbstractMojo {
                 lines.add("public class " + resourceClassName + " {");
 
             }
-            OperationModel operation = null;
-            if (pathModel.getGet() != null) {
-                createOperation(lines, "@GET", operation = pathModel.getGet(), pathName, resourceName);
-            } else if (pathModel.getPost() != null) {
-                createOperation(lines, "@POST", operation = pathModel.getPost(), pathName, resourceName);
-            } else if (pathModel.getPut() != null) {
-                createOperation(lines, "@PUT", operation = pathModel.getPut(), pathName, resourceName);
-            } else if (pathModel.getDelete() != null) {
-                createOperation(lines, "@DELETE", operation = pathModel.getDelete(), pathName, resourceName);
+            JsonObject operation = null;
+            if (pathModel.containsKey("get")) {
+                createOperation(lines, "@GET", operation = pathModel.getJsonObject("get"), pathName, resourceName);
+            } else if (pathModel.containsKey("post")) {
+                createOperation(lines, "@POST", operation = pathModel.getJsonObject("post"), pathName, resourceName);
+            } else if (pathModel.containsKey("put")) {
+                createOperation(lines, "@PUT", operation = pathModel.getJsonObject("put"), pathName, resourceName);
+            } else if (pathModel.containsKey("delete")) {
+                createOperation(lines, "@DELETE", operation = pathModel.getJsonObject("delete"), pathName, resourceName);
             }
 //preparando response
-            ResponseModel response = operation.getResponses().getOrDefault("default", operation.getResponses().get("200"));
-            if (response != null && response.getContent() != null) {
-                Map<String, Object> content = (Map<String, Object>) response.getContent().values().stream().findFirst().get();
+
+            JsonObject response = (operation == null) ? null : operation.getJsonObject("default");
+            if (response != null && response.containsKey("content")) {
+                JsonObject content = response.getJsonObject("content");
                 var schema = (Map<String, Object>) content.get("schema");
                 var type = (String) schema.get("type");
                 var items = (Map<String, String>) schema.get("items");
                 var $ref = items != null
                         ? items.get("$ref")
                         : (String) schema.get("$ref");
-                String modelResponse = "", onlyClassName = "";
+                String onlyClassName = "";
                 if (StringUtils.isNotBlank($ref)) {
-                    modelResponse = componentsMap.get(StringUtils.substringAfterLast($ref, "/"));
+                    String modelResponse = componentsMap.get(StringUtils.substringAfterLast($ref, "/"));
                     String line = "import " + modelResponse + ";";
                     if (!lines.contains(line)) {
                         lines.add(2, line);
@@ -211,42 +209,70 @@ public class CreateResourcesMojo extends AbstractMojo {
         }
     }
 
-    private void createOperation(List<String> lines, String method, OperationModel operationModel, String pathName, String resourceName) {
+    private void createOperation(List<String> lines, String method, JsonObject operationModel, String pathName, String resourceName) {
         lines.add(StringUtils.EMPTY);
-        boolean paramsIn = operationModel.getParameters() == null
+        boolean paramsIn = !operationModel.containsKey("parameters")
                 ? false
-                : Arrays.stream(operationModel.getParameters()).filter(param -> StringUtils.equals(param.getIn(), "path"))
-                        .findFirst().isPresent();
+                : operationModel.getJsonArray("parameters")
+                        .stream()
+                        .map(JsonValue::asJsonObject)
+                        .filter(item -> item.containsKey("in") && StringUtils.equals(item.getString("in"), "path"))
+                        .findFirst()
+                        .isPresent();
         if (paramsIn) {
             String operationPath = StringUtils.substringBetween(StringUtils.substringAfter(pathName, resourceName), "{", "}");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Path(\"{" + operationPath + "}\")");
         }
-        ResponseModel response = operationModel.getResponses().getOrDefault("default", operationModel.getResponses().get("200"));
-        if (response != null && response.getContent() != null) {
-            String mimeType = response.getContent().keySet().stream().collect(joining("\",\""));
+        JsonObject response = operationModel.getJsonObject("responses").getJsonObject("default");
+        if (response != null && response.containsKey("content")) {
+            String mimeType = response.getJsonObject("content").keySet().stream().collect(joining("\",\""));
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Produces(\"" + mimeType + "\")");
         }
+        StringBuilder bodyParams = new StringBuilder();
+        if (operationModel.containsKey("requestBody")) {
+            var requestBody = operationModel.getJsonObject("requestBody");
+            getLog().debug("requestBody:" + requestBody);
+            if (requestBody != null) {
+                var content = requestBody.getJsonObject("content");
+                String mimeType = content.keySet().stream().collect(joining("\",\""));
+                lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Consumes(\"" + mimeType + "\")");
+                var schema = content.values().stream().findFirst().get().asJsonObject().getJsonObject("schema");
+
+                String modelRequest = componentsMap.get(StringUtils.substringAfterLast(schema.getString("$ref"), "/"));
+                String line = "import " + modelRequest + ";";
+                if (!lines.contains(line)) {
+                    lines.add(2, line);
+                }
+                var className = StringUtils.substringAfterLast(modelRequest, ".");
+                bodyParams.append(className).append(" request");
+
+            }
+        }
         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + method);
-        String parameters = operationModel.getParameters() == null
+        String parameters = !operationModel.containsKey("parameters")
                 ? StringUtils.EMPTY
-                : Arrays.stream(operationModel.getParameters())
+                : operationModel.getJsonArray("parameters").stream()
+                        .map(JsonValue::asJsonObject)
                         .map(param -> {
                             StringBuilder result = new StringBuilder();
-                            switch (param.getIn()) {
+                            switch (param.getString("in")) {
                                 case "path":
-                                    result.append("@PathParam(\"").append(param.getName()).append("\") ");
+                                    result.append("@PathParam(\"").append(param.getString("name")).append("\") ");
                                     break;
                             }
-                            result.append(getJavaType(param.getSchema().get("type")))
+                            result.append(getJavaType(param.getJsonObject("schema").getString("type")))
                                     .append(' ')
-                                    .append(param.getName());
+                                    .append(param.getString("name"));
                             return result.toString();
                         }).collect(joining(","));
         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
                 + StringUtils.replaceEach(
                         "public Response {operationId}({parameters}) {",
                         new String[]{"{operationId}", "{parameters}"},
-                        new String[]{operationModel.getOperationId(), parameters}
+                        new String[]{operationModel.getString("operationId"),
+                            bodyParams.length() == 0
+                            ? parameters
+                            : bodyParams.toString()}
                 )
         );
     }
