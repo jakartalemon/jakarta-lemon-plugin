@@ -20,11 +20,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -36,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static com.apuntesdejava.lemon.plugin.util.XmlUtil.createElement;
 
 @Mojo(name = "create-model")
 public class CreateModelMojo extends AbstractMojo {
@@ -245,7 +238,7 @@ public class CreateModelMojo extends AbstractMojo {
         try {
             getLog().debug("==createFile:\n\tsource=" + source + "\n\ttarget:" + target);
             Files.createDirectories(target.getParent());
-            try (InputStream is = getClass().getResourceAsStream(source)) {
+            try ( InputStream is = getClass().getResourceAsStream(source)) {
                 List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
                 List<String> newCode = code
                         .stream()
@@ -320,9 +313,9 @@ public class CreateModelMojo extends AbstractMojo {
 
                         GenerationType generatedValueType
                                 = ObjectUtils.defaultIfNull(
-                                EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
-                                GenerationType.AUTO
-                        );
+                                        EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
+                                        GenerationType.AUTO
+                                );
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
@@ -384,45 +377,20 @@ public class CreateModelMojo extends AbstractMojo {
     }
 
     private void addPersistenceXML() {
-        getLog().debug("Create persistence.xml");
-        Path persistenceXmlPath = Paths.get(mavenProject.getBasedir().toString(), "src", "main", "resources", "META-INF", "persistence.xml").normalize();
-        if (Files.notExists(persistenceXmlPath)) {
-            try {
-                Files.createDirectories(persistenceXmlPath.getParent());
+        try {
+            getLog().debug("Create persistence.xml");
+            var baseDir = mavenProject.getBasedir();
+            getLog().debug("baseDir:" + baseDir);
+            var persistenceUtil = PersistenceXmlUtil.getInstance(baseDir.toString());
+            var persistenceXml = persistenceUtil.getPersistenceXml();
+            persistenceXml.getPersistenceUnit().setName(projectModel.getProjectName() + "PU");
+            String dataSourceName = (style == DatasourceDefinitionStyleType.WEB ? "java:app/" : "")
+                    + "jdbc/" + mavenProject.getArtifactId();
+            persistenceXml.getPersistenceUnit().setJtaDataSource(dataSourceName);
+            persistenceUtil.savePersistenceXml(persistenceXml);
 
-                Document doc = XmlUtil.newDocument();
-                Element rootElement = doc.createElementNS("http://xmlns.jcp.org/xml/ns/persistence", "persistence");
-                rootElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-                rootElement.setAttribute("xsi:schemaLocation", "http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd");
-                rootElement.setAttribute("version", "2.2");
-                Element persistenceUnitElem = doc.createElement("persistence-unit");
-                persistenceUnitElem.setAttribute("name", projectModel.getProjectName() + "PU");
-                persistenceUnitElem.setAttribute("transaction-type", "JTA");
-                String dataSourceName = (style == DatasourceDefinitionStyleType.WEB ? "java:app/" : "")
-                        + "jdbc/" + mavenProject.getArtifactId();
-
-                persistenceUnitElem.appendChild(createElement(doc, "jta-data-source", dataSourceName));
-                persistenceUnitElem.appendChild(createElement(doc, "shared-cache-mode", "ENABLE_SELECTIVE"));
-                Element propertyElem;
-
-                persistenceUnitElem.appendChild(
-                        createElement(
-                                doc,
-                                "properties",
-                                propertyElem = createElement(doc, "property")
-                        )
-                );
-                propertyElem.setAttribute("name", "jakarta.persistence.schema-generation.database.action");
-                propertyElem.setAttribute("value", "create");
-
-                rootElement.appendChild(persistenceUnitElem);
-                doc.appendChild(rootElement);
-
-                XmlUtil.writeXml(doc, persistenceXmlPath);
-
-            } catch (IOException | ParserConfigurationException | TransformerException ex) {
-                getLog().error(ex.getMessage(), ex);
-            }
+        } catch (IOException | JAXBException ex) {
+            getLog().error(ex.getMessage(), ex);
         }
 
     }
@@ -433,7 +401,6 @@ public class CreateModelMojo extends AbstractMojo {
             getLog().debug("Creating DataSource at " + webXmlPath);
             Files.createDirectories(webXmlPath.getParent());
             String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
-
 
             var webXmlUtil = WebXmlUtil.getInstance(mavenProject.getBasedir().toString());
             var webXml = webXmlUtil.getWebxml();

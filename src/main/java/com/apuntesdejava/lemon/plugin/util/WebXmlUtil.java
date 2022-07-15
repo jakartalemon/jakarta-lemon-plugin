@@ -54,11 +54,11 @@ public class WebXmlUtil {
 
     public WebAppModel getWebxml() throws JAXBException, IOException {
         if (Files.exists(webXmlPath)) {
-            Files.createDirectories(webXmlPath.getParent());
             JAXBContext jaxbContext = JAXBContext.newInstance(WebAppModel.class);
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
             return (WebAppModel) jaxbUnmarshaller.unmarshal(webXmlPath.toFile());
         }
+        Files.createDirectories(webXmlPath.getParent());
         var model = new WebAppModel();
         model.setSessionConfig(new SessionConfigModel("30"));
         return model;
@@ -67,7 +67,6 @@ public class WebXmlUtil {
     public void saveWebXml(WebAppModel webxml) throws JAXBException {
         JAXBContext context = JAXBContext.newInstance(WebAppModel.class);
         Marshaller marshaller = context.createMarshaller();
-        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
         marshaller.setProperty(Marshaller.JAXB_SCHEMA_LOCATION, "http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd");
         marshaller.marshal(webxml, webXmlPath.toFile());
