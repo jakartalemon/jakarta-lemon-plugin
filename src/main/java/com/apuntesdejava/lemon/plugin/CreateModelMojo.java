@@ -5,26 +5,9 @@ import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
-import com.apuntesdejava.lemon.plugin.util.Constants;
-import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
-import com.apuntesdejava.lemon.plugin.util.PayaraUtil;
-import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
-import com.apuntesdejava.lemon.plugin.util.XmlUtil;
-import static com.apuntesdejava.lemon.plugin.util.XmlUtil.createElement;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.xpath.XPathExpressionException;
+import com.apuntesdejava.lemon.jakarta.webxml.model.DataSourceModel;
+import com.apuntesdejava.lemon.plugin.util.*;
+import jakarta.xml.bind.JAXBException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -39,8 +22,22 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.apuntesdejava.lemon.plugin.util.XmlUtil.createElement;
 
 @Mojo(name = "create-model")
 public class CreateModelMojo extends AbstractMojo {
@@ -248,7 +245,7 @@ public class CreateModelMojo extends AbstractMojo {
         try {
             getLog().debug("==createFile:\n\tsource=" + source + "\n\ttarget:" + target);
             Files.createDirectories(target.getParent());
-            try ( InputStream is = getClass().getResourceAsStream(source)) {
+            try (InputStream is = getClass().getResourceAsStream(source)) {
                 List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
                 List<String> newCode = code
                         .stream()
@@ -323,9 +320,9 @@ public class CreateModelMojo extends AbstractMojo {
 
                         GenerationType generatedValueType
                                 = ObjectUtils.defaultIfNull(
-                                        EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
-                                        GenerationType.AUTO
-                                );
+                                EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
+                                GenerationType.AUTO
+                        );
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
@@ -436,52 +433,31 @@ public class CreateModelMojo extends AbstractMojo {
             getLog().debug("Creating DataSource at " + webXmlPath);
             Files.createDirectories(webXmlPath.getParent());
             String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
-            boolean createDataSource;
-            Document doc;
-            Element rootElement;
-            if (Files.exists(webXmlPath)) {
-                doc = XmlUtil.getFile(webXmlPath.toFile());
-                NodeList dataSourceNodeList = XmlUtil.getNodeListByPath(doc, "/web-app/data-source/name[text()='" + dataSourceName + "']");
-                createDataSource = dataSourceNodeList.getLength() == 0;
-                rootElement = (Element) doc.getElementsByTagName("web-app").item(0);
-            } else {
-                createDataSource = true;
-                doc = XmlUtil.newDocument();
-                rootElement = doc.createElementNS("http://xmlns.jcp.org/xml/ns/javaee", "web-app");
-                rootElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-                rootElement.setAttribute("xsi:schemaLocation", "http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd");
-                rootElement.setAttribute("version", "4.0");
-                doc.appendChild(rootElement);
-                rootElement.appendChild(createElement(doc, "session-config", createElement(doc, "session-timeout", "30")));
 
-            }
+
+            var webXmlUtil = WebXmlUtil.getInstance(mavenProject.getBasedir().toString());
+            var webXml = webXmlUtil.getWebxml();
+
+            boolean createDataSource = webXml.getDataSource() == null;
             if (createDataSource) {
                 String driverDataSource = projectModel.getDriver();
+                var dataSourceModelBuilder = new DataSourceModel.DataSourceModelBuilder()
+                        .setName(dataSourceName)
+                        .setClassName(driverDataSource)
+                        .setUrl(projectModel.getDatasource().getUrl())
+                        .setUser(projectModel.getDatasource().getUser())
+                        .setPassword(projectModel.getDatasource().getPassword());
 
-                Element dataSourceElem = createElement(doc, "data-source");
-                dataSourceElem.appendChild(createElement(doc, "name", dataSourceName));
-                dataSourceElem.appendChild(createElement(doc, "class-name", driverDataSource));
-                dataSourceElem.appendChild(createElement(doc, "url", projectModel.getDatasource().getUrl()));
-                dataSourceElem.appendChild(createElement(doc, "user", projectModel.getDatasource().getUser()));
-                dataSourceElem.appendChild(createElement(doc, "password", projectModel.getDatasource().getPassword()));
                 if (projectModel.getDatasource().getProperties() != null) {
                     for (Map.Entry<String, String> entry : projectModel.getDatasource().getProperties().entrySet()) {
-                        dataSourceElem.appendChild(
-                                createElement(
-                                        doc, "property",
-                                        createElement(doc, "name", entry.getKey()),
-                                        createElement(doc, "value", entry.getValue()
-                                        )
-                                )
-                        );
+                        dataSourceModelBuilder.addProperty(entry.getKey(), entry.getValue());
                     }
                 }
-                rootElement.appendChild(dataSourceElem);
-
-                XmlUtil.writeXml(doc, webXmlPath);
+                webXml.setDataSource(dataSourceModelBuilder.build());
+                webXmlUtil.saveWebXml(webXml);
 
             }
-        } catch (IOException | ParserConfigurationException | SAXException | XPathExpressionException | TransformerException ex) {
+        } catch (IOException | JAXBException ex) {
             getLog().error(ex.getMessage(), ex);
         }
 
