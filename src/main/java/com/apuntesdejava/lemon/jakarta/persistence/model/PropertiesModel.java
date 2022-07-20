@@ -27,7 +27,7 @@ import java.util.List;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class PropertiesModel {
-    @XmlElement(name = "property", namespace = "http://xmlns.jcp.org/xml/ns/persistence")
+    @XmlElement(name = "property", namespace = "https://jakarta.ee/xml/ns/persistence")
     private List<PropertyModel> property;
 
     public PropertiesModel() {

@@ -15,10 +15,10 @@
  */
 @XmlSchema(
         xmlns = {
-            @XmlNs(prefix = "", namespaceURI = "http://xmlns.jcp.org/xml/ns/persistence"),
+            @XmlNs(prefix = "", namespaceURI = "https://jakarta.ee/xml/ns/persistence"),
             @XmlNs(prefix = "xsi", namespaceURI = "http://www.w3.org/2001/XMLSchema-instance")
         },
-        location = "http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd"
+        location = "https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
 )
 package com.apuntesdejava.lemon.jakarta.persistence.model;
 

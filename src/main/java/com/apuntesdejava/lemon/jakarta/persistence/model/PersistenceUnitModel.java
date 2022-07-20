@@ -33,13 +33,13 @@ public class PersistenceUnitModel {
     @XmlAttribute(name = "name")
     private String name;
 
-    @XmlElement(name = "jta-data-source", namespace = "http://xmlns.jcp.org/xml/ns/persistence")
+    @XmlElement(name = "jta-data-source", namespace = "https://jakarta.ee/xml/ns/persistence")
     private String jtaDataSource;
 
-    @XmlElement(name = "shared-cache-mode", namespace = "http://xmlns.jcp.org/xml/ns/persistence")
-    private String sharedCacheMode = "ENABLE_SELECTIVE";
+    /*@XmlElement(name = "shared-cache-mode", namespace = "https://jakarta.ee/xml/ns/persistence")
+    private String sharedCacheMode = "ENABLE_SELECTIVE"; */
 
-    @XmlElement(name = "properties", namespace = "http://xmlns.jcp.org/xml/ns/persistence")
+    @XmlElement(name = "properties", namespace = "https://jakarta.ee/xml/ns/persistence")
     private PropertiesModel properties;
 
     public String getTransactionType() {
@@ -65,14 +65,14 @@ public class PersistenceUnitModel {
     public void setJtaDataSource(String jtaDataSource) {
         this.jtaDataSource = jtaDataSource;
     }
-
+/*
     public String getSharedCacheMode() {
         return sharedCacheMode;
     }
 
     public void setSharedCacheMode(String sharedCacheMode) {
         this.sharedCacheMode = sharedCacheMode;
-    }
+    }*/
 
     public PropertiesModel getProperties() {
         return properties;

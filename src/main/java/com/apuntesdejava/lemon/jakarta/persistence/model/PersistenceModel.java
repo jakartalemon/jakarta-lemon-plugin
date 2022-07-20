@@ -22,13 +22,13 @@ import jakarta.xml.bind.annotation.*;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(name = "persistence", namespace = "http://xmlns.jcp.org/xml/ns/persistence")
+@XmlRootElement(name = "persistence", namespace = "https://jakarta.ee/xml/ns/persistence")
 public class PersistenceModel {
 
     @XmlAttribute
-    private final String version = "2.2";
+    private final String version = "3.0";
 
-    @XmlElement(name = "persistence-unit",namespace = "http://xmlns.jcp.org/xml/ns/persistence")
+    @XmlElement(name = "persistence-unit", namespace = "https://jakarta.ee/xml/ns/persistence")
     private PersistenceUnitModel persistenceUnit;
 
     public String getVersion() {

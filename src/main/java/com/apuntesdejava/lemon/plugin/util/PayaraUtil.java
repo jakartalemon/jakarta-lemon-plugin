@@ -17,26 +17,21 @@ package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.jpa.model.DataSourceModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
+import com.apuntesdejava.lemon.jakarta.payararesources.model.JdbcConnectionPoolModel;
+import com.apuntesdejava.lemon.jakarta.payararesources.model.JdbcConnectionPoolPropertyModel;
+import com.apuntesdejava.lemon.jakarta.payararesources.model.JdbcResourceModel;
+import jakarta.xml.bind.JAXBException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 public class PayaraUtil {
@@ -51,48 +46,43 @@ public class PayaraUtil {
     public static void createPayaraDataSourceResources(
             Log log, ProjectModel projectModel, MavenProject mavenProject) {
         try {
-            String driverDataSource = projectModel.getDriver();
 
-            Path resourceXml = Paths.get(mavenProject.getBasedir().toString(), "src", "main", "setup", "payara-resources.xml").normalize();
-            log.debug("Creating DataSource at " + resourceXml);
-            Files.createDirectories(resourceXml.getParent());
-            String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
-            String poolName = mavenProject.getArtifactId() + "Pool";
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = dbf.newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element resourcesElem = doc.createElement("resources");
-            Element jdbcResourceElem = doc.createElement("jdbc-resource");
-            jdbcResourceElem.setAttribute("jndi-name", dataSourceName);
-            jdbcResourceElem.setAttribute("pool-name", poolName);
-            resourcesElem.appendChild(jdbcResourceElem);
-
-            doc.appendChild(resourcesElem);
-
-            Map<String, String> attrs = new LinkedHashMap<>(Map.of(
-                    "url", projectModel.getDatasource().getUrl(),
-                    "user", projectModel.getDatasource().getUser(),
-                    "password", projectModel.getDatasource().getPassword()
-            ));
-            attrs.putAll(projectModel.getDatasource().getProperties());
-
-            Element jdbcConnectionPoolElem = XmlUtil.createElement(doc, "jdbc-connection-pool", attrs);
-
-            jdbcConnectionPoolElem.setAttribute("datasource-classname", driverDataSource);
-            jdbcConnectionPoolElem.setAttribute("name", poolName);
-            jdbcConnectionPoolElem.setAttribute("res-type", "javax.sql.DataSource");
-            resourcesElem.appendChild(jdbcConnectionPoolElem);
-
+            /*
             XmlUtil.writeXml(
                     doc,
                     PAYARA_RESOURCE_DOCTYPE_PUBLIC,
                     PAYARA_RESOURCE_DOCTYPE_SYSTEM,
                     resourceXml
             );
+             */
+            String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
+            String poolName = mavenProject.getArtifactId() + "Pool";
+            String driverDataSource = projectModel.getDriver();
+            var payaraResourcesXmlUtil = PayaraResourcesXmlUtil.getInstance(mavenProject.getBasedir().toString());
+            var payaraResourcesXml = payaraResourcesXmlUtil.getPayaraResourcesXml();
+            payaraResourcesXml.setJdbcResourceModel(
+                    JdbcResourceModel.newInstance(
+                            dataSourceName,
+                            poolName
+                    )
+            );
+            var jdbcConnectionPoolModelBuilder = JdbcConnectionPoolModel.JdbcConnectionPoolModelBuilder.newBuilder()
+                    .setDataSourceClassName(driverDataSource)
+                    .setName(poolName)
+                    .setResType("javax.sql.DataSource");
+            jdbcConnectionPoolModelBuilder
+                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance("url", projectModel.getDatasource().getUrl()))
+                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance("user", projectModel.getDatasource().getUser()))
+                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance("password", projectModel.getDatasource().getPassword()));
+            projectModel.getDatasource().getProperties().entrySet().stream().forEach(entry -> jdbcConnectionPoolModelBuilder
+                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance(entry.getKey(), entry.getValue())));
+            payaraResourcesXml.setJdbcConnectionPool(
+                    jdbcConnectionPoolModelBuilder.build()
+            );
+            payaraResourcesXmlUtil.savePayaraResourcesXml(payaraResourcesXml);
+            log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + payaraResourcesXml.toString());
 
-            log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + resourceXml);
-
-        } catch (IOException | ParserConfigurationException | TransformerException ex) {
+        } catch (IOException | JAXBException ex) {
             log.error(ex.getMessage(), ex);
         }
     }

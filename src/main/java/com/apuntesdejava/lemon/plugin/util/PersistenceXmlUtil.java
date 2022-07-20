@@ -75,7 +75,7 @@ public class PersistenceXmlUtil {
         var context = JAXBContext.newInstance(PersistenceModel.class);
         var marshaller = context.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-        marshaller.setProperty(Marshaller.JAXB_SCHEMA_LOCATION, "http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd");
+        marshaller.setProperty(Marshaller.JAXB_SCHEMA_LOCATION, "https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd");
         marshaller.marshal(persistenceModel, persistenceXmlPath.toFile());
     }
 
