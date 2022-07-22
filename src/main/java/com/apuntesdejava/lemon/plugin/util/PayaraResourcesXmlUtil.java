@@ -16,55 +16,29 @@
 package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.payararesources.model.PayaraResourcesModel;
-import com.apuntesdejava.lemon.jakarta.webxml.model.WebAppModel;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
-public class PayaraResourcesXmlUtil {
+public class PayaraResourcesXmlUtil extends AbstractXmlUtil<PayaraResourcesModel> {
 
-    private static PayaraResourcesXmlUtil INSTANCE;
-    private final Path payaraResourcesXmlPath;
+    private static final String PAYARA_RESOURCE_DOCTYPE_PUBLIC = "-//Payara.fish//DTD Payara Server 4 Resource Definitions//EN";
+    private static final String PAYARA_RESOURCE_DOCTYPE_SYSTEM = "https://raw.githubusercontent.com/payara/Payara-Community-Documentation/master/docs/modules/ROOT/pages/schemas/payara-resources_1_6.dtd";
 
-    private PayaraResourcesXmlUtil(Path payaraResourcesXmlPath) {
-        this.payaraResourcesXmlPath = payaraResourcesXmlPath;
+    public PayaraResourcesXmlUtil(String basedir) {
+        super(PayaraResourcesModel.class, basedir);
     }
 
-    private static void newInstance(Path payaraResourcesXmlPath) {
-        INSTANCE = new PayaraResourcesXmlUtil(payaraResourcesXmlPath);
+    @Override
+    protected PayaraResourcesModel newModelInstance() {
+        return new PayaraResourcesModel();
     }
 
-    public static PayaraResourcesXmlUtil getInstance(String baseDir) {
-        Path resourceXml = Paths.get(baseDir, "src", "main", "setup", "payara-resources.xml").normalize();
-        if (INSTANCE == null) newInstance(resourceXml);
-        return INSTANCE;
-    }
-    public PayaraResourcesModel getPayaraResourcesXml() throws JAXBException, IOException {
-        if (Files.exists(payaraResourcesXmlPath)) {
-            JAXBContext jaxbContext = JAXBContext.newInstance(WebAppModel.class);
-            Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-            return (PayaraResourcesModel) jaxbUnmarshaller.unmarshal(payaraResourcesXmlPath.toFile());
-        }
-        Files.createDirectories(payaraResourcesXmlPath.getParent());
-        var model = new PayaraResourcesModel();
-        return model;
-    }
-
-    public void savePayaraResourcesXml(PayaraResourcesModel payaraResourcesModel) throws JAXBException {
-        JAXBContext context = JAXBContext.newInstance(PayaraResourcesModel.class);
-        Marshaller marshaller = context.createMarshaller();
-        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-
-        //marshaller.setProperty(Marshaller.JAXB_SCHEMA_LOCATION, "http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd");
-        marshaller.marshal(payaraResourcesModel, payaraResourcesXmlPath.toFile());
+    @Override
+    protected Path getXmlFullPath(String baseDir) {
+        return Paths.get(baseDir, "src", "main", "setup", "payara-resources.xml").normalize();
     }
 }

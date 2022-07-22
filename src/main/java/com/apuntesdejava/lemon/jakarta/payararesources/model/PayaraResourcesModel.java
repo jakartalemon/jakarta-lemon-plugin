@@ -17,7 +17,7 @@ package com.apuntesdejava.lemon.jakarta.payararesources.model;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -28,10 +28,10 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "resources")
 public class PayaraResourcesModel {
 
-    @XmlAttribute(name = "jdbc-resource")
+    @XmlElement(name = "jdbc-resource")
     private JdbcResourceModel jdbcResourceModel;
 
-    @XmlAttribute(name = "jdbc-connection-pool")
+    @XmlElement(name = "jdbc-connection-pool")
     private JdbcConnectionPoolModel jdbcConnectionPool;
 
     public PayaraResourcesModel() {

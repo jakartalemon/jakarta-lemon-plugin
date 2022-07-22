@@ -20,6 +20,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -381,13 +382,13 @@ public class CreateModelMojo extends AbstractMojo {
             getLog().debug("Create persistence.xml");
             var baseDir = mavenProject.getBasedir();
             getLog().debug("baseDir:" + baseDir);
-            var persistenceUtil = PersistenceXmlUtil.getInstance(baseDir.toString());
-            var persistenceXml = persistenceUtil.getPersistenceXml();
+            var persistenceUtil = new PersistenceXmlUtil(baseDir.toString());
+            var persistenceXml = persistenceUtil.getModel();
             persistenceXml.getPersistenceUnit().setName(projectModel.getProjectName() + "PU");
             String dataSourceName = (style == DatasourceDefinitionStyleType.WEB ? "java:app/" : "")
                     + "jdbc/" + mavenProject.getArtifactId();
             persistenceXml.getPersistenceUnit().setJtaDataSource(dataSourceName);
-            persistenceUtil.savePersistenceXml(persistenceXml);
+            persistenceUtil.saveModel(persistenceXml);
 
         } catch (IOException | JAXBException ex) {
             getLog().error(ex.getMessage(), ex);
@@ -402,8 +403,8 @@ public class CreateModelMojo extends AbstractMojo {
             Files.createDirectories(webXmlPath.getParent());
             String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
 
-            var webXmlUtil = WebXmlUtil.getInstance(mavenProject.getBasedir().toString());
-            var webXml = webXmlUtil.getWebxml();
+            var webXmlUtil = new WebXmlUtil(mavenProject.getBasedir().toString());
+            var webXml = webXmlUtil.getModel();
 
             boolean createDataSource = webXml.getDataSource() == null;
             if (createDataSource) {
@@ -421,7 +422,7 @@ public class CreateModelMojo extends AbstractMojo {
                     }
                 }
                 webXml.setDataSource(dataSourceModelBuilder.build());
-                webXmlUtil.saveWebXml(webXml);
+                webXmlUtil.saveModel(webXml);
 
             }
         } catch (IOException | JAXBException ex) {

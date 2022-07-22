@@ -75,8 +75,8 @@ public class CreateViewMojo extends AbstractMojo {
             getLog().info("Creating Jakarta Server Faces views");
             var baseDir = mavenProject.getBasedir();
             getLog().debug("baseDir:" + baseDir);
-            var webXmlUtil = WebXmlUtil.getInstance(baseDir.toString());
-            var webxml =  webXmlUtil.getWebxml();
+            var webXmlUtil = new WebXmlUtil(baseDir.toString());
+            var webxml =  webXmlUtil.getModel();
             boolean createServlet = webxml.getServlet() == null
                     || webxml.getServlet()
                             .stream()
@@ -90,7 +90,7 @@ public class CreateViewMojo extends AbstractMojo {
                 webxml.setServlet(servletList);
                 webxml.setServletMapping(servletMappingList);
 
-                webXmlUtil.saveWebXml(webxml);
+                webXmlUtil.saveModel(webxml);
             }
 
         } catch (JAXBException ex) {

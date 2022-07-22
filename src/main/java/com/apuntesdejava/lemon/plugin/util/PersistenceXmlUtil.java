@@ -19,12 +19,7 @@ import com.apuntesdejava.lemon.jakarta.persistence.model.PersistenceModel;
 import com.apuntesdejava.lemon.jakarta.persistence.model.PersistenceUnitModel;
 import com.apuntesdejava.lemon.jakarta.persistence.model.PropertiesModel;
 import com.apuntesdejava.lemon.jakarta.persistence.model.PropertyModel;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -32,34 +27,15 @@ import java.util.List;
 /**
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
-public class PersistenceXmlUtil {
+public class PersistenceXmlUtil extends AbstractXmlUtil<PersistenceModel> {
 
-    private static PersistenceXmlUtil INSTANCE;
-    private final Path persistenceXmlPath;
 
-    private static synchronized void newInstance(Path persistenceXmlPath) {
-        INSTANCE = new PersistenceXmlUtil(persistenceXmlPath);
+    public PersistenceXmlUtil(String basedir) {
+        super(PersistenceModel.class, basedir);
     }
 
-    public static PersistenceXmlUtil getInstance(String baseDir) {
-        Path persistenceXmlPath = Paths.get(baseDir, "src", "main", "resources", "META-INF", "persistence.xml");
-        if (INSTANCE == null) {
-            newInstance(persistenceXmlPath);
-        }
-        return INSTANCE;
-    }
-
-    private PersistenceXmlUtil(Path persistenceXmlPath) {
-        this.persistenceXmlPath = persistenceXmlPath;
-    }
-
-    public PersistenceModel getPersistenceXml() throws IOException, JAXBException {
-        if (Files.exists(persistenceXmlPath)) {
-            var jaxbContext = JAXBContext.newInstance(PersistenceModel.class);
-            var jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-            return (PersistenceModel) jaxbUnmarshaller.unmarshal(persistenceXmlPath.toFile());
-        }
-        Files.createDirectories(persistenceXmlPath.getParent());
+    @Override
+    protected PersistenceModel newModelInstance() {
         var model = new PersistenceModel();
         var persistenceUnit = new PersistenceUnitModel();
         persistenceUnit.setProperties(
@@ -71,12 +47,8 @@ public class PersistenceXmlUtil {
         return model;
     }
 
-    public void savePersistenceXml(PersistenceModel persistenceModel) throws JAXBException {
-        var context = JAXBContext.newInstance(PersistenceModel.class);
-        var marshaller = context.createMarshaller();
-        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-        marshaller.setProperty(Marshaller.JAXB_SCHEMA_LOCATION, "https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd");
-        marshaller.marshal(persistenceModel, persistenceXmlPath.toFile());
+    @Override
+    protected Path getXmlFullPath(String baseDir) {
+        return Paths.get(baseDir, "src", "main", "resources", "META-INF", "persistence.xml");
     }
-
 }

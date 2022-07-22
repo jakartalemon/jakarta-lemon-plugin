@@ -36,9 +36,6 @@ import java.util.List;
  */
 public class PayaraUtil {
 
-    private static final String PAYARA_RESOURCE_DOCTYPE_PUBLIC = "-//Payara.fish//DTD Payara Server 4 Resource Definitions//EN";
-    private static final String PAYARA_RESOURCE_DOCTYPE_SYSTEM = "https://raw.githubusercontent.com/payara/Payara-Community-Documentation/master/docs/modules/ROOT/pages/schemas/payara-resources_1_6.dtd";
-
     private PayaraUtil() {
 
     }
@@ -47,19 +44,11 @@ public class PayaraUtil {
             Log log, ProjectModel projectModel, MavenProject mavenProject) {
         try {
 
-            /*
-            XmlUtil.writeXml(
-                    doc,
-                    PAYARA_RESOURCE_DOCTYPE_PUBLIC,
-                    PAYARA_RESOURCE_DOCTYPE_SYSTEM,
-                    resourceXml
-            );
-             */
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
             String poolName = mavenProject.getArtifactId() + "Pool";
             String driverDataSource = projectModel.getDriver();
-            var payaraResourcesXmlUtil = PayaraResourcesXmlUtil.getInstance(mavenProject.getBasedir().toString());
-            var payaraResourcesXml = payaraResourcesXmlUtil.getPayaraResourcesXml();
+            var payaraResourcesXmlUtil = new PayaraResourcesXmlUtil(mavenProject.getBasedir().toString());
+            var payaraResourcesXml = payaraResourcesXmlUtil.getModel();
             payaraResourcesXml.setJdbcResourceModel(
                     JdbcResourceModel.newInstance(
                             dataSourceName,
@@ -79,8 +68,8 @@ public class PayaraUtil {
             payaraResourcesXml.setJdbcConnectionPool(
                     jdbcConnectionPoolModelBuilder.build()
             );
-            payaraResourcesXmlUtil.savePayaraResourcesXml(payaraResourcesXml);
-            log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + payaraResourcesXml.toString());
+            payaraResourcesXmlUtil.saveModel(payaraResourcesXml);
+            log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + payaraResourcesXmlUtil.getXmlPath());
 
         } catch (IOException | JAXBException ex) {
             log.error(ex.getMessage(), ex);
