@@ -6,13 +6,34 @@
     <packaging>maven-plugin</packaging>
     <version>1.0-SNAPSHOT</version>
 
-    <name>Jakarta Lemon Plugin</name>
+    <name>${project.groupId}:${project.artifactId}</name>
     <url>http://jakartalemon.dev</url>
     <organization>
         <name>Apuntes de Java</name>
         <url>https://apuntesdejava.com</url>
     </organization>
-
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Diego Enrique Silva Limaco</name>
+            <email>diego.silva@apuntesdejava.com</email>
+            <organization>Apuntes de Java</organization>
+            <organizationUrl>https://apuntesdejava.com</organizationUrl>
+            <timezone>America/Lima</timezone>
+        </developer>
+        <developer>
+            <name>Aristides Villarreal Bravo</name>
+            <email>avbravo@gmail.com</email>
+            <organization>JMoorBD</organization>
+            <organizationUrl>https://www.linkedin.com/in/aristides-villarreal-bravo-6258543/</organizationUrl>
+        </developer>
+    </developers>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>

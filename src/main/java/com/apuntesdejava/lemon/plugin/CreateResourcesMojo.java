@@ -76,9 +76,7 @@ public class CreateResourcesMojo extends AbstractMojo {
         getLog().debug("Creating components");
         JsonObject components = openApiModel.getJsonObject("components");
         components.getJsonObject("schemas").forEach((schemaName, item) -> {
-            //Map.Entry<String, Map<String, Object>> item = (Map.Entry<String, Map<String, Object>>) schema;
             getLog().info("schema:" + item);
-            // String schemaName = item.getKey(); 
             String type = item.asJsonObject().getString("type");
 
             switch (type) {

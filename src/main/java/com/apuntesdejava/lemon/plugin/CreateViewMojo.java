@@ -17,6 +17,7 @@ package com.apuntesdejava.lemon.plugin;
 
 import com.apuntesdejava.lemon.jakarta.webxml.model.ServletMappingModel;
 import com.apuntesdejava.lemon.jakarta.webxml.model.ServletModel;
+import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import com.apuntesdejava.lemon.plugin.util.ViewModelUtil;
 import com.apuntesdejava.lemon.plugin.util.WebXmlUtil;
 import jakarta.json.JsonObject;
@@ -30,7 +31,10 @@ import org.apache.maven.project.MavenProject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Optional;
+import org.apache.maven.model.Model;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  * @author Diego Silva <diego.silva at apuntesdejava.com>
@@ -55,13 +59,17 @@ public class CreateViewMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         try {
             getLog().info("Creating view layer...");
-            ViewModelUtil.getInstance().getViewModel(getLog(), viewProjectFile).ifPresent(model -> {
+            var viewModelUtil = ViewModelUtil.getInstance(mavenProject);
+            addDependencies();
+            viewModelUtil.getViewModel(getLog(), viewProjectFile).ifPresent(model -> {
                 this.viewModel = model;
             });
             String viewStyle = this.viewModel.getString("style", "jsf");
             switch (viewStyle) {
                 case "jsf":
                     createJsfViews();
+                    viewModelUtil.createPaths(getLog(), viewModel.getJsonObject("paths").entrySet());
+                    viewModelUtil.createFormBeans(getLog(), viewModel.getJsonObject("formBeans").entrySet());
                     break;
             }
 
@@ -76,7 +84,7 @@ public class CreateViewMojo extends AbstractMojo {
             var baseDir = mavenProject.getBasedir();
             getLog().debug("baseDir:" + baseDir);
             var webXmlUtil = new WebXmlUtil(baseDir.toString());
-            var webxml =  webXmlUtil.getModel();
+            var webxml = webXmlUtil.getModel();
             boolean createServlet = webxml.getServlet() == null
                     || webxml.getServlet()
                             .stream()
@@ -94,6 +102,17 @@ public class CreateViewMojo extends AbstractMojo {
             }
 
         } catch (JAXBException ex) {
+            getLog().error(ex.getMessage(), ex);
+        }
+    }
+
+    private void addDependencies() {
+        try {
+            getLog().debug("Modifing pom.xml");
+            Model model = ProjectModelUtil.getModel(mavenProject);
+            ProjectModelUtil.addDependency(getLog(), model, "org.primefaces", "primefaces", Map.of("classifier", "jakarta"));
+            ProjectModelUtil.saveModel(mavenProject, model);
+        } catch (IOException | XmlPullParserException ex) {
             getLog().error(ex.getMessage(), ex);
         }
     }

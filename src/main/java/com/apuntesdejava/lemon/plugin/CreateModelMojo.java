@@ -344,7 +344,7 @@ public class CreateModelMojo extends AbstractMojo {
             String database = projectModel.getDatasource().getDb();
 
             Model model = ProjectModelUtil.getModel(mavenProject);
-            ProjectModelUtil.addDependenciesDatabase(model, database);
+            ProjectModelUtil.addDependenciesDatabase(getLog(), model, database);
 
             ProjectModelUtil.saveModel(mavenProject, model);
         } catch (IOException | XmlPullParserException ex) {

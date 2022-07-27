@@ -70,7 +70,7 @@ public class AddPayaraMicroMojo extends AbstractMojo {
         try {
             getLog().debug("Add Payara Micro Plugin");
             Model model = ProjectModelUtil.getModel(mavenProject);
-            var dependencyModel = DependenciesUtil.getLastVersionDependency("g:fish.payara.extras+AND+a:payara-micro");
+            var dependencyModel = DependenciesUtil.getLastVersionDependency(getLog(), "g:fish.payara.extras+AND+a:payara-micro");
             Profile profile = ProjectModelUtil.getProfile(model, "payara-micro");
             Properties props = ProjectModelUtil.getProperties(profile);
             props.setProperty("version.payara", dependencyModel.getVersion());
@@ -123,7 +123,7 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                 Xpp3Dom artifactItems = ProjectModelUtil.addChildren(conf, "artifactItems");
                 Xpp3Dom artifactItem = ProjectModelUtil.addChildren(artifactItems, "artifactItem");
 
-                ProjectModelUtil.addDependenciesDatabase(artifactItem, projectModel.getDatasource().getDb());
+                ProjectModelUtil.addDependenciesDatabase(getLog(), artifactItem, projectModel.getDatasource().getDb());
 
             }
 
