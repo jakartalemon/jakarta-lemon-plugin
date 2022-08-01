@@ -21,6 +21,7 @@ import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import com.apuntesdejava.lemon.plugin.util.ViewModelUtil;
 import com.apuntesdejava.lemon.plugin.util.WebXmlUtil;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import jakarta.xml.bind.JAXBException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
@@ -68,9 +70,11 @@ public class CreateViewMojo extends AbstractMojo {
             switch (viewStyle) {
                 case "jsf":
                     createJsfViews();
-                    viewModelUtil.createPaths(getLog(), viewModel.getJsonObject("paths").entrySet());
-                    viewModelUtil.createFormBeans(getLog(), viewModel.getJsonObject("formBeans").entrySet());
+                    Set<Map.Entry<String, JsonValue>> formBeans = viewModel.getJsonObject("formBeans").entrySet();
+                    viewModelUtil.createPaths(getLog(), viewModel.getJsonObject("paths").entrySet(), formBeans);
+                    viewModelUtil.createFormBeans(getLog(), formBeans);
                     break;
+
             }
 
         } catch (IOException ex) {

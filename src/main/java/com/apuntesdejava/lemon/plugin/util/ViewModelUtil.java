@@ -22,14 +22,24 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.lang3.StringUtils;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.SPACE;
@@ -49,11 +59,14 @@ public class ViewModelUtil {
     }
     private final String packageName;
     private Path packageBasePath;
+    private final Path baseDirPath;
+    private final Path webAppPath;
 
     private ViewModelUtil(MavenProject mavenProject) {
         this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-', '.');
-        Path baseDirPath = mavenProject.getBasedir().toPath();
+        this.baseDirPath = mavenProject.getBasedir().toPath();
         Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
+        this.webAppPath = baseDirPath.resolve("src").resolve("main").resolve("webapp");
         String groupId = packageName;
         String[] packagePaths = groupId.split("\\.");
         this.packageBasePath = javaMainSrc;
@@ -78,59 +91,84 @@ public class ViewModelUtil {
         }
     }
 
-    public void createPaths(Log log, Set<Map.Entry<String, JsonValue>> entrySet) {
+    public void createPaths(Log log, Set<Map.Entry<String, JsonValue>> entrySet, Set<Map.Entry<String, JsonValue>> formBeans) {
         try {
 
             final Path packageViewPath = packageBasePath.resolve("view");
             Files.createDirectories(packageViewPath);
-            entrySet.stream().forEach(item -> createPath(log, packageViewPath, item));
+            entrySet.stream().forEach(item -> {
+                try {
+                    var currentEntry = item.getValue().asJsonObject();
+                    var managedBeanClassName = createManagedBean(log, packageViewPath, item);
+                    var formBean = formBeans.stream().filter(entry -> entry.getKey().equals(currentEntry.getString("formBean"))).findFirst();
+                    if (formBean.isPresent()) {
+                        createView(log, managedBeanClassName, item, formBean.get().getValue().asJsonObject());
+                    }
+                } catch (IOException ex) {
+                    log.error(ex.getMessage(), ex);
+                }
+            });
         } catch (IOException ex) {
             log.error(ex.getMessage(), ex);
         }
     }
 
-    private void createPath(Log log, Path packageViewPath, Map.Entry<String, JsonValue> entry) {
+    private String createManagedBean(Log log, Path packageViewPath, Map.Entry<String, JsonValue> entry) throws IOException {
+        Set<String> imports = new TreeSet<>();
 
-        try {
-            var pathName = entry.getKey();
-            log.info("Creating view:" + pathName);
-            var pathJson = entry.getValue().asJsonObject();
-            var isList = pathJson.getString("type").equals("list");
-            String scoped = isList ? "SessionScoped" : "RequestScoped";
-            var $temp = pathName.replaceAll("[^a-zA-Z]", "") + "View";
+        var pathName = entry.getKey();
+        log.info("Creating Managed Bean:" + pathName);
+        var pathJson = entry.getValue().asJsonObject();
+        var isList = pathJson.getString("type").equals("list");
+        String scoped = isList ? "SessionScoped" : "RequestScoped";
+        var $temp = pathName.replaceAll("[^a-zA-Z]", "") + "View";
 
-            String className = name2ClassName($temp);
-            String classFileName = className + ".java";
-            Path classPath = packageViewPath.resolve(classFileName);
+        String className = name2ClassName($temp);
+        String classFileName = className + ".java";
+        Path classPath = packageViewPath.resolve(classFileName);
 
-            var lines = new ArrayList<String>();
-            var fieldName = pathJson.getString("formBean");
-            var fieldClassType = name2ClassName(fieldName);
-            lines.add("package " + packageName + ".view;");
-            lines.add(EMPTY);
-            lines.add("import jakarta.enterprise.context." + scoped + ";");
-            lines.add(String.format("import %s.formbean.%s;", packageName, fieldClassType));
-            lines.add("import jakarta.inject.Named;");
-            lines.add(EMPTY);
-            lines.add("@Named");
-            lines.add("@" + scoped);
-            lines.add(String.format("public class %s %s{", className, (isList ? "implements java.io.Serializable " : EMPTY)));
-            lines.add(EMPTY);
-            var fieldType = fieldClassType;
+        List<String> lines = new ArrayList<>();
+        var fieldName = pathJson.getString("formBean");
+        var fieldClassType = name2ClassName(fieldName);
+        lines.add("package " + packageName + ".view;");
+        lines.add(EMPTY);
+        imports.add("import jakarta.enterprise.context." + scoped + ";");
+        imports.add(String.format("import %s.formbean.%s;", packageName, fieldClassType));
+        imports.add("import jakarta.inject.Named;");
+        lines.add(EMPTY);
+        lines.add("@Named");
+        lines.add("@" + scoped);
+        lines.add(String.format("public class %s %s{", className, (isList ? "implements java.io.Serializable " : EMPTY)));
+        lines.add(EMPTY);
+        var fieldType = fieldClassType;
+        var newInstance = fieldClassType;
 
-            if (isList) {
-                lines.add(2, "import java.util.List;");
-                lines.add(2, "import java.util.ArrayList;");
-                fieldType = "List<" + fieldClassType + ">";
-                fieldName += "sList";
-            }
-            lines.add(String.format("%sprivate %s %s;", StringUtils.repeat(SPACE, TAB), fieldType, fieldName));
-
-            lines.add("}");
-            Files.write(classPath, lines);
-        } catch (IOException ex) {
-            log.error(ex.getMessage(), ex);
+        if (isList) {
+            imports.add("import java.util.List;");
+            imports.add("import java.util.ArrayList;");
+            fieldType = "List<" + fieldClassType + ">";
+            fieldName += "sList";
+            newInstance = "ArrayList<>";
         }
+        lines.add(String.format("%sprivate %s %s = new %s();", StringUtils.repeat(SPACE, TAB), fieldType, fieldName, newInstance));
+
+        //methods setter & getter
+        var setterName = "set" + name2ClassName(fieldName);
+        var getterName = "get" + name2ClassName(fieldName);
+        lines.add(EMPTY);
+        lines.add(String.format("%spublic void %s(%s %s) {", StringUtils.repeat(SPACE, TAB), setterName, fieldType, fieldName));
+        lines.add(String.format("%sthis.%2$s = %2$s;", StringUtils.repeat(SPACE, TAB * 2), fieldName));
+        lines.add(String.format("%s}", StringUtils.repeat(SPACE, TAB)));
+
+        lines.add(EMPTY);
+        lines.add(String.format("%spublic %s %s() {", StringUtils.repeat(SPACE, TAB), fieldType, getterName));
+        lines.add(String.format("%sreturn this.%s;", StringUtils.repeat(SPACE, TAB * 2), fieldName));
+        lines.add(String.format("%s}", StringUtils.repeat(SPACE, TAB)));
+
+        lines.add("}");
+        lines.addAll(2, imports);
+        Files.write(classPath, lines);
+        return className;
 
     }
 
@@ -138,7 +176,7 @@ public class ViewModelUtil {
         try {
             final Path packageFormBean = packageBasePath.resolve("formbean");
             Files.createDirectories(packageFormBean);
-            entrySet.stream().forEach(item -> createFormbean(log, packageFormBean, item));
+            entrySet.stream().forEach(item -> createFormBean(log, packageFormBean, item));
         } catch (IOException ex) {
             log.error(ex.getMessage(), ex);
         }
@@ -148,7 +186,7 @@ public class ViewModelUtil {
         return name.substring(0, 1).toUpperCase() + name.substring(1);
     }
 
-    private void createFormbean(Log log, Path packageFormBean, Map.Entry<String, JsonValue> entry) {
+    private void createFormBean(Log log, Path packageFormBean, Map.Entry<String, JsonValue> entry) {
         try {
             var pathName = entry.getKey();
             log.info("Creating Form bean:" + pathName);
@@ -248,6 +286,66 @@ public class ViewModelUtil {
             lines.add(2, "import jakarta.validation.constraints.Digits;");
             var digits = bodyStruct.getJsonObject("digits");
             lines.add(String.format("%s@Digits(integer = %d, fraction = %d)", StringUtils.repeat(SPACE, TAB), digits.getInt("integer"), digits.getInt("fraction")));
+        }
+    }
+
+    private void createView(Log log, String managedBeanClassName, Map.Entry<String, JsonValue> entry, JsonObject formBean) {
+        var pathJson = entry.getValue().asJsonObject();
+        var isList = pathJson.getString("type").equals("list");
+        try {
+            var pathName = entry.getKey().replaceAll("[^a-zA-Z]", "");
+            log.info("Creating View page:" + pathName);
+            var viewJsf = webAppPath.resolve(pathName + ".xhtml");
+
+            var docFactory = DocumentBuilderFactory.newInstance();
+            var docBuilder = docFactory.newDocumentBuilder();
+
+            var doc = docBuilder.newDocument();
+
+            var htmlElem = doc.createElement("html");
+            htmlElem.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+            htmlElem.setAttribute("xmlns:h", "http://xmlns.jcp.org/jsf/html");
+            htmlElem.setAttribute("xmlns:ui", "http://xmlns.jcp.org/jsf/facelets");
+            htmlElem.setAttribute("xmlns:p", "http://primefaces.org/ui");
+            htmlElem.setAttribute("xmlns:f", "http://xmlns.jcp.org/jsf/core");
+
+            var hHead = doc.createElement("h:head");
+            htmlElem.appendChild(hHead);
+            var hBody = doc.createElement("h:body");
+            htmlElem.appendChild(hBody);
+
+            var hForm = doc.createElement("h:form");
+            hBody.appendChild(hForm);
+
+            if (isList) {
+                var pDataTable = doc.createElement("p:dataTable");
+                hForm.appendChild(pDataTable);
+                var variableName = pathName;
+                pDataTable.setAttribute("value", String.format("#{%1$sView.%1$sList}", variableName));
+                pDataTable.setAttribute("var", "item");
+
+                formBean.forEach((fieldName, type) -> {
+                    var pCol = doc.createElement("p:column");
+                    pCol.setTextContent(String.format("#{item.%s}", fieldName));
+                    pDataTable.appendChild(pCol);
+                });
+            }
+
+            doc.appendChild(htmlElem);
+
+            try ( var fos = new FileOutputStream(viewJsf.toFile())) {
+
+                var tf = TransformerFactory.newInstance();
+                var t = tf.newTransformer();
+                t.setOutputProperty(OutputKeys.INDENT, "yes");
+                var source = new DOMSource(doc);
+                var result = new StreamResult(fos);
+                t.transform(source, result);
+            } catch (TransformerException ex) {
+                log.error(ex.getMessage(), ex);
+            }
+        } catch (ParserConfigurationException | IOException ex) {
+            log.error(ex.getMessage(), ex);
         }
     }
 
