@@ -26,7 +26,7 @@ import jakarta.xml.bind.annotation.XmlElement;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class SessionConfigModel {
 
-    @XmlElement(name = "session-timeout", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "session-timeout", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String sessionTimeout;
 
     public SessionConfigModel() {

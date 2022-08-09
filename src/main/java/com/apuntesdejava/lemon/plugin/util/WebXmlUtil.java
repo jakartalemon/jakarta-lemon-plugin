@@ -51,7 +51,7 @@ public class WebXmlUtil extends AbstractXmlUtil<WebAppModel> {
         super.saveModel(model, (marshaller) -> {
             try {
                 marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-                marshaller.setProperty(Marshaller.JAXB_SCHEMA_LOCATION, "http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd");
+                marshaller.setProperty(Marshaller.JAXB_SCHEMA_LOCATION, "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
             } catch (PropertyException e) {
                 throw new RuntimeException(e);
             }

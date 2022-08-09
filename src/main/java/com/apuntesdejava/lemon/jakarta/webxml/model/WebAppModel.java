@@ -27,22 +27,25 @@ import java.util.List;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(name = "web-app", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+@XmlRootElement(name = "web-app", namespace = "https://jakarta.ee/xml/ns/jakartaee")
 public class WebAppModel {
 
     @XmlAttribute
-    private final String version = "4.0";
+    private final String version = "5.0";
 
-    @XmlElement(name = "servlet", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlAttribute(name = "xsi:schemaLocation")
+    private final String schemaLocation = "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd";
+
+    @XmlElement(name = "servlet", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private List<ServletModel> servlet;
 
-    @XmlElement(name = "servlet-mapping", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "servlet-mapping", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private List<ServletMappingModel> servletMapping;
 
-    @XmlElement(name = "data-source", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "data-source", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private DataSourceModel dataSource;
 
-    @XmlElement(name = "session-config", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "session-config", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private SessionConfigModel sessionConfig;
 
     public List<ServletModel> getServlet() {
@@ -79,6 +82,10 @@ public class WebAppModel {
 
     public void setSessionConfig(SessionConfigModel sessionConfig) {
         this.sessionConfig = sessionConfig;
+    }
+
+    public String getSchemaLocation() {
+        return schemaLocation;
     }
 
 }

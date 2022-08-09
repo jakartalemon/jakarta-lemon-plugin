@@ -26,10 +26,10 @@ import jakarta.xml.bind.annotation.XmlElement;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ServletModel {
 
-    @XmlElement(name = "servlet-name", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "servlet-name", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String servletName;
 
-    @XmlElement(name = "servlet-class", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "servlet-class", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String servletClass;
 
     public ServletModel() {

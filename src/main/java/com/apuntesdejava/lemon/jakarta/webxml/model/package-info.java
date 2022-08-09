@@ -15,10 +15,10 @@
  */
 @XmlSchema(
         xmlns = {
-            @XmlNs(prefix = "", namespaceURI = "http://xmlns.jcp.org/xml/ns/javaee"),
+            @XmlNs(prefix = "", namespaceURI = "https://jakarta.ee/xml/ns/jakartaee"),
             @XmlNs(prefix = "xsi", namespaceURI = "http://www.w3.org/2001/XMLSchema-instance")
-        },
-        location = "http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+        }/*,        
+        location = "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"*/
 )
 package com.apuntesdejava.lemon.jakarta.webxml.model;
 

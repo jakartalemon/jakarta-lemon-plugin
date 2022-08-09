@@ -26,10 +26,10 @@ import jakarta.xml.bind.annotation.XmlElement;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DataSourcePropertyModel {
 
-    @XmlElement(namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String name;
 
-    @XmlElement(namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String value;
 
     public DataSourcePropertyModel() {

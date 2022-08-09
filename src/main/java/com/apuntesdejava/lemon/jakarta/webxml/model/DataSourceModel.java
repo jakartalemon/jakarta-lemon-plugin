@@ -29,22 +29,22 @@ import static java.util.stream.Collectors.toList;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DataSourceModel {
 
-    @XmlElement(namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String name;
 
-    @XmlElement(name = "class-name", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "class-name", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String className;
 
-    @XmlElement(name = "url", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "url", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String url;
 
-    @XmlElement(name = "user", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "user", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String user;
 
-    @XmlElement(name = "password", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "password", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private String password;
 
-    @XmlElement(name = "property", namespace = "http://xmlns.jcp.org/xml/ns/javaee")
+    @XmlElement(name = "property", namespace = "https://jakarta.ee/xml/ns/jakartaee")
     private List<DataSourcePropertyModel> property;
 
     public DataSourceModel() {
