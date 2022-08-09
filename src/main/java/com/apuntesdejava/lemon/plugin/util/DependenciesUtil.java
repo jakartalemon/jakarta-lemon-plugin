@@ -59,8 +59,8 @@ public class DependenciesUtil {
                 String json = EntityUtils.toString(entity);
                 EntityUtils.consumeQuietly(entity);
                 log.debug("resp:" + json);
-                try ( StringReader stringReader = new StringReader(json)) {
-                    var jsonReader = Json.createReader(stringReader);
+                try ( StringReader stringReader = new StringReader(json);  var jsonReader = Json.createReader(stringReader)) {
+
                     var jsonResp = jsonReader.readObject();
                     var responseJson = jsonResp.getJsonObject("response");
                     var docsJson = responseJson.getJsonArray("docs");

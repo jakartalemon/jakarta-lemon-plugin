@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
@@ -56,6 +57,7 @@ public class CreateViewMojo extends AbstractMojo {
     )
     private String viewProjectFile;
     private JsonObject viewModel;
+    private Dependency primeflexDependency;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -69,9 +71,14 @@ public class CreateViewMojo extends AbstractMojo {
             String viewStyle = this.viewModel.getString("style", "jsf");
             switch (viewStyle) {
                 case "jsf":
-                    createJsfViews();
+                    createServletJsf();
                     Set<Map.Entry<String, JsonValue>> formBeans = viewModel.getJsonObject("formBeans").entrySet();
-                    viewModelUtil.createPaths(getLog(), viewModel.getJsonObject("paths").entrySet(), formBeans);
+                    viewModelUtil.createPaths(
+                            getLog(),
+                            viewModel.getJsonObject("paths").entrySet(),
+                            formBeans,
+                            primeflexDependency.getVersion()
+                    );
                     viewModelUtil.createFormBeans(getLog(), formBeans);
                     break;
 
@@ -82,7 +89,7 @@ public class CreateViewMojo extends AbstractMojo {
         }
     }
 
-    private void createJsfViews() throws IOException {
+    private void createServletJsf() throws IOException {
         try {
             getLog().info("Creating Jakarta Server Faces views");
             var baseDir = mavenProject.getBasedir();
@@ -115,6 +122,7 @@ public class CreateViewMojo extends AbstractMojo {
             getLog().debug("Modifing pom.xml");
             Model model = ProjectModelUtil.getModel(mavenProject);
             ProjectModelUtil.addDependency(getLog(), model, "org.primefaces", "primefaces", Map.of("classifier", "jakarta"));
+            this.primeflexDependency = ProjectModelUtil.addDependency(getLog(), model, "org.webjars.npm", "primeflex");
             ProjectModelUtil.saveModel(mavenProject, model);
         } catch (IOException | XmlPullParserException ex) {
             getLog().error(ex.getMessage(), ex);

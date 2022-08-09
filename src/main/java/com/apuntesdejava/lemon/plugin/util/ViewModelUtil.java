@@ -16,6 +16,7 @@
 package com.apuntesdejava.lemon.plugin.util;
 
 import static com.apuntesdejava.lemon.plugin.util.Constants.TAB;
+import com.apuntesdejava.lemon.plugin.util.DocumentXmlUtil.ElementBuilder;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
@@ -91,7 +92,7 @@ public class ViewModelUtil {
         }
     }
 
-    public void createPaths(Log log, Set<Map.Entry<String, JsonValue>> entrySet, Set<Map.Entry<String, JsonValue>> formBeans) {
+    public void createPaths(Log log, Set<Map.Entry<String, JsonValue>> entrySet, Set<Map.Entry<String, JsonValue>> formBeans, String primeflexVersion) {
         try {
 
             final Path packageViewPath = packageBasePath.resolve("view");
@@ -102,7 +103,7 @@ public class ViewModelUtil {
                     var managedBeanClassName = createManagedBean(log, packageViewPath, item);
                     var formBean = formBeans.stream().filter(entry -> entry.getKey().equals(currentEntry.getString("formBean"))).findFirst();
                     if (formBean.isPresent()) {
-                        createView(log, managedBeanClassName, item, formBean.get().getValue().asJsonObject());
+                        createView(log, managedBeanClassName, item, formBean.get().getValue().asJsonObject(), primeflexVersion);
                     }
                 } catch (IOException ex) {
                     log.error(ex.getMessage(), ex);
@@ -289,7 +290,7 @@ public class ViewModelUtil {
         }
     }
 
-    private void createView(Log log, String managedBeanClassName, Map.Entry<String, JsonValue> entry, JsonObject formBean) {
+    private void createView(Log log, String managedBeanClassName, Map.Entry<String, JsonValue> entry, JsonObject formBean, String primeflexVersion) {
         var pathJson = entry.getValue().asJsonObject();
         var isList = pathJson.getString("type").equals("list");
         try {
@@ -302,42 +303,55 @@ public class ViewModelUtil {
 
             var doc = docBuilder.newDocument();
 
-            var htmlElem = doc.createElement("html");
-            htmlElem.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-            htmlElem.setAttribute("xmlns:h", "http://xmlns.jcp.org/jsf/html");
-            htmlElem.setAttribute("xmlns:ui", "http://xmlns.jcp.org/jsf/facelets");
-            htmlElem.setAttribute("xmlns:p", "http://primefaces.org/ui");
-            htmlElem.setAttribute("xmlns:f", "http://xmlns.jcp.org/jsf/core");
+            ElementBuilder hForm;
 
-            var hHead = doc.createElement("h:head");
-            htmlElem.appendChild(hHead);
-            var hBody = doc.createElement("h:body");
-            htmlElem.appendChild(hBody);
-
-            var hForm = doc.createElement("h:form");
-            hBody.appendChild(hForm);
+            var htmlElem = DocumentXmlUtil.ElementBuilder.newInstance("html")
+                    .addAttribute("xmlns", "http://www.w3.org/1999/xhtml")
+                    .addAttribute("xmlns:h", "http://xmlns.jcp.org/jsf/html")
+                    .addAttribute("xmlns:ui", "http://xmlns.jcp.org/jsf/facelets")
+                    .addAttribute("xmlns:p", "http://primefaces.org/ui")
+                    .addAttribute("xmlns:f", "http://xmlns.jcp.org/jsf/core")
+                    .addChild(
+                            DocumentXmlUtil.ElementBuilder.newInstance("h:head")
+                                    .addChild(
+                                            DocumentXmlUtil.ElementBuilder.newInstance("h:outputStylesheet")
+                                                    .addAttribute("library", "webjars")
+                                                    .addAttribute("name", String.format("primeflex/%s/primeflex.min.css", primeflexVersion))
+                                    )
+                    )
+                    .addChild(
+                            DocumentXmlUtil.ElementBuilder.newInstance("h:body")
+                                    .addChild(
+                                            DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
+                                                    .addAttribute("styleClass", "card")
+                                                    .addAttribute("layout", "block")
+                                                    .addChild(
+                                                            DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
+                                                                    .addAttribute("styleClass", "card-container")
+                                                                    .addAttribute("layout", "block")
+                                                                    .addChild(
+                                                                            DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
+                                                                                    .addAttribute("styleClass", "block p-4 mb-3")
+                                                                                    .addAttribute("layout", "block")
+                                                                                    .addChild(
+                                                                                            hForm = DocumentXmlUtil.ElementBuilder.newInstance("h:form")
+                                                                                    )
+                                                                    )
+                                                    )
+                                    )
+                    );
 
             if (isList) {
-                var pDataTable = doc.createElement("p:dataTable");
-                hForm.appendChild(pDataTable);
-                var variableName = pathName;
-                pDataTable.setAttribute("value", String.format("#{%1$sView.%1$sList}", variableName));
-                pDataTable.setAttribute("var", "item");
-
-                formBean.forEach((fieldName, type) -> {
-                    var pCol = doc.createElement("p:column");
-                    pCol.setTextContent(String.format("#{item.%s}", fieldName));
-                    pDataTable.appendChild(pCol);
-                });
+                hForm.addChild(createList(pathName, formBean));
             }
 
-            doc.appendChild(htmlElem);
-
+            doc.appendChild(htmlElem.build(doc));
             try ( var fos = new FileOutputStream(viewJsf.toFile())) {
 
                 var tf = TransformerFactory.newInstance();
                 var t = tf.newTransformer();
                 t.setOutputProperty(OutputKeys.INDENT, "yes");
+                t.setOutputProperty(OutputKeys.STANDALONE, "yes");
                 var source = new DOMSource(doc);
                 var result = new StreamResult(fos);
                 t.transform(source, result);
@@ -347,6 +361,25 @@ public class ViewModelUtil {
         } catch (ParserConfigurationException | IOException ex) {
             log.error(ex.getMessage(), ex);
         }
+    }
+
+    private ElementBuilder createList(String pathName, JsonObject formBean) {
+        var variableName = pathName;
+        var pDataTable = DocumentXmlUtil.ElementBuilder.newInstance("p:dataTable")
+                .addAttribute("value", String.format("#{%1$sView.%1$sList}", variableName))
+                .addAttribute("var", "item");
+
+        formBean.forEach((fieldName, type) -> {
+            pDataTable.addChild(
+                    DocumentXmlUtil.ElementBuilder.newInstance("p:column")
+                            .addChild(
+                                    DocumentXmlUtil.ElementBuilder.newInstance("h:outputText")
+                                            .addAttribute("value", String.format("#{item.%s}", fieldName))
+                            )
+            );
+        });
+        return pDataTable;
+
     }
 
 }

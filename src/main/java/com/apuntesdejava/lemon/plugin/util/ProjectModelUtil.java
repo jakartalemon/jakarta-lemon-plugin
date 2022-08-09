@@ -154,13 +154,13 @@ public class ProjectModelUtil {
 
     }
 
-    public static void addDependenciesDatabase(Log log, Model model, String database) {
-        addDependency(DependenciesUtil.getByDatabase(log, database), model.getDependencies(), emptyMap());
+    public static Dependency addDependenciesDatabase(Log log, Model model, String database) {
+        return addDependency(DependenciesUtil.getByDatabase(log, database), model.getDependencies(), emptyMap());
 
     }
 
-    private static void addDependency(DependencyModel dependen, List<Dependency> dependencies, Map<String, String> props) {
-        dependencies.stream()
+    private static Dependency addDependency(DependencyModel dependen, List<Dependency> dependencies, Map<String, String> props) {
+        return dependencies.stream()
                 .filter(item
                         -> item.getGroupId().equals(dependen.getGroupId())
                 && item.getArtifactId().equals(dependen.getArtifactId())
@@ -181,12 +181,12 @@ public class ProjectModelUtil {
                 });
     }
 
-    public static void addDependency(Log log, Model model, String groupId, String artefactId) {
-        addDependency(log, model, groupId, artefactId, emptyMap());
+    public static Dependency addDependency(Log log, Model model, String groupId, String artefactId) {
+        return addDependency(log, model, groupId, artefactId, emptyMap());
     }
 
-    public static void addDependency(Log log, Model model, String groupId, String artefactId, Map<String, String> props) {
-        addDependency(DependenciesUtil.getLastVersionDependency(log, "g:" + groupId + "+AND+a:" + artefactId),
+    public static Dependency addDependency(Log log, Model model, String groupId, String artefactId, Map<String, String> props) {
+        return addDependency(DependenciesUtil.getLastVersionDependency(log, "g:" + groupId + "+AND+a:" + artefactId),
                 model.getDependencies(),
                 props
         );
