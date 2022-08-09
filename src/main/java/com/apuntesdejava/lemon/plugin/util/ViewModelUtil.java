@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,12 +63,14 @@ public class ViewModelUtil {
     private Path packageBasePath;
     private final Path baseDirPath;
     private final Path webAppPath;
+    private final Path resourcePath;
 
     private ViewModelUtil(MavenProject mavenProject) {
         this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-', '.');
         this.baseDirPath = mavenProject.getBasedir().toPath();
         Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
         this.webAppPath = baseDirPath.resolve("src").resolve("main").resolve("webapp");
+        this.resourcePath = baseDirPath.resolve("src").resolve("main").resolve("resources");
         String groupId = packageName;
         String[] packagePaths = groupId.split("\\.");
         this.packageBasePath = javaMainSrc;
@@ -101,9 +104,10 @@ public class ViewModelUtil {
                 try {
                     var currentEntry = item.getValue().asJsonObject();
                     var managedBeanClassName = createManagedBean(log, packageViewPath, item);
-                    var formBean = formBeans.stream().filter(entry -> entry.getKey().equals(currentEntry.getString("formBean"))).findFirst();
+                    String formBeanName = currentEntry.getString("formBean");
+                    var formBean = formBeans.stream().filter(entry -> entry.getKey().equals(formBeanName)).findFirst();
                     if (formBean.isPresent()) {
-                        createView(log, managedBeanClassName, item, formBean.get().getValue().asJsonObject(), primeflexVersion);
+                        createView(log, managedBeanClassName, item, formBeanName, formBean.get().getValue().asJsonObject(), primeflexVersion);
                     }
                 } catch (IOException ex) {
                     log.error(ex.getMessage(), ex);
@@ -196,6 +200,7 @@ public class ViewModelUtil {
             String className = name2ClassName(pathName);
             String classFileName = className + ".java";
             Path classPath = packageFormBean.resolve(classFileName);
+            Map<String, String> labels = new LinkedHashMap<>();
 
             var lines = new ArrayList<String>();
             lines.add("package " + packageName + ".formbean;");
@@ -213,6 +218,7 @@ public class ViewModelUtil {
                         var bodyStruct = field.getValue().asJsonObject();
                         fieldType = bodyStruct.getString("type", "String");
                         insertValidation(lines, bodyStruct);
+                        insertLabels(log, labels, fieldName, bodyStruct);
 
                         break;
                     case STRING:
@@ -226,6 +232,17 @@ public class ViewModelUtil {
             });
             lines.add("}");
             Files.write(classPath, lines);
+
+            Path messagePropertiesPath = resourcePath.resolve("messages.properties");
+            List<String> messages = Files.exists(messagePropertiesPath)
+                    ? Files.readAllLines(messagePropertiesPath)
+                    : new ArrayList<>();
+            messages.add(EMPTY);
+            messages.add("## FORM BEAN " + className);
+            labels.entrySet().forEach(label -> messages.add(String.format("%s_%s=%s", className, label.getKey(), label.getValue())));
+
+            Files.write(messagePropertiesPath, messages);
+
         } catch (IOException ex) {
             log.error(ex.getMessage(), ex);
         }
@@ -290,7 +307,7 @@ public class ViewModelUtil {
         }
     }
 
-    private void createView(Log log, String managedBeanClassName, Map.Entry<String, JsonValue> entry, JsonObject formBean, String primeflexVersion) {
+    private void createView(Log log, String managedBeanClassName, Map.Entry<String, JsonValue> entry, String formBeanName, JsonObject formBean, String primeflexVersion) {
         var pathJson = entry.getValue().asJsonObject();
         var isList = pathJson.getString("type").equals("list");
         try {
@@ -311,13 +328,15 @@ public class ViewModelUtil {
                     .addAttribute("xmlns:ui", "http://xmlns.jcp.org/jsf/facelets")
                     .addAttribute("xmlns:p", "http://primefaces.org/ui")
                     .addAttribute("xmlns:f", "http://xmlns.jcp.org/jsf/core")
-                    .addChild(
-                            DocumentXmlUtil.ElementBuilder.newInstance("h:head")
-                                    .addChild(
-                                            DocumentXmlUtil.ElementBuilder.newInstance("h:outputStylesheet")
-                                                    .addAttribute("library", "webjars")
-                                                    .addAttribute("name", String.format("primeflex/%s/primeflex.min.css", primeflexVersion))
-                                    )
+                    .addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:head")
+                            .addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:outputStylesheet")
+                                    .addAttribute("library", "webjars")
+                                    .addAttribute("name", String.format("primeflex/%s/primeflex.min.css", primeflexVersion))
+                            ).addChild(
+                                    DocumentXmlUtil.ElementBuilder.newInstance("f:loadBundle")
+                                            .addAttribute("var", "messages")
+                                            .addAttribute("basename", "messages")
+                            )
                     )
                     .addChild(
                             DocumentXmlUtil.ElementBuilder.newInstance("h:body")
@@ -342,7 +361,7 @@ public class ViewModelUtil {
                     );
 
             if (isList) {
-                hForm.addChild(createList(pathName, formBean));
+                hForm.addChild(createList(pathName, formBeanName, formBean));
             }
 
             doc.appendChild(htmlElem.build(doc));
@@ -363,15 +382,16 @@ public class ViewModelUtil {
         }
     }
 
-    private ElementBuilder createList(String pathName, JsonObject formBean) {
+    private ElementBuilder createList(String pathName, String formBeanName, JsonObject formBean) {
         var variableName = pathName;
         var pDataTable = DocumentXmlUtil.ElementBuilder.newInstance("p:dataTable")
                 .addAttribute("value", String.format("#{%1$sView.%1$sList}", variableName))
                 .addAttribute("var", "item");
-
+        var $formBeanName = name2ClassName(formBeanName);
         formBean.forEach((fieldName, type) -> {
             pDataTable.addChild(
                     DocumentXmlUtil.ElementBuilder.newInstance("p:column")
+                            .addAttribute("headerText", String.format("#{messages.%s_%s}", $formBeanName, fieldName))
                             .addChild(
                                     DocumentXmlUtil.ElementBuilder.newInstance("h:outputText")
                                             .addAttribute("value", String.format("#{item.%s}", fieldName))
@@ -380,6 +400,34 @@ public class ViewModelUtil {
         });
         return pDataTable;
 
+    }
+
+    /**
+     * Create lables for properties
+     *
+     * @param labels Map of messages
+     * @param bodyStruct JSON Structure from view.json
+     */
+    private void insertLabels(Log log, Map<String, String> labels, String fieldName, JsonObject bodyStruct) {
+        if (bodyStruct.containsKey("label")) {
+            var value = bodyStruct.get("label");
+            if (value.getValueType() == JsonValue.ValueType.STRING) {
+                labels.put(fieldName, bodyStruct.getString("label"));
+            } else if (value.getValueType() == JsonValue.ValueType.OBJECT) {
+                var sValue = value.asJsonObject();
+                try {
+                    labels.put(fieldName, sValue.getString("en"));
+                } catch (Exception ex) {
+                    log.warn("field " + fieldName + ex.getMessage());
+                    try {
+                        labels.put(fieldName, sValue.getString("default"));
+                    } catch (Exception ex0) {
+                        log.warn("field " + fieldName + ex.getMessage());
+
+                    }
+                }
+            }
+        }
     }
 
 }
