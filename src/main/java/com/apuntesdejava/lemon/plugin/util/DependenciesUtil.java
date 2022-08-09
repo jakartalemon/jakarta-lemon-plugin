@@ -16,15 +16,11 @@
 package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
-import com.apuntesdejava.lemon.jakarta.model.MavenDocResponse;
-import com.apuntesdejava.lemon.jakarta.model.MavenResponse;
 import static com.apuntesdejava.lemon.plugin.util.Constants.DB_DEFINITIONS;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.Json;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -32,6 +28,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.apache.maven.plugin.logging.Log;
 
 /**
  *
@@ -39,37 +36,40 @@ import org.apache.http.util.EntityUtils;
  */
 public class DependenciesUtil {
 
-    private static final Logger LOGGER = Logger.getLogger(DependenciesUtil.class.getName());
-
     private static final String HOST_MAVEN_SEARCH = "https://search.maven.org";
 
     private DependenciesUtil() {
 
     }
 
-    public static DependencyModel getByDatabase(String database) {
+    public static DependencyModel getByDatabase(Log log, String database) {
         Map<String, Object> aDef = (Map<String, Object>) DB_DEFINITIONS.get(database);
-        return getLastVersionDependency((String) aDef.get("search"));
+        return getLastVersionDependency(log, (String) aDef.get("search"));
     }
 
-    public static DependencyModel getLastVersionDependency(String query) {
+    public static DependencyModel getLastVersionDependency(Log log, String query) {
         try ( CloseableHttpClient httpclient = HttpClients.createDefault()) {
-            HttpGet httpGet = new HttpGet(HOST_MAVEN_SEARCH + "/solrsearch/select?q=" + query);
+            String uri = HOST_MAVEN_SEARCH + "/solrsearch/select?q=" + query;
+            log.debug("getting uri:" + uri);
+            HttpGet httpGet = new HttpGet(uri);
             try ( CloseableHttpResponse response = httpclient.execute(httpGet)) {
                 HttpEntity entity = response.getEntity();
-                String resp = EntityUtils.toString(entity);
-                LOGGER.log(Level.FINE, "resp:{0}", resp);
-                Jsonb jsonb = JsonbBuilder.create();
                 StatusLine statusLine = response.getStatusLine();
-                LOGGER.log(Level.FINE, "code:{0}", statusLine.getStatusCode());
-                LOGGER.log(Level.FINE, "phrase:{0}", statusLine.getReasonPhrase());
+                log.debug("code:" + statusLine.getStatusCode());
+                String json = EntityUtils.toString(entity);
                 EntityUtils.consumeQuietly(entity);
-                MavenResponse mavenResponse = jsonb.fromJson(resp, MavenResponse.class);
-                MavenDocResponse model = mavenResponse.getResponse().getDocs().get(0);
-                return new DependencyModel(model.getG(), model.getA(), model.getLatestVersion());
+                log.debug("resp:" + json);
+                try ( StringReader stringReader = new StringReader(json);  var jsonReader = Json.createReader(stringReader)) {
+
+                    var jsonResp = jsonReader.readObject();
+                    var responseJson = jsonResp.getJsonObject("response");
+                    var docsJson = responseJson.getJsonArray("docs");
+                    var docJson = docsJson.get(0).asJsonObject();
+                    return new DependencyModel(docJson.getString("g"), docJson.getString("a"), docJson.getString("latestVersion"));
+                }
             }
         } catch (IOException ex) {
-            LOGGER.severe(ex.getMessage());
+            log.error(ex.getMessage(), ex);
         }
         return null;
 

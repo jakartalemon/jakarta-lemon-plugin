@@ -30,6 +30,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import java.io.*;
 import java.util.*;
+import static java.util.Collections.emptyMap;
 
 /**
  *
@@ -143,9 +144,9 @@ public class ProjectModelUtil {
         return xpp3Dom;
     }
 
-    public static void addDependenciesDatabase(Xpp3Dom dependency, String database) {
+    public static void addDependenciesDatabase(Log log, Xpp3Dom dependency, String database) {
 
-        DependencyModel dependen = DependenciesUtil.getByDatabase(database);
+        DependencyModel dependen = DependenciesUtil.getByDatabase(log, database);
 
         ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.getGroupId());
         ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.getArtifactId());
@@ -153,13 +154,13 @@ public class ProjectModelUtil {
 
     }
 
-    public static void addDependenciesDatabase(Model model, String database) {
-        addDependency(DependenciesUtil.getByDatabase(database), model.getDependencies());
+    public static Dependency addDependenciesDatabase(Log log, Model model, String database) {
+        return addDependency(DependenciesUtil.getByDatabase(log, database), model.getDependencies(), emptyMap());
 
     }
 
-    private static void addDependency(DependencyModel dependen, List<Dependency> dependencies) {
-        dependencies.stream()
+    private static Dependency addDependency(DependencyModel dependen, List<Dependency> dependencies, Map<String, String> props) {
+        return dependencies.stream()
                 .filter(item
                         -> item.getGroupId().equals(dependen.getGroupId())
                 && item.getArtifactId().equals(dependen.getArtifactId())
@@ -169,15 +170,25 @@ public class ProjectModelUtil {
                     dd.setGroupId(dependen.getGroupId());
                     dd.setArtifactId(dependen.getArtifactId());
                     dd.setVersion(dependen.getVersion());
+                    if (props.containsKey("classifier")) {
+                        dd.setClassifier(props.get("classifier"));
+                    }
+                    if (props.containsKey("scope")) {
+                        dd.setScope(props.get("scope"));
+                    }
                     dependencies.add(dd);
                     return dd;
                 });
     }
 
-    public static void addDependency(Model model, String groupId, String artefactId, String scope) {
-        addDependency(
-                DependenciesUtil.getLastVersionDependency("g:" + groupId + "+AND+a:" + artefactId),
-                model.getDependencies()
+    public static Dependency addDependency(Log log, Model model, String groupId, String artefactId) {
+        return addDependency(log, model, groupId, artefactId, emptyMap());
+    }
+
+    public static Dependency addDependency(Log log, Model model, String groupId, String artefactId, Map<String, String> props) {
+        return addDependency(DependenciesUtil.getLastVersionDependency(log, "g:" + groupId + "+AND+a:" + artefactId),
+                model.getDependencies(),
+                props
         );
     }
 

@@ -58,3 +58,4 @@ Thumbs.db
 .gradle
 .apt_generated_tests
 .apt_generated
+/nbactions.xml

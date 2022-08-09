@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.apuntesdejava.lemon.jakarta.model;
+@XmlSchema(
+        xmlns = {
+            @XmlNs(prefix = "", namespaceURI = "https://jakarta.ee/xml/ns/persistence"),
+            @XmlNs(prefix = "xsi", namespaceURI = "http://www.w3.org/2001/XMLSchema-instance")
+        },
+        location = "https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
+)
+package com.apuntesdejava.lemon.jakarta.persistence.model;
 
-import lombok.Data;
+import jakarta.xml.bind.annotation.XmlNs;
+import jakarta.xml.bind.annotation.XmlSchema;
 
-/**
- *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
- */
-@Data
-public class MavenResponse {
-
-    private MavenResponseResponse response;
-    private int numFound;
-}

@@ -51,7 +51,6 @@ public class OpenLibertyUtil {
 
     private static final Path SERVER_XML_PATH = Paths.get("src", "main", "liberty", "config", "server.xml");
 
-
     public static void createDataSource(Log log, ProjectModel projectModel, MavenProject mavenProject) {
         try {
             log.debug("Updating server.xml");
@@ -102,7 +101,7 @@ public class OpenLibertyUtil {
                 location.setValue("jdbc");
 
                 Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, "dependency");
-                ProjectModelUtil.addDependenciesDatabase(dependency, projectModel.getDatasource().getDb());
+                ProjectModelUtil.addDependenciesDatabase(log, dependency, projectModel.getDatasource().getDb());
 
                 ProjectModelUtil.saveModel(mavenProject, model);
             }
@@ -143,8 +142,9 @@ public class OpenLibertyUtil {
         marshaller.marshal(serverModel, serverXmlPath.toFile());
 
     }
+
     private OpenLibertyUtil() {
-        
+
     }
 
 }

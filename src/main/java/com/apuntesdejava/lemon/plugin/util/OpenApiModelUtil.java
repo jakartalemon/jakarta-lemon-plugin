@@ -95,8 +95,7 @@ public class OpenApiModelUtil {
     }
 
     public JsonObject getModel(Path modelProjectFile) throws FileNotFoundException, IOException {
-        try ( InputStream in = new FileInputStream(modelProjectFile.toFile())) {
-            JsonReader reader = Json.createReader(in);
+        try ( InputStream in = new FileInputStream(modelProjectFile.toFile());  JsonReader reader = Json.createReader(in)) {
             return reader.readObject();
         }
     }
