@@ -22,17 +22,32 @@ import org.apache.commons.lang3.StringUtils;
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 public enum DatasourceDefinitionStyleType {
+    /**
+     * Type by create datasource in web.xml file
+     */
     WEB("web.xml"),
+    /**
+     * Type by create datasource for Open Liberty
+     */
     OPENLIBERTY("openliberty"),
+    /**
+     * Type by create datasource for Payara Server
+     */
     PAYARA_RESOURCES("payara-resources");
     private final String value;
 
-    private DatasourceDefinitionStyleType(String value) {
+    DatasourceDefinitionStyleType(String value) {
         this.value = value;
     }
 
+    /**
+     * Get DataSource Enum Type by String value
+     *
+     * @param value Type
+     * @return Enum Type
+     */
     public static DatasourceDefinitionStyleType findByValue(String value) {
-        for (DatasourceDefinitionStyleType item : values()) {
+        for (var item : values()) {
             if (StringUtils.equalsIgnoreCase(item.value, value)) {
                 return item;
             }

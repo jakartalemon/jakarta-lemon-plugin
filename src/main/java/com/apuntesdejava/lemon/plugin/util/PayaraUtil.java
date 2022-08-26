@@ -63,7 +63,7 @@ public class PayaraUtil {
                     .addProperty(JdbcConnectionPoolPropertyModel.newInstance("url", projectModel.getDatasource().getUrl()))
                     .addProperty(JdbcConnectionPoolPropertyModel.newInstance("user", projectModel.getDatasource().getUser()))
                     .addProperty(JdbcConnectionPoolPropertyModel.newInstance("password", projectModel.getDatasource().getPassword()));
-            projectModel.getDatasource().getProperties().entrySet().stream().forEach(entry -> jdbcConnectionPoolModelBuilder
+            projectModel.getDatasource().getProperties().entrySet().forEach(entry -> jdbcConnectionPoolModelBuilder
                     .addProperty(JdbcConnectionPoolPropertyModel.newInstance(entry.getKey(), entry.getValue())));
             payaraResourcesXml.setJdbcConnectionPool(
                     jdbcConnectionPoolModelBuilder.build()

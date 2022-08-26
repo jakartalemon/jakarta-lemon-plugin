@@ -15,26 +15,18 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import static com.apuntesdejava.lemon.plugin.util.Constants.TAB;
+import com.apuntesdejava.lemon.jakarta.webxml.model.ServletMappingModel;
+import com.apuntesdejava.lemon.jakarta.webxml.model.ServletModel;
 import com.apuntesdejava.lemon.plugin.util.DocumentXmlUtil.ElementBuilder;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
+import jakarta.xml.bind.JAXBException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
+
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
@@ -42,32 +34,36 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import org.apache.commons.lang3.StringUtils;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+
+import static com.apuntesdejava.lemon.plugin.util.Constants.TAB;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.SPACE;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.project.MavenProject;
 
 /**
- *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 public class ViewModelUtil {
 
     private static ViewModelUtil INSTANCE;
-
-    private synchronized static void newInstance(MavenProject mavenProject) {
-        INSTANCE = new ViewModelUtil(mavenProject);
-    }
+    private final MavenProject mavenProject;
+    private final Log log;
     private final String packageName;
-    private Path packageBasePath;
-    private final Path baseDirPath;
     private final Path webAppPath;
     private final Path resourcePath;
+    private Path packageBasePath;
 
-    private ViewModelUtil(MavenProject mavenProject) {
+    private ViewModelUtil(Log log, MavenProject mavenProject) {
+        this.mavenProject = mavenProject;
+        this.log = log;
         this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-', '.');
-        this.baseDirPath = mavenProject.getBasedir().toPath();
+        var baseDirPath = mavenProject.getBasedir().toPath();
         Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
         this.webAppPath = baseDirPath.resolve("src").resolve("main").resolve("webapp");
         this.resourcePath = baseDirPath.resolve("src").resolve("main").resolve("resources");
@@ -81,34 +77,131 @@ public class ViewModelUtil {
 
     }
 
-    public static ViewModelUtil getInstance(MavenProject mavenProject) {
+    private synchronized static void newInstance(Log log, MavenProject mavenProject) {
+        INSTANCE = new ViewModelUtil(log, mavenProject);
+    }
+
+    public static ViewModelUtil getInstance(Log log, MavenProject mavenProject) {
         if (INSTANCE == null) {
-            newInstance(mavenProject);
+            newInstance(log, mavenProject);
         }
         return INSTANCE;
     }
 
-    public Optional<JsonObject> getViewModel(Log log, String viewProjectFile) throws FileNotFoundException, IOException {
+    private static String name2ClassName(String name) {
+        return name.substring(0, 1).toUpperCase() + name.substring(1);
+    }
+
+    private static String name2Variable(String name) {
+        return name.substring(0, 1).toLowerCase() + name.substring(1);
+    }
+
+    private static void insertImportType(ArrayList<String> lines, String fieldType) {
+        switch (fieldType) {
+            case "LocalDate":
+                lines.add(2, "import java.time.LocalDate;");
+                break;
+            case "LocalDateTime":
+                lines.add(2, "import java.time.LocalDateTime;");
+                break;
+            case "Date":
+                lines.add(2, "import java.util.Date;");
+        }
+    }
+
+    private static void insertValidation(ArrayList<String> lines, JsonObject bodyStruct) {
+        if (bodyStruct.containsKey("futureOrPresent") && bodyStruct.getBoolean("futureOrPresent")) {
+            lines.add(2, "import jakarta.validation.constraints.FutureOrPresent;");
+            lines.add(StringUtils.repeat(SPACE, TAB) + "@FutureOrPresent");
+        }
+        if (bodyStruct.containsKey("future") && bodyStruct.getBoolean("future")) {
+            lines.add(2, "import jakarta.validation.constraints.Future;");
+            lines.add(StringUtils.repeat(SPACE, TAB) + "@Future");
+        }
+        if (bodyStruct.containsKey("past") && bodyStruct.getBoolean("past")) {
+            lines.add(2, "import jakarta.validation.constraints.Past;");
+            lines.add(StringUtils.repeat(SPACE, TAB) + "@Past");
+        }
+        if (bodyStruct.containsKey("pastOrPresent") && bodyStruct.getBoolean("pastOrPresent")) {
+            lines.add(2, "import jakarta.validation.constraints.PastOrPresent;");
+            lines.add(StringUtils.repeat(SPACE, TAB) + "@PastOrPresent");
+        }
+        if (bodyStruct.containsKey("email") && bodyStruct.getBoolean("email")) {
+            lines.add(2, "import jakarta.validation.constraints.Email;");
+            lines.add(StringUtils.repeat(SPACE, TAB) + "@Email");
+        }
+        if (bodyStruct.containsKey("notNull") && bodyStruct.getBoolean("notNull")) {
+            lines.add(2, "import jakarta.validation.constraints.NotNull;");
+            lines.add(StringUtils.repeat(SPACE, TAB) + "@NotNull");
+        }
+        if (bodyStruct.containsKey("notEmpty") && bodyStruct.getBoolean("notEmpty")) {
+            lines.add(2, "import jakarta.validation.constraints.NotEmpty;");
+            lines.add(StringUtils.repeat(SPACE, TAB) + "@NotEmpty");
+        }
+        if (bodyStruct.containsKey("decimalMax")) {
+            lines.add(2, "import jakarta.validation.constraints.DecimalMax;");
+            var value = bodyStruct.getInt("decimalMax");
+            lines.add(String.format("%s@DecimalMax(value = \"%d\")", StringUtils.repeat(SPACE, TAB), value));
+        }
+        if (bodyStruct.containsKey("decimalMin")) {
+            lines.add(2, "import jakarta.validation.constraints.DecimalMin;");
+            var value = bodyStruct.getInt("decimalMin");
+            lines.add(String.format("%s@DecimalMin(value = \"%d\")", StringUtils.repeat(SPACE, TAB), value));
+        }
+        if (bodyStruct.containsKey("digits")) {
+            lines.add(2, "import jakarta.validation.constraints.Digits;");
+            var digits = bodyStruct.getJsonObject("digits");
+            lines.add(String.format("%s@Digits(integer = %d, fraction = %d)", StringUtils.repeat(SPACE, TAB), digits.getInt("integer"), digits.getInt("fraction")));
+        }
+    }
+
+    public void createServletJsf() throws IOException {
+        try {
+            log.info("Creating Jakarta Server Faces views");
+            var baseDir = mavenProject.getBasedir();
+            log.debug("baseDir:" + baseDir);
+            var webXmlUtil = new WebXmlUtil(baseDir.toString());
+            var webxml = webXmlUtil.getModel();
+            boolean createServlet = webxml.getServlet() == null
+                    || webxml.getServlet()
+                    .stream()
+                    .filter(item -> item.getServletClass().equals("jakarta.faces.webapp.FacesServlet"))
+                    .findFirst().isEmpty();
+            if (createServlet) {
+                var servletList = Optional.ofNullable(webxml.getServlet()).orElse(new ArrayList<>());
+                var servletMappingList = Optional.ofNullable(webxml.getServletMapping()).orElse(new ArrayList<>());
+                servletList.add(new ServletModel("Server Faces Servlet", "jakarta.faces.webapp.FacesServlet"));
+                servletMappingList.add(new ServletMappingModel("Server Faces Servlet", "*.jsf"));
+                webxml.setServlet(servletList);
+                webxml.setServletMapping(servletMappingList);
+
+                webXmlUtil.saveModel(webxml);
+            }
+
+        } catch (JAXBException ex) {
+            log.error(ex.getMessage(), ex);
+        }
+    }
+
+    public Optional<JsonObject> getViewModel(String viewProjectFile) throws IOException {
         log.debug("Reading view configuration:" + viewProjectFile);
-        try ( InputStream in = new FileInputStream(viewProjectFile)) {
+        try (InputStream in = new FileInputStream(viewProjectFile)) {
             return Optional.ofNullable(Json.createReader(in).readObject());
         }
     }
 
-    public void createPaths(Log log, Set<Map.Entry<String, JsonValue>> entrySet, Set<Map.Entry<String, JsonValue>> formBeans, String primeflexVersion) {
+    public void createPaths(Set<Map.Entry<String, JsonValue>> entrySet, Set<Map.Entry<String, JsonValue>> formBeans, String primeflexVersion) {
         try {
 
             final Path packageViewPath = packageBasePath.resolve("view");
             Files.createDirectories(packageViewPath);
-            entrySet.stream().forEach(item -> {
+            entrySet.forEach(item -> {
                 try {
                     var currentEntry = item.getValue().asJsonObject();
-                    var managedBeanClassName = createManagedBean(log, packageViewPath, item);
+                    var managedBeanClassName = createManagedBean(packageViewPath, item);
                     String formBeanName = currentEntry.getString("formBean");
                     var formBean = formBeans.stream().filter(entry -> entry.getKey().equals(formBeanName)).findFirst();
-                    if (formBean.isPresent()) {
-                        createView(log, managedBeanClassName, item, formBeanName, formBean.get().getValue().asJsonObject(), primeflexVersion);
-                    }
+                    formBean.ifPresent(stringJsonValueEntry -> createView(managedBeanClassName, item, formBeanName, stringJsonValueEntry.getValue().asJsonObject(), primeflexVersion));
                 } catch (IOException ex) {
                     log.error(ex.getMessage(), ex);
                 }
@@ -118,7 +211,11 @@ public class ViewModelUtil {
         }
     }
 
-    private String createManagedBean(Log log, Path packageViewPath, Map.Entry<String, JsonValue> entry) throws IOException {
+    private static String getNameFromPath(String pathName) {
+        return pathName.replaceAll("[^a-zA-Z]", "");
+    }
+
+    private String createManagedBean(Path packageViewPath, Map.Entry<String, JsonValue> entry) throws IOException {
         Set<String> imports = new TreeSet<>();
 
         var pathName = entry.getKey();
@@ -126,7 +223,8 @@ public class ViewModelUtil {
         var pathJson = entry.getValue().asJsonObject();
         var isList = pathJson.getString("type").equals("list");
         String scoped = isList ? "SessionScoped" : "RequestScoped";
-        var $temp = pathName.replaceAll("[^a-zA-Z]", "") + "View";
+        var $temp = getNameFromPath(pathName) + "View";
+        var hasListView = entry.getValue().asJsonObject().containsKey("listView");
 
         String className = name2ClassName($temp);
         String classFileName = className + ".java";
@@ -139,11 +237,25 @@ public class ViewModelUtil {
         lines.add(EMPTY);
         imports.add("import jakarta.enterprise.context." + scoped + ";");
         imports.add(String.format("import %s.formbean.%s;", packageName, fieldClassType));
+        Map<String, String> variablesMap = new LinkedHashMap<>();
+        if (hasListView)
+            imports.add("import jakarta.inject.Inject;");
         imports.add("import jakarta.inject.Named;");
         lines.add(EMPTY);
         lines.add("@Named");
         lines.add("@" + scoped);
         lines.add(String.format("public class %s %s{", className, (isList ? "implements java.io.Serializable " : EMPTY)));
+        if (hasListView) {
+            lines.add(EMPTY);
+            lines.add(String.format("%s@Inject", StringUtils.repeat(SPACE, TAB)));
+            var variableName = getNameFromPath(entry.getValue().asJsonObject().getString("listView"));
+            var variableNameView = variableName + "View";
+            var classNameListView = name2ClassName(variableNameView);
+            var variableListView = name2Variable(variableNameView);
+            variablesMap.put("variableName", variableName);
+            lines.add(String.format("%sprivate %s %s;", StringUtils.repeat(SPACE, TAB), classNameListView, variableListView));
+
+        }
         lines.add(EMPTY);
         var fieldType = fieldClassType;
         var newInstance = fieldClassType;
@@ -170,6 +282,14 @@ public class ViewModelUtil {
         lines.add(String.format("%sreturn this.%s;", StringUtils.repeat(SPACE, TAB * 2), fieldName));
         lines.add(String.format("%s}", StringUtils.repeat(SPACE, TAB)));
 
+        if (!isList) {
+            lines.add(EMPTY);
+            lines.add(String.format("%spublic String save() {", StringUtils.repeat(SPACE, TAB)));
+            lines.add(String.format("%s%sView.get%sList().add(%s);", StringUtils.repeat(SPACE, TAB * 2), variablesMap.get("variableName"), name2ClassName(variablesMap.get("variableName")), fieldName));
+            lines.add(String.format("%sreturn \"%s?faces-redirect=true\";", StringUtils.repeat(SPACE, TAB * 2), entry.getValue().asJsonObject().getString("listView", "/index")));
+            lines.add(String.format("%s}", StringUtils.repeat(SPACE, TAB)));
+        }
+
         lines.add("}");
         lines.addAll(2, imports);
         Files.write(classPath, lines);
@@ -177,21 +297,17 @@ public class ViewModelUtil {
 
     }
 
-    public void createFormBeans(Log log, Set<Map.Entry<String, JsonValue>> entrySet) {
+    public void createFormBeans(Set<Map.Entry<String, JsonValue>> entrySet) {
         try {
             final Path packageFormBean = packageBasePath.resolve("formbean");
             Files.createDirectories(packageFormBean);
-            entrySet.stream().forEach(item -> createFormBean(log, packageFormBean, item));
+            entrySet.forEach(item -> createFormBean(packageFormBean, item));
         } catch (IOException ex) {
             log.error(ex.getMessage(), ex);
         }
     }
 
-    private static String name2ClassName(String name) {
-        return name.substring(0, 1).toUpperCase() + name.substring(1);
-    }
-
-    private void createFormBean(Log log, Path packageFormBean, Map.Entry<String, JsonValue> entry) {
+    private void createFormBean(Path packageFormBean, Map.Entry<String, JsonValue> entry) {
         try {
             var pathName = entry.getKey();
             log.info("Creating Form bean:" + pathName);
@@ -218,12 +334,12 @@ public class ViewModelUtil {
                         var bodyStruct = field.getValue().asJsonObject();
                         fieldType = bodyStruct.getString("type", "String");
                         insertValidation(lines, bodyStruct);
-                        insertLabels(log, labels, fieldName, bodyStruct);
+                        insertLabels(labels, fieldName, bodyStruct);
 
                         break;
                     case STRING:
                         JsonString jsonString = (JsonString) field.getValue();
-                        fieldType = new StringBuilder(jsonString.getChars()).toString();
+                        fieldType = String.valueOf(jsonString.getChars());
 
                 }
                 insertImportType(lines, fieldType);
@@ -234,12 +350,14 @@ public class ViewModelUtil {
             Files.write(classPath, lines);
 
             Path messagePropertiesPath = resourcePath.resolve("messages.properties");
-            List<String> messages = Files.exists(messagePropertiesPath)
-                    ? Files.readAllLines(messagePropertiesPath)
-                    : new ArrayList<>();
-            messages.add(EMPTY);
-            messages.add("## FORM BEAN " + className);
-            labels.entrySet().forEach(label -> messages.add(String.format("%s_%s=%s", className, label.getKey(), label.getValue())));
+
+            Set<String> messages = Files.exists(messagePropertiesPath)
+                    ? new LinkedHashSet<>(Files.readAllLines(messagePropertiesPath))
+                    : new LinkedHashSet<>(Arrays.asList("form.save=Guardar", "form.cancel=Cancelar"));
+            Set<String> newMessages = new LinkedHashSet<>();
+            newMessages.add("## FORM BEAN " + className);
+            labels.entrySet().forEach(label -> newMessages.add(String.format("%s_%s=%s", className, label.getKey(), label.getValue())));
+            messages.addAll(newMessages);
 
             Files.write(messagePropertiesPath, messages);
 
@@ -248,66 +366,7 @@ public class ViewModelUtil {
         }
     }
 
-    private static void insertImportType(ArrayList<String> lines, String fieldType) {
-        switch (fieldType) {
-            case "LocalDate":
-                lines.add(2, "import java.time.LocalDate;");
-                break;
-            case "LocalDateTime":
-                lines.add(2, "import java.time.LocalDateTime;");
-                break;
-            case "Date":
-                lines.add(2, "import java.util.Date;");
-        }
-    }
-
-    private static void insertValidation(ArrayList<String> lines, JsonObject bodyStruct) {
-        if (bodyStruct.keySet().contains("futureOrPresent") && bodyStruct.getBoolean("futureOrPresent")) {
-            lines.add(2, "import jakarta.validation.constraints.FutureOrPresent;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@FutureOrPresent");
-        }
-        if (bodyStruct.keySet().contains("future") && bodyStruct.getBoolean("future")) {
-            lines.add(2, "import jakarta.validation.constraints.Future;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@Future");
-        }
-        if (bodyStruct.keySet().contains("past") && bodyStruct.getBoolean("past")) {
-            lines.add(2, "import jakarta.validation.constraints.Past;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@Past");
-        }
-        if (bodyStruct.keySet().contains("pastOrPresent") && bodyStruct.getBoolean("pastOrPresent")) {
-            lines.add(2, "import jakarta.validation.constraints.PastOrPresent;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@PastOrPresent");
-        }
-        if (bodyStruct.keySet().contains("email") && bodyStruct.getBoolean("email")) {
-            lines.add(2, "import jakarta.validation.constraints.Email;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@Email");
-        }
-        if (bodyStruct.keySet().contains("notNull") && bodyStruct.getBoolean("notNull")) {
-            lines.add(2, "import jakarta.validation.constraints.NotNull;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@NotNull");
-        }
-        if (bodyStruct.keySet().contains("notEmpty") && bodyStruct.getBoolean("notEmpty")) {
-            lines.add(2, "import jakarta.validation.constraints.NotEmpty;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@NotEmpty");
-        }
-        if (bodyStruct.keySet().contains("decimalMax")) {
-            lines.add(2, "import jakarta.validation.constraints.DecimalMax;");
-            var value = bodyStruct.getInt("decimalMax");
-            lines.add(String.format("%s@DecimalMax(value = \"%d\")", StringUtils.repeat(SPACE, TAB), value));
-        }
-        if (bodyStruct.keySet().contains("decimalMin")) {
-            lines.add(2, "import jakarta.validation.constraints.DecimalMin;");
-            var value = bodyStruct.getInt("decimalMin");
-            lines.add(String.format("%s@DecimalMin(value = \"%d\")", StringUtils.repeat(SPACE, TAB), value));
-        }
-        if (bodyStruct.keySet().contains("digits")) {
-            lines.add(2, "import jakarta.validation.constraints.Digits;");
-            var digits = bodyStruct.getJsonObject("digits");
-            lines.add(String.format("%s@Digits(integer = %d, fraction = %d)", StringUtils.repeat(SPACE, TAB), digits.getInt("integer"), digits.getInt("fraction")));
-        }
-    }
-
-    private void createView(Log log, String managedBeanClassName, Map.Entry<String, JsonValue> entry, String formBeanName, JsonObject formBean, String primeflexVersion) {
+    private void createView(String managedBeanClassName, Map.Entry<String, JsonValue> entry, String formBeanName, JsonObject formBean, String primeflexVersion) {
         var pathJson = entry.getValue().asJsonObject();
         var isList = pathJson.getString("type").equals("list");
         try {
@@ -362,10 +421,14 @@ public class ViewModelUtil {
 
             if (isList) {
                 hForm.addChild(createList(pathName, formBeanName, formBean));
+            } else {
+                hForm.addChild(createForm(pathName, formBeanName, formBean))
+                        .addChild(createButtons(entry.getValue().asJsonObject().getString("listView"), formBeanName));
+
             }
 
             doc.appendChild(htmlElem.build(doc));
-            try ( var fos = new FileOutputStream(viewJsf.toFile())) {
+            try (var fos = new FileOutputStream(viewJsf.toFile())) {
 
                 var tf = TransformerFactory.newInstance();
                 var t = tf.newTransformer();
@@ -380,6 +443,75 @@ public class ViewModelUtil {
         } catch (ParserConfigurationException | IOException ex) {
             log.error(ex.getMessage(), ex);
         }
+    }
+
+    private ElementBuilder createForm(String pathName, String formBeanName, JsonObject formBean) {
+        var panel = DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
+                .addAttribute("layout", "block")
+                .addAttribute("id", "formPanel")
+                .addAttribute("styleClass", "card");
+        var $formBeanName = name2ClassName(formBeanName);
+        formBean.forEach((fieldName, type) -> {
+            ElementBuilder fieldPanelGroup;
+            panel.addChild(
+                    fieldPanelGroup = DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
+                            .addAttribute("layout", "block")
+                            .addAttribute("styleClass", "field col-12 md:col-6")
+                            .addChild(
+                                    DocumentXmlUtil.ElementBuilder.newInstance("p:outputLabel")
+                                            .addAttribute("for", fieldName)
+                                            .addAttribute("value", String.format("#{messages.%s_%s}", $formBeanName, fieldName))
+                            )
+            );
+            log.debug("----" + fieldName + ":" + type);
+            var fieldType = getFileType(type);
+            ElementBuilder child = null;
+            switch (fieldType) {
+                case "String":
+                    fieldPanelGroup.addChild(
+                            child = DocumentXmlUtil.ElementBuilder.newInstance("p:inputText")
+                    );
+                    break;
+                case "LocalDate":
+                    fieldPanelGroup.addChild(
+                            child = DocumentXmlUtil.ElementBuilder.newInstance("p:datePicker")
+                    );
+                    break;
+                case "float":
+                    fieldPanelGroup.addChild(
+                            child = DocumentXmlUtil.ElementBuilder.newInstance("p:inputNumber")
+                    );
+                    break;
+            }
+            if (child != null) {
+                child.addAttribute("id", fieldName)
+                        .addAttribute("styleClass", "w-full")
+                        .addAttribute("value", String.format("#{%1$sFormView.%1$s.%2$s}", formBeanName, fieldName));
+                if (type.getValueType() == JsonValue.ValueType.OBJECT) {
+                    var typeObject = type.asJsonObject();
+                    if (typeObject.containsKey("size")) {
+                        var size = typeObject.getJsonObject("size");
+                        if (size.containsKey("max")) {
+                            var max = size.getInt("max");
+                            child.addAttribute("maxlength", String.valueOf(max));
+                        }
+                    }
+                }
+            }
+            fieldPanelGroup.addChild(
+                    DocumentXmlUtil.ElementBuilder.newInstance("p:message")
+                            .addAttribute("for", fieldName)
+            );
+
+        });
+        return panel;
+    }
+
+    private static String getFileType(JsonValue type) {
+        if (type.getValueType() == JsonValue.ValueType.OBJECT) {
+            return type.asJsonObject().getString("type", "String");
+        }
+        return "String";//String.valueOf(((JsonString) type.getValue()).getChars());
     }
 
     private ElementBuilder createList(String pathName, String formBeanName, JsonObject formBean) {
@@ -405,10 +537,10 @@ public class ViewModelUtil {
     /**
      * Create lables for properties
      *
-     * @param labels Map of messages
+     * @param labels     Map of messages
      * @param bodyStruct JSON Structure from view.json
      */
-    private void insertLabels(Log log, Map<String, String> labels, String fieldName, JsonObject bodyStruct) {
+    private void insertLabels(Map<String, String> labels, String fieldName, JsonObject bodyStruct) {
         if (bodyStruct.containsKey("label")) {
             var value = bodyStruct.get("label");
             if (value.getValueType() == JsonValue.ValueType.STRING) {
@@ -430,4 +562,32 @@ public class ViewModelUtil {
         }
     }
 
+    public void createViews(JsonObject viewModel, String version) {
+        Set<Map.Entry<String, JsonValue>> formBeans = viewModel.getJsonObject("formBeans").entrySet();
+        createPaths(
+                viewModel.getJsonObject("paths").entrySet(),
+                formBeans,
+                version
+        );
+        createFormBeans(formBeans);
+    }
+
+    private ElementBuilder createButtons(String listLink, String formBeanName) {
+        return DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
+                .addAttribute("layout", "block")
+                .addAttribute("styleClass", "card")
+                .addChild(
+                        DocumentXmlUtil.ElementBuilder.newInstance("p:commandButton")
+                                .addAttribute("value", "#{messages['form.save']}")
+                                .addAttribute("styleClass", "mr-3")
+                                .addAttribute("update", "formPanel")
+                                .addAttribute("action", String.format("#{%sFormView.save()}", formBeanName))
+                )
+                .addChild(
+                        DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
+                                .addAttribute("value", "#{messages['form.cancel']}")
+                                .addAttribute("styleClass", "ui-button-secondary mr-3")
+                                .addAttribute("outcome", listLink)
+                );
+    }
 }

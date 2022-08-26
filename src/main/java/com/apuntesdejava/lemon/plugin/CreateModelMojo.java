@@ -239,18 +239,20 @@ public class CreateModelMojo extends AbstractMojo {
         try {
             getLog().debug("==createFile:\n\tsource=" + source + "\n\ttarget:" + target);
             Files.createDirectories(target.getParent());
-            try ( InputStream is = getClass().getResourceAsStream(source)) {
-                List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
-                List<String> newCode = code
-                        .stream()
-                        .map(
-                                line -> StringUtils.replaceEach(line,
-                                        maps.keySet().toArray(String[]::new),
-                                        maps.values().toArray(String[]::new)
-                                )
-                        )
-                        .collect(Collectors.toList());
-                Files.write(target, newCode);
+            try (InputStream is = getClass().getResourceAsStream(source)) {
+                if (is != null) {
+                    List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
+                    List<String> newCode = code
+                            .stream()
+                            .map(
+                                    line -> StringUtils.replaceEach(line,
+                                            maps.keySet().toArray(String[]::new),
+                                            maps.values().toArray(String[]::new)
+                                    )
+                            )
+                            .collect(Collectors.toList());
+                    Files.write(target, newCode);
+                }
             }
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
@@ -270,7 +272,7 @@ public class CreateModelMojo extends AbstractMojo {
                 entity.getFinders().entrySet().stream().filter(entry -> entry.getValue().isNativeQuery())
                         .forEach(entry -> {
                             lines.add("@jakarta.persistence.NamedNativeQuery(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + String.format("name = \"$s.findBy%s\",", entity.getName(), entry.getKey()));
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + String.format("name = \"%s.findBy%s\",", entity.getName(), entry.getKey()));
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "query = \"" + entry.getValue().getQuery() + ",\n");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "resultClass = " + entry.getValue().getReturnValueType());
                             lines.add(")");
@@ -314,9 +316,9 @@ public class CreateModelMojo extends AbstractMojo {
 
                         GenerationType generatedValueType
                                 = ObjectUtils.defaultIfNull(
-                                        EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
-                                        GenerationType.AUTO
-                                );
+                                EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
+                                GenerationType.AUTO
+                        );
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
@@ -361,19 +363,20 @@ public class CreateModelMojo extends AbstractMojo {
             getLog().debug("Driver: " + driverDataSource);
             String styleSrc = projectModel.getDatasource().getStyle();
             this.style = DatasourceDefinitionStyleType.findByValue(styleSrc);
-            switch (style) {
-                case PAYARA_RESOURCES:
-                    PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel, mavenProject);
-                    break;
-                case WEB:
-                    createWebXML();
-                    break;
-                case OPENLIBERTY:
-                    OpenLibertyUtil.createDataSource(getLog(), projectModel, mavenProject);
-                    break;
-                default:
-                    getLog().error("DataSource Style is invalid:" + styleSrc);
-            }
+            if (style != null)
+                switch (style) {
+                    case PAYARA_RESOURCES:
+                        PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel, mavenProject);
+                        break;
+                    case WEB:
+                        createWebXML();
+                        break;
+                    case OPENLIBERTY:
+                        OpenLibertyUtil.createDataSource(getLog(), projectModel, mavenProject);
+                        break;
+                    default:
+                        getLog().error("DataSource Style is invalid:" + styleSrc);
+                }
         }
     }
 

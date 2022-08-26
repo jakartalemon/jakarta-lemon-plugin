@@ -17,6 +17,7 @@ package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
 import static com.apuntesdejava.lemon.plugin.util.Constants.DB_DEFINITIONS;
+import static com.apuntesdejava.lemon.plugin.util.Constants.SEARCH;
 import jakarta.json.Json;
 import java.io.IOException;
 import java.io.StringReader;
@@ -44,7 +45,7 @@ public class DependenciesUtil {
 
     public static DependencyModel getByDatabase(Log log, String database) {
         Map<String, Object> aDef = (Map<String, Object>) DB_DEFINITIONS.get(database);
-        return getLastVersionDependency(log, (String) aDef.get("search"));
+        return getLastVersionDependency(log, (String) aDef.get(SEARCH));
     }
 
     public static DependencyModel getLastVersionDependency(Log log, String query) {
