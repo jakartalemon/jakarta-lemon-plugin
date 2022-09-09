@@ -30,10 +30,10 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import java.io.*;
 import java.util.*;
+
 import static java.util.Collections.emptyMap;
 
 /**
- *
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
 public class ProjectModelUtil {
@@ -58,7 +58,7 @@ public class ProjectModelUtil {
 
     public static Optional<ProjectModel> getProjectModel(Log log, String modelProjectFile) {
         log.debug("Reading model configuration:" + modelProjectFile);
-        try ( InputStream in = new FileInputStream(modelProjectFile)) {
+        try (InputStream in = new FileInputStream(modelProjectFile)) {
             Jsonb jsonb = JsonbBuilder.create();
             return Optional.ofNullable(jsonb.fromJson(in, ProjectModel.class));
         } catch (IOException ex) {
@@ -133,9 +133,9 @@ public class ProjectModelUtil {
         return ignoreDuplicate
                 ? createChildren(parent, name)
                 : Arrays.stream(parent.getChildren())
-                        .filter(item -> item.getName().equals(name))
-                        .findFirst()
-                        .orElseGet(() -> createChildren(parent, name));
+                .filter(item -> item.getName().equals(name))
+                .findFirst()
+                .orElseGet(() -> createChildren(parent, name));
     }
 
     private static Xpp3Dom createChildren(Xpp3Dom parent, String name) {
@@ -148,9 +148,9 @@ public class ProjectModelUtil {
 
         DependencyModel dependen = DependenciesUtil.getByDatabase(log, database);
 
-        ProjectModelUtil.addChildren(dependency, "groupId").setValue((String) dependen.getGroupId());
-        ProjectModelUtil.addChildren(dependency, "artifactId").setValue((String) dependen.getArtifactId());
-        ProjectModelUtil.addChildren(dependency, "version").setValue((String) dependen.getVersion());
+        ProjectModelUtil.addChildren(dependency, "groupId").setValue(dependen.getGroupId());
+        ProjectModelUtil.addChildren(dependency, "artifactId").setValue(dependen.getArtifactId());
+        ProjectModelUtil.addChildren(dependency, "version").setValue(dependen.getVersion());
 
     }
 
@@ -163,7 +163,7 @@ public class ProjectModelUtil {
         return dependencies.stream()
                 .filter(item
                         -> item.getGroupId().equals(dependen.getGroupId())
-                && item.getArtifactId().equals(dependen.getArtifactId())
+                        && item.getArtifactId().equals(dependen.getArtifactId())
                 ).findFirst()
                 .orElseGet(() -> {
                     Dependency dd = new Dependency();

@@ -19,10 +19,12 @@ import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
 import jakarta.xml.bind.annotation.XmlElement;
+import lombok.*;
 
 /**
  * @author Diego Silva <diego.silva at apuntesdejava.com>
  */
+@Data
 @XmlAccessorType(XmlAccessType.FIELD)
 
 public class PersistenceUnitModel {
@@ -36,49 +38,9 @@ public class PersistenceUnitModel {
     @XmlElement(name = "jta-data-source", namespace = "https://jakarta.ee/xml/ns/persistence")
     private String jtaDataSource;
 
-    /*@XmlElement(name = "shared-cache-mode", namespace = "https://jakarta.ee/xml/ns/persistence")
-    private String sharedCacheMode = "ENABLE_SELECTIVE"; */
 
     @XmlElement(name = "properties", namespace = "https://jakarta.ee/xml/ns/persistence")
     private PropertiesModel properties;
 
-    public String getTransactionType() {
-        return transactionType;
-    }
 
-    public void setTransactionType(String transactionType) {
-        this.transactionType = transactionType;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getJtaDataSource() {
-        return jtaDataSource;
-    }
-
-    public void setJtaDataSource(String jtaDataSource) {
-        this.jtaDataSource = jtaDataSource;
-    }
-/*
-    public String getSharedCacheMode() {
-        return sharedCacheMode;
-    }
-
-    public void setSharedCacheMode(String sharedCacheMode) {
-        this.sharedCacheMode = sharedCacheMode;
-    }*/
-
-    public PropertiesModel getProperties() {
-        return properties;
-    }
-
-    public void setProperties(PropertiesModel properties) {
-        this.properties = properties;
-    }
 }

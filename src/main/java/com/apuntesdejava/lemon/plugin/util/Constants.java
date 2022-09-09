@@ -28,25 +28,33 @@ public class Constants {
     private Constants() {
     }
 
+    public final static String DATASOURCE = "datasource";
+    public final static String DRIVER = "driver";
+    public final static String POOL = "pool";
+    public final static String SEARCH = "search";
+
     public static final String QUERY_MAVEN_URL = "https://search.maven.org/solrsearch/select";
+
+    public static final String VIEW_STYLE_JSF ="jsf";
+    public static final String VIEW_STYLE ="style";
 
     public static final Map<String, Object> DB_DEFINITIONS = Map.of(
             "mysql", Map.of(
-                    "driver", "com.mysql.cj.jdbc.Driver",
-                    "datasource", "com.mysql.cj.jdbc.MysqlDataSource",
-                    "pool", "com.mysql.cj.jdbc.MysqlConnectionPoolDataSource",
-                    "search", "g:mysql+AND+a:mysql-connector-java" 
+                    DRIVER, "com.mysql.cj.jdbc.Driver",
+                    DATASOURCE, "com.mysql.cj.jdbc.MysqlDataSource",
+                    POOL, "com.mysql.cj.jdbc.MysqlConnectionPoolDataSource",
+                    SEARCH, "g:mysql+AND+a:mysql-connector-java"
             ),
             "postgresql", Map.of(
-                    "driver", "org.postgresql.Driver",
-                    "datasource", "org.postgresql.jdbc3.Jdbc3ConnectionPool",
-                    "search", "g:org.postgresql+AND+a:postgresql" 
+                    DRIVER, "org.postgresql.Driver",
+                    DATASOURCE, "org.postgresql.jdbc3.Jdbc3ConnectionPool",
+                    SEARCH, "g:org.postgresql+AND+a:postgresql"
             ),
             "mariadb", Map.of(
-                    "driver", "org.mariadb.jdbc.Driver",
-                    "datasource", "org.mariadb.jdbc.MariaDbDataSource",
-                    "pool", "org.mariadb.jdbc.MariaDbPoolDataSource",
-                    "search", "g:org.mariadb.jdbc+AND+a:mariadb-java-client" 
+                    DRIVER, "org.mariadb.jdbc.Driver",
+                    DATASOURCE, "org.mariadb.jdbc.MariaDbDataSource",
+                    POOL, "org.mariadb.jdbc.MariaDbPoolDataSource",
+                    SEARCH, "g:org.mariadb.jdbc+AND+a:mariadb-java-client"
             )
     );
 

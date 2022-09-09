@@ -48,13 +48,12 @@ public class AddOpenLibertyMojo extends AbstractMojo {
     private String _modelProjectFile;
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
-    private ProjectModel projectModel;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         Optional<ProjectModel> opt = ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile);
         if (opt.isPresent()) {
-            this.projectModel = opt.get();
+
             addPlugin();
             createServerXml();
         }
