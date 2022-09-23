@@ -1,0 +1,83 @@
+package {package}.repositories;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import jakarta.transaction.Transactional;
+
+public abstract class AbstractRepository<ID, T> {
+
+    private final Class<T> clazz;
+    private List<String> sortColumns;
+
+    protected abstract EntityManager getEntityManager();
+
+    protected AbstractRepository(Class<T> clazz) {
+        this.clazz = clazz;
+    }
+
+    protected AbstractRepository(Class<T> clazz, String... sortColumns) {
+        this.clazz = clazz;
+        if (sortColumns != null && sortColumns.length > 0) {
+            this.sortColumns = Arrays.asList(sortColumns);
+        }
+    }
+
+    @Transactional
+    public T create(T model) {
+        getEntityManager().persist(model);
+        return model;
+    }
+
+    public Optional<T> findById(ID id) {
+        return Optional.ofNullable(getEntityManager().find(clazz, id));
+    }
+
+    public List<T> findAll() {
+        EntityManager em = getEntityManager();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<T> cq = cb.createQuery(clazz);
+        Root<T> model = cq.from(clazz);
+        cq.select(model);
+        if (sortColumns != null && !sortColumns.isEmpty()) {
+            cq.orderBy(
+                    sortColumns
+                            .stream()
+                            .map(columnName -> cb.asc(model.get(columnName)))
+                            .collect(Collectors.toList())
+            );
+        }
+        return em.createQuery(cq).getResultList();
+    }
+
+    @Transactional
+    public boolean deleteById(ID id) {
+        Optional<T> model = findById(id);
+        if (model.isPresent()) {
+            getEntityManager().remove(model.get());
+            return true;
+        }
+        return false;
+    }
+
+    @Transactional
+    public void delete(T model) {
+        getEntityManager().refresh(model);
+    }
+
+    @Transactional
+    public boolean update(ID id, T newModel) {
+        Optional<T> currentModel = findById(id);
+        if (currentModel.isPresent()) {
+            getEntityManager().merge(newModel);
+
+            return true;
+        }
+        return false;
+    }
+}

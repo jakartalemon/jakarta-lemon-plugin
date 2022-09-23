@@ -48,3 +48,14 @@ Thumbs.db
 *.mov
 *.wmv
 
+**/.project
+**/.settings
+**/.classpath
+**/.factorypath
+/nb-configuration.xml
+/.vscode/
+
+.gradle
+.apt_generated_tests
+.apt_generated
+/nbactions.xml
