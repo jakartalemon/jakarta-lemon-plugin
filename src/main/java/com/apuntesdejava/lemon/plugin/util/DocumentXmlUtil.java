@@ -22,7 +22,7 @@ import org.w3c.dom.Element;
 
 /**
  *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class DocumentXmlUtil {
 

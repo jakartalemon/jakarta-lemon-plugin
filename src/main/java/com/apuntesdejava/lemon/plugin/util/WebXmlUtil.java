@@ -25,7 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class WebXmlUtil extends AbstractXmlUtil<WebAppModel> {
 

@@ -23,8 +23,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Model for the Pool of Connections. 
+ * This model is obtained from the configuration file.
  *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class JdbcConnectionPoolModel {
@@ -41,9 +43,17 @@ public class JdbcConnectionPoolModel {
     @XmlElement(name = "property")
     private List<JdbcConnectionPoolPropertyModel> property;
 
+    /**
+     * Basic constructor
+     */
     public JdbcConnectionPoolModel() {
     }
 
+    /**
+     * Get classname for DataSource
+     *
+     * @return Classname for DataSoure
+     */
     public String getDataSourceClassName() {
         return dataSourceClassName;
     }

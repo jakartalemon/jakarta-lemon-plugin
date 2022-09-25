@@ -25,7 +25,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 /**
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class PersistenceXmlUtil extends AbstractXmlUtil<PersistenceModel> {
 

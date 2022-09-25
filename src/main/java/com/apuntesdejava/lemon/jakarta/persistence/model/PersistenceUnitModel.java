@@ -22,7 +22,7 @@ import jakarta.xml.bind.annotation.XmlElement;
 import lombok.*;
 
 /**
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @Data
 @XmlAccessorType(XmlAccessType.FIELD)

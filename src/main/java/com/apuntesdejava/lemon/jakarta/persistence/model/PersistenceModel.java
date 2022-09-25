@@ -19,7 +19,7 @@ import jakarta.xml.bind.annotation.*;
 
 /**
  *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "persistence", namespace = "https://jakarta.ee/xml/ns/persistence")

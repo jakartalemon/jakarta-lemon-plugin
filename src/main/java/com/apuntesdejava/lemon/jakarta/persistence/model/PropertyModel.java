@@ -21,7 +21,7 @@ import jakarta.xml.bind.annotation.XmlAttribute;
 
 /**
  *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class PropertyModel {

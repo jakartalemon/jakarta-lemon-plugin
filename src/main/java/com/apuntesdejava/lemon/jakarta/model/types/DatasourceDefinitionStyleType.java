@@ -19,7 +19,7 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public enum DatasourceDefinitionStyleType {
     /**

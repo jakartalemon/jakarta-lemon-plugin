@@ -35,7 +35,7 @@ import static com.apuntesdejava.lemon.plugin.util.Constants.VIEW_STYLE;
 import static com.apuntesdejava.lemon.plugin.util.Constants.VIEW_STYLE_JSF;
 
 /**
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @Mojo(name = "create-view")
 public class CreateViewMojo extends AbstractMojo {

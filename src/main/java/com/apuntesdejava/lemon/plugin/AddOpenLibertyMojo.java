@@ -36,7 +36,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @Mojo(name = "add-openliberty")
 public class AddOpenLibertyMojo extends AbstractMojo {

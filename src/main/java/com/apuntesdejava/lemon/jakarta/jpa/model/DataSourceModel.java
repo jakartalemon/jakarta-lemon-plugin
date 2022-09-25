@@ -20,7 +20,7 @@ import lombok.Data;
 
 /**
  *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @Data
 public class DataSourceModel {

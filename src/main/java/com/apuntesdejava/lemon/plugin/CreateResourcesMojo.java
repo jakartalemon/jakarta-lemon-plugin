@@ -37,7 +37,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 /**
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @Mojo(name = "create-rest")
 public class CreateResourcesMojo extends AbstractMojo {

@@ -33,7 +33,7 @@ import org.apache.maven.project.MavenProject;
 
 /**
  *
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class OpenApiModelUtil {
 
