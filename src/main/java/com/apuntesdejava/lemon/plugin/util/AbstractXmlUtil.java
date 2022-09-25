@@ -25,8 +25,8 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * @author Diego Silva <diego.silva at apuntesdejava.com>
- * @param <T>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
+ * @param <T> Type of XML model
  */
 public abstract class AbstractXmlUtil<T> {
 

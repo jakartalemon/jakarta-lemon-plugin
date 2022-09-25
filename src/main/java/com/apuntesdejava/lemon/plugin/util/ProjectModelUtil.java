@@ -34,7 +34,7 @@ import java.util.*;
 import static java.util.Collections.emptyMap;
 
 /**
- * @author Diego Silva <diego.silva at apuntesdejava.com>
+ * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class ProjectModelUtil {
 

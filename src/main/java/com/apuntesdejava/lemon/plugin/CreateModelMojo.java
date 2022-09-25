@@ -4,9 +4,9 @@ import com.apuntesdejava.lemon.jakarta.jpa.model.EntityModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
 import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
-import com.apuntesdejava.lemon.jakarta.model.types.GenerationType;
 import com.apuntesdejava.lemon.jakarta.webxml.model.DataSourceModel;
 import com.apuntesdejava.lemon.plugin.util.*;
+import jakarta.persistence.GenerationType;
 import jakarta.xml.bind.JAXBException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
@@ -239,7 +239,7 @@ public class CreateModelMojo extends AbstractMojo {
         try {
             getLog().debug("==createFile:\n\tsource=" + source + "\n\ttarget:" + target);
             Files.createDirectories(target.getParent());
-            try (InputStream is = getClass().getResourceAsStream(source)) {
+            try ( InputStream is = getClass().getResourceAsStream(source)) {
                 if (is != null) {
                     List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
                     List<String> newCode = code
@@ -316,9 +316,9 @@ public class CreateModelMojo extends AbstractMojo {
 
                         GenerationType generatedValueType
                                 = ObjectUtils.defaultIfNull(
-                                EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
-                                GenerationType.AUTO
-                        );
+                                        EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
+                                        GenerationType.AUTO
+                                );
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
@@ -363,7 +363,7 @@ public class CreateModelMojo extends AbstractMojo {
             getLog().debug("Driver: " + driverDataSource);
             String styleSrc = projectModel.getDatasource().getStyle();
             this.style = DatasourceDefinitionStyleType.findByValue(styleSrc);
-            if (style != null)
+            if (style != null) {
                 switch (style) {
                     case PAYARA_RESOURCES:
                         PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel, mavenProject);
@@ -377,6 +377,7 @@ public class CreateModelMojo extends AbstractMojo {
                     default:
                         getLog().error("DataSource Style is invalid:" + styleSrc);
                 }
+            }
         }
     }
 
