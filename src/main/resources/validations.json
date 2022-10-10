@@ -1,0 +1,45 @@
+{
+    "futureOrPresent": {
+        "class": "FutureOrPresent" 
+    },
+    "future": {
+        "class": "Future" 
+    },
+    "past": {
+        "class": "Past" 
+    },
+    "pastOrPresent": {
+        "class": "PastOrPresent" 
+    },
+    "email": {
+        "class": "Email" 
+    },
+    "notNull": {
+        "class": "NotNull" 
+    },
+    "notEmpty": {
+        "class": "NotEmpty" 
+    },
+    "size": {
+        "class": "Size",
+        "parameters": {
+            "min": "%d",
+            "max": "%d",
+            "message": "\"%s\""
+        }
+    },
+    "decimalMax": {
+        "parameterRequired": true,
+        "class": "DecimalMax",
+        "parameters": {
+            "value": "\"%s\""
+        }
+    },
+    "decimalMin": {
+        "parameterRequired": true,
+        "class": "DecimalMin",
+        "parameters": {
+            "value": "\"%s\""
+        }
+    }
+}

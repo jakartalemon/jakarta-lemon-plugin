@@ -41,6 +41,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.apuntesdejava.lemon.plugin.util.Constants.TAB;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -57,6 +58,7 @@ public class ViewModelUtil {
     private final String packageName;
     private final Path webAppPath;
     private final Path resourcePath;
+    private final JsonObject validationJson;
     private Path packageBasePath;
 
     private ViewModelUtil(Log log, MavenProject mavenProject) {
@@ -64,15 +66,19 @@ public class ViewModelUtil {
         this.log = log;
         this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-', '.');
         var baseDirPath = mavenProject.getBasedir().toPath();
-        Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
-        this.webAppPath = baseDirPath.resolve("src").resolve("main").resolve("webapp");
-        this.resourcePath = baseDirPath.resolve("src").resolve("main").resolve("resources");
-        String groupId = packageName;
-        String[] packagePaths = groupId.split("\\.");
+        var mainPath = baseDirPath.resolve("src").resolve("main");
+        Path javaMainSrc = mainPath.resolve("java");
+        this.webAppPath = mainPath.resolve("webapp");
+        this.resourcePath = mainPath.resolve("resources");
+        String[] packagePaths = packageName.split("\\.");
         this.packageBasePath = javaMainSrc;
         for (String packagePath : packagePaths) {
             packageBasePath = packageBasePath.resolve(packagePath);
 
+        }
+
+        try ( var validationsReader = Json.createReader(ViewModelUtil.class.getResourceAsStream("/validations.json"))) {
+            this.validationJson = validationsReader.readObject();
         }
 
     }
@@ -96,7 +102,7 @@ public class ViewModelUtil {
         return name.substring(0, 1).toLowerCase() + name.substring(1);
     }
 
-    private static void insertImportType(ArrayList<String> lines, String fieldType) {
+    private static void insertImportType(List<String> lines, String fieldType) {
         switch (fieldType) {
             case "LocalDate":
                 lines.add(2, "import java.time.LocalDate;");
@@ -109,50 +115,66 @@ public class ViewModelUtil {
         }
     }
 
-    private static void insertValidation(ArrayList<String> lines, JsonObject bodyStruct) {
-        if (bodyStruct.containsKey("futureOrPresent") && bodyStruct.getBoolean("futureOrPresent")) {
-            lines.add(2, "import jakarta.validation.constraints.FutureOrPresent;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@FutureOrPresent");
+    private static boolean fieldIsRequired(JsonObject jsonObject) {
+        return jsonObject.containsKey("parameterRequired") && jsonObject.getBoolean("parameterRequired");
+    }
+
+    private static String getNameFromPath(String pathName) {
+        return pathName.replaceAll("[^a-zA-Z]", "");
+    }
+
+    private static String getFileType(JsonValue type) {
+        if (type.getValueType() == JsonValue.ValueType.OBJECT) {
+            return type.asJsonObject().getString("type", "String");
         }
-        if (bodyStruct.containsKey("future") && bodyStruct.getBoolean("future")) {
-            lines.add(2, "import jakarta.validation.constraints.Future;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@Future");
-        }
-        if (bodyStruct.containsKey("past") && bodyStruct.getBoolean("past")) {
-            lines.add(2, "import jakarta.validation.constraints.Past;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@Past");
-        }
-        if (bodyStruct.containsKey("pastOrPresent") && bodyStruct.getBoolean("pastOrPresent")) {
-            lines.add(2, "import jakarta.validation.constraints.PastOrPresent;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@PastOrPresent");
-        }
-        if (bodyStruct.containsKey("email") && bodyStruct.getBoolean("email")) {
-            lines.add(2, "import jakarta.validation.constraints.Email;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@Email");
-        }
-        if (bodyStruct.containsKey("notNull") && bodyStruct.getBoolean("notNull")) {
-            lines.add(2, "import jakarta.validation.constraints.NotNull;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@NotNull");
-        }
-        if (bodyStruct.containsKey("notEmpty") && bodyStruct.getBoolean("notEmpty")) {
-            lines.add(2, "import jakarta.validation.constraints.NotEmpty;");
-            lines.add(StringUtils.repeat(SPACE, TAB) + "@NotEmpty");
-        }
-        if (bodyStruct.containsKey("decimalMax")) {
-            lines.add(2, "import jakarta.validation.constraints.DecimalMax;");
-            var value = bodyStruct.getInt("decimalMax");
-            lines.add(String.format("%s@DecimalMax(value = \"%d\")", StringUtils.repeat(SPACE, TAB), value));
-        }
-        if (bodyStruct.containsKey("decimalMin")) {
-            lines.add(2, "import jakarta.validation.constraints.DecimalMin;");
-            var value = bodyStruct.getInt("decimalMin");
-            lines.add(String.format("%s@DecimalMin(value = \"%d\")", StringUtils.repeat(SPACE, TAB), value));
-        }
-        if (bodyStruct.containsKey("digits")) {
-            lines.add(2, "import jakarta.validation.constraints.Digits;");
-            var digits = bodyStruct.getJsonObject("digits");
-            lines.add(String.format("%s@Digits(integer = %d, fraction = %d)", StringUtils.repeat(SPACE, TAB), digits.getInt("integer"), digits.getInt("fraction")));
-        }
+        return "String";//String.valueOf(((JsonString) type.getValue()).getChars());
+    }
+
+    private static Optional<String> getPrimaryKey(JsonObject formBean) {
+        return formBean.entrySet().stream().filter(
+                entry -> entry.getValue().asJsonObject().containsKey("primary")
+                && entry.getValue().asJsonObject().getBoolean("primary")
+        ).map(Map.Entry::getKey).findFirst();
+    }
+
+    private void insertValidation(List<String> lines, JsonObject bodyStruct) {
+        validationJson.entrySet().stream().filter(entry -> bodyStruct
+                .containsKey(entry.getKey())).forEach(($entry) -> {
+            var validationName = $entry.getKey();
+            var validationBodyJson = $entry.getValue().asJsonObject();
+            var className = validationBodyJson.getString("class");
+            log.debug(String.format("---validation:%s", className));
+
+            lines.add(2, String.format("import jakarta.validation.constraints.%s;", className));
+            var parameters = validationBodyJson.containsKey("parameters")
+                    ? validationBodyJson.getJsonObject("parameters")
+                    : JsonObject.EMPTY_JSON_OBJECT;
+
+            if (parameters.isEmpty()) {
+                lines.add(StringUtils.repeat(SPACE, TAB) + '@' + className);
+            } else {
+                var arguments = bodyStruct.getJsonObject(validationName);
+                var params = parameters.keySet()
+                        .stream().parallel()
+                        .filter(arguments::containsKey).map(jsonValue -> {
+                    var entryValue = parameters.getString(jsonValue);
+                    return String.format("%s = %s", jsonValue, entryValue);
+                }).collect(Collectors.joining(","));
+                var line0 = String.format("%s@%s(%s)", StringUtils.repeat(SPACE, TAB), className, params);
+                var value = arguments.entrySet()
+                        .stream().parallel()
+                        .map(jsonValueEntry -> {
+                            if (jsonValueEntry.getValue().getValueType() == JsonValue.ValueType.NUMBER) {
+                                return arguments.getInt(jsonValueEntry.getKey());
+                            }
+                            return arguments.getString(jsonValueEntry.getKey());
+                        })
+                        .toArray();
+                var line = String.format(line0, value);
+                lines.add(line);
+            }
+        });
+
     }
 
     public void createServletJsf() throws IOException {
@@ -169,8 +191,10 @@ public class ViewModelUtil {
                             .findFirst().isEmpty();
             if (createServlet) {
                 var servletList = Optional.ofNullable(webxml.getServlet()).orElse(new ArrayList<>());
-                var servletMappingList = Optional.ofNullable(webxml.getServletMapping()).orElse(new ArrayList<>());
-                servletList.add(new ServletModel("Server Faces Servlet", "jakarta.faces.webapp.FacesServlet"));
+                var servletMappingList = Optional
+                        .ofNullable(webxml.getServletMapping()).orElse(new ArrayList<>());
+                servletList.add(new ServletModel("Server Faces Servlet",
+                        "jakarta.faces.webapp.FacesServlet"));
                 servletMappingList.add(new ServletMappingModel("Server Faces Servlet", "*.jsf"));
                 webxml.setServlet(servletList);
                 webxml.setServletMapping(servletMappingList);
@@ -198,10 +222,10 @@ public class ViewModelUtil {
             entrySet.forEach(item -> {
                 try {
                     var currentEntry = item.getValue().asJsonObject();
-                    var managedBeanClassName = createManagedBean(packageViewPath, item);
+                    createManagedBean(packageViewPath, item);
                     String formBeanName = currentEntry.getString("formBean");
                     var formBean = formBeans.stream().filter(entry -> entry.getKey().equals(formBeanName)).findFirst();
-                    formBean.ifPresent(stringJsonValueEntry -> createView(managedBeanClassName, item, formBeanName, stringJsonValueEntry.getValue().asJsonObject(), primeflexVersion));
+                    formBean.ifPresent(stringJsonValueEntry -> createView(item, formBeanName, stringJsonValueEntry.getValue().asJsonObject(), primeflexVersion));
                 } catch (IOException ex) {
                     log.error(ex.getMessage(), ex);
                 }
@@ -211,11 +235,7 @@ public class ViewModelUtil {
         }
     }
 
-    private static String getNameFromPath(String pathName) {
-        return pathName.replaceAll("[^a-zA-Z]", "");
-    }
-
-    private String createManagedBean(Path packageViewPath, Map.Entry<String, JsonValue> entry) throws IOException {
+    private void createManagedBean(Path packageViewPath, Map.Entry<String, JsonValue> entry) throws IOException {
         Set<String> imports = new TreeSet<>();
 
         var pathName = entry.getKey();
@@ -298,7 +318,6 @@ public class ViewModelUtil {
         lines.add("}");
         lines.addAll(2, imports);
         Files.write(classPath, lines);
-        return className;
 
     }
 
@@ -323,7 +342,7 @@ public class ViewModelUtil {
             Path classPath = packageFormBean.resolve(classFileName);
             Map<String, String> labels = new LinkedHashMap<>();
 
-            var lines = new ArrayList<String>();
+            List<String> lines = new ArrayList<>();
             lines.add("package " + packageName + ".formbean;");
             lines.add(EMPTY);
             lines.add("import lombok.Data;");
@@ -331,19 +350,19 @@ public class ViewModelUtil {
             lines.add("@Data");
             lines.add("public class " + className + " {");
             lines.add(EMPTY);
-            bodyBean.entrySet().forEach(field -> {
-                var fieldName = field.getKey();
+            bodyBean.forEach((fieldName, value) -> {
+                log.debug(String.format("--field:%s", fieldName));
                 var fieldType = "String";
-                switch (field.getValue().getValueType()) {
+                switch (value.getValueType()) {
                     case OBJECT:
-                        var bodyStruct = field.getValue().asJsonObject();
+                        var bodyStruct = value.asJsonObject();
                         fieldType = bodyStruct.getString("type", "String");
                         insertValidation(lines, bodyStruct);
                         insertLabels(labels, fieldName, bodyStruct);
 
                         break;
                     case STRING:
-                        JsonString jsonString = (JsonString) field.getValue();
+                        JsonString jsonString = (JsonString) value;
                         fieldType = String.valueOf(jsonString.getChars());
 
                 }
@@ -361,7 +380,7 @@ public class ViewModelUtil {
                     : new LinkedHashSet<>(Arrays.asList("form.save=Guardar", "form.cancel=Cancelar", "list.new_record=Nuevo registro"));
             Set<String> newMessages = new LinkedHashSet<>();
             newMessages.add("## FORM BEAN " + className);
-            labels.entrySet().forEach(label -> newMessages.add(String.format("%s_%s=%s", className, label.getKey(), label.getValue())));
+            labels.forEach((key, value) -> newMessages.add(String.format("%s_%s=%s", className, key, value)));
             messages.addAll(newMessages);
 
             Files.write(messagePropertiesPath, messages);
@@ -371,7 +390,7 @@ public class ViewModelUtil {
         }
     }
 
-    private void createView(String managedBeanClassName, Map.Entry<String, JsonValue> entry, String formBeanName, JsonObject formBean, String primeflexVersion) {
+    private void createView(Map.Entry<String, JsonValue> entry, String formBeanName, JsonObject formBean, String primeflexVersion) {
         var pathJson = entry.getValue().asJsonObject();
         var isList = pathJson.getString("type").equals("list");
         try {
@@ -405,10 +424,9 @@ public class ViewModelUtil {
             if (!isList) {
                 getPrimaryKey(formBean).ifPresent(id -> {
                     htmlElem.addChild(DocumentXmlUtil.ElementBuilder.newInstance("f:metadata")
-                            .addChild(
-                                    DocumentXmlUtil.ElementBuilder.newInstance("f:viewParam")
-                                            .addAttribute("name", "id")
-                                            .addAttribute("value", String.format("#{%sView.%s.%s}", pathName, formBeanName, id))
+                            .addChild(DocumentXmlUtil.ElementBuilder.newInstance("f:viewParam")
+                                    .addAttribute("name", "id")
+                                    .addAttribute("value", String.format("#{%sView.%s.%s}", pathName, formBeanName, id))
                             )
                             .addChild(
                                     DocumentXmlUtil.ElementBuilder.newInstance("f:viewAction")
@@ -447,7 +465,7 @@ public class ViewModelUtil {
                                 .addAttribute("value", "#{messages['list.new_record']}")
                 ).addChild(createList(pathName, formBeanName, formBean, entry.getValue().asJsonObject().getString("editForm")));
             } else {
-                hForm.addChild(createForm(pathName, formBeanName, formBean))
+                hForm.addChild(createForm(formBeanName, formBean))
                         .addChild(createButtons(entry.getValue().asJsonObject().getString("listView"), formBeanName));
 
             }
@@ -470,7 +488,7 @@ public class ViewModelUtil {
         }
     }
 
-    private ElementBuilder createForm(String pathName, String formBeanName, JsonObject formBean) {
+    private ElementBuilder createForm(String formBeanName, JsonObject formBean) {
         var panel = DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
                 .addAttribute("layout", "block")
                 .addAttribute("id", "formPanel")
@@ -532,15 +550,7 @@ public class ViewModelUtil {
         return panel;
     }
 
-    private static String getFileType(JsonValue type) {
-        if (type.getValueType() == JsonValue.ValueType.OBJECT) {
-            return type.asJsonObject().getString("type", "String");
-        }
-        return "String";//String.valueOf(((JsonString) type.getValue()).getChars());
-    }
-
-    private ElementBuilder createList(String pathName, String formBeanName, JsonObject formBean, String editForm) {
-        var variableName = pathName;
+    private ElementBuilder createList(String variableName, String formBeanName, JsonObject formBean, String editForm) {
         var pDataTable = DocumentXmlUtil.ElementBuilder.newInstance("p:dataTable")
                 .addAttribute("value", String.format("#{%1$sView.%1$sList}", variableName))
                 .addAttribute("var", "item");
@@ -571,13 +581,6 @@ public class ViewModelUtil {
         });
         return pDataTable;
 
-    }
-
-    private static Optional<String> getPrimaryKey(JsonObject formBean) {
-        return formBean.entrySet().stream().filter(
-                entry -> entry.getValue().asJsonObject().containsKey("primary")
-                && entry.getValue().asJsonObject().getBoolean("primary")
-        ).map(entry -> entry.getKey()).findFirst();
     }
 
     /**
