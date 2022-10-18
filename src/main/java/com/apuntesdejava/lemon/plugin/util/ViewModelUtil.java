@@ -115,10 +115,6 @@ public class ViewModelUtil {
         }
     }
 
-    private static boolean fieldIsRequired(JsonObject jsonObject) {
-        return jsonObject.containsKey("parameterRequired") && jsonObject.getBoolean("parameterRequired");
-    }
-
     private static String getNameFromPath(String pathName) {
         return pathName.replaceAll("[^a-zA-Z]", "");
     }
@@ -146,33 +142,50 @@ public class ViewModelUtil {
             log.debug(String.format("---validation:%s", className));
 
             lines.add(2, String.format("import jakarta.validation.constraints.%s;", className));
-            var parameters = validationBodyJson.containsKey("parameters")
-                    ? validationBodyJson.getJsonObject("parameters")
-                    : JsonObject.EMPTY_JSON_OBJECT;
+            var parametersBuilder = Json.createObjectBuilder()
+                    .add("message", "\"%s\"");
+            if (validationBodyJson.containsKey("parameters")) {
+                validationBodyJson.getJsonObject("parameters").forEach(parametersBuilder::add);
+            }
+            var parameters = parametersBuilder.build();
 
-            if (parameters.isEmpty()) {
-                lines.add(StringUtils.repeat(SPACE, TAB) + '@' + className);
+            JsonObject arguments = null;
+            if (bodyStruct.containsKey(validationName)) {
+                var value = bodyStruct.get(validationName);
+                if (value.getValueType() == JsonValue.ValueType.OBJECT) {
+                    arguments = value.asJsonObject();
+                } else if (value.getValueType() == JsonValue.ValueType.TRUE) {
+                    arguments = JsonValue.EMPTY_JSON_OBJECT;
+                }
+
+            }
+            String classDeclaring;
+            Object[] argumentsClassDeclaring;
+            if (arguments == null) {
+                classDeclaring = String.format("%s@%s", StringUtils.repeat(SPACE, TAB), className);
+                argumentsClassDeclaring = new Object[0];
             } else {
-                var arguments = bodyStruct.getJsonObject(validationName);
+
                 var params = parameters.keySet()
                         .stream().parallel()
                         .filter(arguments::containsKey).map(jsonValue -> {
                     var entryValue = parameters.getString(jsonValue);
                     return String.format("%s = %s", jsonValue, entryValue);
-                }).collect(Collectors.joining(","));
-                var line0 = String.format("%s@%s(%s)", StringUtils.repeat(SPACE, TAB), className, params);
-                var value = arguments.entrySet()
+                }).collect(Collectors.joining(", "));
+                classDeclaring = String.format("%s@%s(%s)", StringUtils.repeat(SPACE, TAB), className, params);
+                JsonObject finalArguments = arguments;
+                argumentsClassDeclaring = arguments.entrySet()
                         .stream().parallel()
                         .map(jsonValueEntry -> {
                             if (jsonValueEntry.getValue().getValueType() == JsonValue.ValueType.NUMBER) {
-                                return arguments.getInt(jsonValueEntry.getKey());
+                                return finalArguments.getInt(jsonValueEntry.getKey());
                             }
-                            return arguments.getString(jsonValueEntry.getKey());
+                            return finalArguments.getString(jsonValueEntry.getKey());
                         })
                         .toArray();
-                var line = String.format(line0, value);
-                lines.add(line);
             }
+            var line = String.format(classDeclaring, argumentsClassDeclaring);
+            lines.add(line);
         });
 
     }
@@ -422,18 +435,16 @@ public class ViewModelUtil {
                             )
                     );
             if (!isList) {
-                getPrimaryKey(formBean).ifPresent(id -> {
-                    htmlElem.addChild(DocumentXmlUtil.ElementBuilder.newInstance("f:metadata")
-                            .addChild(DocumentXmlUtil.ElementBuilder.newInstance("f:viewParam")
-                                    .addAttribute("name", "id")
-                                    .addAttribute("value", String.format("#{%sView.%s.%s}", pathName, formBeanName, id))
-                            )
-                            .addChild(
-                                    DocumentXmlUtil.ElementBuilder.newInstance("f:viewAction")
-                                            .addAttribute("action", String.format("#{%sView.onload}", pathName))
-                            )
-                    );
-                });
+                getPrimaryKey(formBean).ifPresent(id -> htmlElem.addChild(ElementBuilder.newInstance("f:metadata")
+                        .addChild(ElementBuilder.newInstance("f:viewParam")
+                                .addAttribute("name", "id")
+                                .addAttribute("value", String.format("#{%sView.%s.%s}", pathName, formBeanName, id))
+                        )
+                        .addChild(
+                                ElementBuilder.newInstance("f:viewAction")
+                                        .addAttribute("action", String.format("#{%sView.onload}", pathName))
+                        )
+                ));
             }
             htmlElem.addChild(
                     DocumentXmlUtil.ElementBuilder.newInstance("h:body")
@@ -555,30 +566,26 @@ public class ViewModelUtil {
                 .addAttribute("value", String.format("#{%1$sView.%1$sList}", variableName))
                 .addAttribute("var", "item");
         var $formBeanName = name2ClassName(formBeanName);
-        formBean.forEach((fieldName, type) -> {
-            pDataTable.addChild(
-                    DocumentXmlUtil.ElementBuilder.newInstance("p:column")
-                            .addAttribute("headerText", String.format("#{messages.%s_%s}", $formBeanName, fieldName))
-                            .addChild(
-                                    DocumentXmlUtil.ElementBuilder.newInstance("h:outputText")
-                                            .addAttribute("value", String.format("#{item.%s}", fieldName))
-                            )
-            );
-        });
-        getPrimaryKey(formBean).ifPresent(field -> {
-            pDataTable.addChild(
-                    DocumentXmlUtil.ElementBuilder.newInstance("p:column")
-                            .addChild(DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
-                                    .addAttribute("outcome", editForm)
-                                    .addAttribute("icon", "pi pi-pencil")
-                                    .addChild(
-                                            DocumentXmlUtil.ElementBuilder.newInstance("f:param")
-                                                    .addAttribute("name", "id")
-                                                    .addAttribute("value", String.format("#{item.%s}", field))
-                                    )
-                            )
-            );
-        });
+        formBean.forEach((fieldName, type) -> pDataTable.addChild(
+                ElementBuilder.newInstance("p:column")
+                        .addAttribute("headerText", String.format("#{messages.%s_%s}", $formBeanName, fieldName))
+                        .addChild(
+                                ElementBuilder.newInstance("h:outputText")
+                                        .addAttribute("value", String.format("#{item.%s}", fieldName))
+                        )
+        ));
+        getPrimaryKey(formBean).ifPresent(field -> pDataTable.addChild(
+                ElementBuilder.newInstance("p:column")
+                        .addChild(ElementBuilder.newInstance("p:linkButton")
+                                .addAttribute("outcome", editForm)
+                                .addAttribute("icon", "pi pi-pencil")
+                                .addChild(
+                                        ElementBuilder.newInstance("f:param")
+                                                .addAttribute("name", "id")
+                                                .addAttribute("value", String.format("#{item.%s}", field))
+                                )
+                        )
+        ));
         return pDataTable;
 
     }
