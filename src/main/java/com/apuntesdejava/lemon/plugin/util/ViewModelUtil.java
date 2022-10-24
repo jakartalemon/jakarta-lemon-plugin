@@ -52,6 +52,10 @@ import static org.apache.commons.lang3.StringUtils.SPACE;
  */
 public class ViewModelUtil {
 
+    private static final String KEY_PRIMARY = "primary";
+    private static final String KEY_PARAMETERS = "parameters";
+    private static final String JAKARTA_VALIDATION_CONSTRAINTS = "jakarta.validation.constraints";
+    private static final String IMPORT_JAKARTA_CONSTRAINTS_PACKAGE = "import " + JAKARTA_VALIDATION_CONSTRAINTS + ".%s;";
     private static ViewModelUtil INSTANCE;
     private final MavenProject mavenProject;
     private final Log log;
@@ -102,16 +106,16 @@ public class ViewModelUtil {
         return name.substring(0, 1).toLowerCase() + name.substring(1);
     }
 
-    private static void insertImportType(List<String> lines, String fieldType) {
+    private static void insertImportType(Set<String> lines, String fieldType) {
         switch (fieldType) {
             case "LocalDate":
-                lines.add(2, "import java.time.LocalDate;");
+                lines.add("import java.time.LocalDate;");
                 break;
             case "LocalDateTime":
-                lines.add(2, "import java.time.LocalDateTime;");
+                lines.add("import java.time.LocalDateTime;");
                 break;
             case "Date":
-                lines.add(2, "import java.util.Date;");
+                lines.add("import java.util.Date;");
         }
     }
 
@@ -128,12 +132,12 @@ public class ViewModelUtil {
 
     private static Optional<String> getPrimaryKey(JsonObject formBean) {
         return formBean.entrySet().stream().filter(
-                entry -> entry.getValue().asJsonObject().containsKey("primary")
-                && entry.getValue().asJsonObject().getBoolean("primary")
+                entry -> entry.getValue().asJsonObject().containsKey(KEY_PRIMARY)
+                && entry.getValue().asJsonObject().getBoolean(KEY_PRIMARY)
         ).map(Map.Entry::getKey).findFirst();
     }
 
-    private void insertValidation(List<String> lines, JsonObject bodyStruct) {
+    private void insertValidation(Set<String> imports, List<String> lines, JsonObject bodyStruct) {
         validationJson.entrySet().stream().filter(entry -> bodyStruct
                 .containsKey(entry.getKey())).forEach(($entry) -> {
             var validationName = $entry.getKey();
@@ -141,11 +145,11 @@ public class ViewModelUtil {
             var className = validationBodyJson.getString("class");
             log.debug(String.format("---validation:%s", className));
 
-            lines.add(2, String.format("import jakarta.validation.constraints.%s;", className));
+            imports.add(String.format(IMPORT_JAKARTA_CONSTRAINTS_PACKAGE, className));
             var parametersBuilder = Json.createObjectBuilder()
                     .add("message", "\"%s\"");
-            if (validationBodyJson.containsKey("parameters")) {
-                validationBodyJson.getJsonObject("parameters").forEach(parametersBuilder::add);
+            if (validationBodyJson.containsKey(KEY_PARAMETERS)) {
+                validationBodyJson.getJsonObject(KEY_PARAMETERS).forEach(parametersBuilder::add);
             }
             var parameters = parametersBuilder.build();
 
@@ -160,31 +164,43 @@ public class ViewModelUtil {
 
             }
             String classDeclaring;
-            Object[] argumentsClassDeclaring;
+            Object[] declaringArgumentsClass;
             if (arguments == null) {
                 classDeclaring = String.format("%s@%s", StringUtils.repeat(SPACE, TAB), className);
-                argumentsClassDeclaring = new Object[0];
+                declaringArgumentsClass = new Object[0];
             } else {
 
                 var params = parameters.keySet()
-                        .stream().parallel()
+                        .stream().sorted()
                         .filter(arguments::containsKey).map(jsonValue -> {
                     var entryValue = parameters.getString(jsonValue);
                     return String.format("%s = %s", jsonValue, entryValue);
                 }).collect(Collectors.joining(", "));
                 classDeclaring = String.format("%s@%s(%s)", StringUtils.repeat(SPACE, TAB), className, params);
                 JsonObject finalArguments = arguments;
-                argumentsClassDeclaring = arguments.entrySet()
-                        .stream().parallel()
+                declaringArgumentsClass = arguments.entrySet()
+                        .stream().sorted(Comparator.comparing(Map.Entry::getKey))
                         .map(jsonValueEntry -> {
-                            if (jsonValueEntry.getValue().getValueType() == JsonValue.ValueType.NUMBER) {
-                                return finalArguments.getInt(jsonValueEntry.getKey());
+                            var valueType = jsonValueEntry.getValue().getValueType();
+                            log.debug("- valueType:" + valueType);
+                            if (null == valueType) {
+                                return finalArguments.getString(jsonValueEntry.getKey());
+                            } else {
+                                switch (valueType) {
+                                    case NUMBER:
+                                        return finalArguments.getInt(jsonValueEntry.getKey());
+                                    case TRUE:
+                                        return "true";
+                                    case FALSE:
+                                        return "false";
+                                    default:
+                                        return finalArguments.getString(jsonValueEntry.getKey());
+                                }
                             }
-                            return finalArguments.getString(jsonValueEntry.getKey());
                         })
                         .toArray();
             }
-            var line = String.format(classDeclaring, argumentsClassDeclaring);
+            var line = String.format(classDeclaring, declaringArgumentsClass);
             lines.add(line);
         });
 
@@ -363,6 +379,7 @@ public class ViewModelUtil {
             lines.add("@Data");
             lines.add("public class " + className + " {");
             lines.add(EMPTY);
+            Set<String> imports = new TreeSet<>();
             bodyBean.forEach((fieldName, value) -> {
                 log.debug(String.format("--field:%s", fieldName));
                 var fieldType = "String";
@@ -370,7 +387,8 @@ public class ViewModelUtil {
                     case OBJECT:
                         var bodyStruct = value.asJsonObject();
                         fieldType = bodyStruct.getString("type", "String");
-                        insertValidation(lines, bodyStruct);
+
+                        insertValidation(imports, lines, bodyStruct);
                         insertLabels(labels, fieldName, bodyStruct);
 
                         break;
@@ -379,10 +397,11 @@ public class ViewModelUtil {
                         fieldType = String.valueOf(jsonString.getChars());
 
                 }
-                insertImportType(lines, fieldType);
+                insertImportType(imports, fieldType);
                 lines.add(String.format("%sprivate %s %s;", StringUtils.repeat(SPACE, TAB), fieldType, fieldName));
                 lines.add(EMPTY);
             });
+            lines.addAll(2, imports);
             lines.add("}");
             Files.write(classPath, lines);
 
