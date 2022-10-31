@@ -7,7 +7,7 @@
     <version>0.2</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <url>http://jakartalemon.dev</url>
+    <url>https://jakartalemon.dev</url>
     <description>This plugin allows you to create Jakarta EE applications following the standard guidelines.
     </description>
     <scm>
@@ -148,7 +148,7 @@
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
         </dependency>
 
     </dependencies>
