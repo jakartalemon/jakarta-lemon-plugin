@@ -1,14 +1,13 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>dev.jakartalemon</groupId>
     <artifactId>jakarta-lemon-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>1.0-Beta</version>
+    <version>0.2</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <url>http://jakartalemon.dev</url>
+    <url>https://jakartalemon.dev</url>
     <description>This plugin allows you to create Jakarta EE applications following the standard guidelines.
     </description>
     <scm>
@@ -149,7 +148,7 @@
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
         </dependency>
 
     </dependencies>
@@ -233,7 +232,20 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
+        <plugin>
+          <groupId>com.appland</groupId>
+          <artifactId>appmap-maven-plugin</artifactId>
+          <version>1.2.0</version>
+          <executions>
+              <execution>
+                  <phase>process-test-classes</phase>
+                  <goals>
+                      <goal>prepare-agent</goal>
+                  </goals>
+              </execution>
+          </executions>
+      </plugin>
+</plugins>
 
     </build>
 

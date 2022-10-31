@@ -1,0 +1,96 @@
+{
+  "futureOrPresent": {
+    "class": "FutureOrPresent"
+  },
+  "future": {
+    "class": "Future"
+  },
+  "past": {
+    "class": "Past"
+  },
+  "pastOrPresent": {
+    "class": "PastOrPresent"
+  },
+  "email": {
+    "class": "Email",
+    "parameters": {
+      "regexp": "\"%s\""
+    }
+  },
+  "notNull": {
+    "class": "NotNull"
+  },
+  "assertTrue": {
+    "class": "AssertTrue"
+  },
+  "assertFalse": {
+    "class": "AssertFalse"
+  },
+  "null": {
+    "class": "Null"
+  },
+  "notEmpty": {
+    "class": "NotEmpty"
+  },
+  "size": {
+    "class": "Size",
+    "parameters": {
+      "min": "%d",
+      "max": "%d"
+    }
+  },
+  "decimalMax": {
+    "class": "DecimalMax",
+    "parameters": {
+      "value": "\"%s\"",
+      "inclusive": "%s"
+    }
+  },
+  "decimalMin": {
+    "class": "DecimalMin",
+    "parameters": {
+      "value": "\"%s\"",
+      "inclusive": "%s"
+    }
+  },
+  "digits": {
+    "class": "Digits",
+    "parameters": {
+      "fraction": "%d",
+      "integer": "%d"
+    }
+  },
+  "max": {
+    "class": "Max",
+    "parameters": {
+      "value": "%d"
+    }
+  },
+  "min": {
+    "class": "Min",
+    "parameters": {
+      "value": "%d"
+    }
+  },
+  "negative": {
+    "class": "Negative"
+  },
+  "positive": {
+    "class": "Positive"
+  },
+  "negativeOrZero": {
+    "class": "NegativeOrZero"
+  },
+  "positiveOrZero": {
+    "class": "PositiveOrZero"
+  },
+  "notBlank": {
+    "class": "NotBlank"
+  },
+  "pattern": {
+    "class": "Pattern",
+    "parameters": {
+      "regexp": "\"%s\""
+    }
+  }
+}
