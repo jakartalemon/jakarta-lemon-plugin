@@ -21,14 +21,12 @@ import static com.apuntesdejava.lemon.plugin.util.Constants.SEARCH;
 import jakarta.json.Json;
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Map;
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
 
 /**
@@ -49,31 +47,31 @@ public class DependenciesUtil {
     }
 
     public static DependencyModel getLastVersionDependency(Log log, String query) {
-        try ( CloseableHttpClient httpclient = HttpClients.createDefault()) {
+        try {
             String uri = HOST_MAVEN_SEARCH + "/solrsearch/select?q=" + query;
             log.debug("getting uri:" + uri);
-            HttpGet httpGet = new HttpGet(uri);
-            try ( CloseableHttpResponse response = httpclient.execute(httpGet)) {
-                HttpEntity entity = response.getEntity();
-                StatusLine statusLine = response.getStatusLine();
-                log.debug("code:" + statusLine.getStatusCode());
-                String json = EntityUtils.toString(entity);
-                EntityUtils.consumeQuietly(entity);
-                log.debug("resp:" + json);
-                try ( StringReader stringReader = new StringReader(json);  var jsonReader = Json.createReader(stringReader)) {
+            var httpRequest = HttpRequest.newBuilder(new URI(uri))
+                    .GET()
+                    .build();
+            var httpResponse = HttpClient.newBuilder()
+                    .build()
+                    .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            log.debug("code:" + httpResponse.statusCode());
+            String json = httpResponse.body();
 
-                    var jsonResp = jsonReader.readObject();
-                    var responseJson = jsonResp.getJsonObject("response");
-                    var docsJson = responseJson.getJsonArray("docs");
-                    var docJson = docsJson.get(0).asJsonObject();
-                    return new DependencyModel(docJson.getString("g"), docJson.getString("a"), docJson.getString("latestVersion"));
-                }
+            log.debug("resp:" + json);
+            try ( StringReader stringReader = new StringReader(json);  var jsonReader = Json.createReader(stringReader)) {
+
+                var jsonResp = jsonReader.readObject();
+                var responseJson = jsonResp.getJsonObject("response");
+                var docsJson = responseJson.getJsonArray("docs");
+                var docJson = docsJson.get(0).asJsonObject();
+                return new DependencyModel(docJson.getString("g"), docJson.getString("a"), docJson.getString("latestVersion"));
             }
-        } catch (IOException ex) {
+        } catch (URISyntaxException | IOException | InterruptedException ex) {
             log.error(ex.getMessage(), ex);
         }
         return null;
-
     }
 
 }
