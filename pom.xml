@@ -4,7 +4,7 @@
     <groupId>dev.jakartalemon</groupId>
     <artifactId>jakarta-lemon-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>0.2</version>
+    <version>0.2.1</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <url>https://jakartalemon.dev</url>
@@ -136,11 +136,6 @@
             <version>1.9.4</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.13</version>
-        </dependency>
-        <dependency>
             <groupId>jakarta.json</groupId>
             <artifactId>jakarta.json-api</artifactId>
             <version>2.1.1</version>
@@ -232,20 +227,8 @@
                     </execution>
                 </executions>
             </plugin>
-        <plugin>
-          <groupId>com.appland</groupId>
-          <artifactId>appmap-maven-plugin</artifactId>
-          <version>1.2.0</version>
-          <executions>
-              <execution>
-                  <phase>process-test-classes</phase>
-                  <goals>
-                      <goal>prepare-agent</goal>
-                  </goals>
-              </execution>
-          </executions>
-      </plugin>
-</plugins>
+
+        </plugins>
 
     </build>
 
