@@ -4,7 +4,7 @@
     <groupId>dev.jakartalemon</groupId>
     <artifactId>jakarta-lemon-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>0.2.1</version>
+    <version>1.1-Beta</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <url>https://jakartalemon.dev</url>
