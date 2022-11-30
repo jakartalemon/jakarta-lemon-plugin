@@ -15,10 +15,7 @@
  */
 package com.apuntesdejava.lemon.jakarta.jpa.model;
 
-import static com.apuntesdejava.lemon.plugin.util.Constants.DATASOURCE;
-import static com.apuntesdejava.lemon.plugin.util.Constants.DB_DEFINITIONS;
 import java.util.List;
-import java.util.Map;
 import lombok.Data;
 
 /**
@@ -37,15 +34,6 @@ public class ProjectModel {
 
     private DataSourceModel datasource;
 
-    /**
-     * Get class Driver of Database current
-     *
-     * @return Classe Driver Name
-     */
-    public String getDriver() {
-        return DB_DEFINITIONS.containsKey(datasource.getDb())
-                ? (String) ((Map<String, Object>) DB_DEFINITIONS.get(datasource.getDb())).get(DATASOURCE)
-                : datasource.getDb();
-    }
+   
 
 }

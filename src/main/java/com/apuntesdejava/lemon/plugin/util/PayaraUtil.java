@@ -26,6 +26,7 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -46,7 +47,8 @@ public class PayaraUtil {
 
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
             String poolName = mavenProject.getArtifactId() + "Pool";
-            String driverDataSource = projectModel.getDriver();
+
+            String driverDataSource = ProjectModelUtil.getDriver(log, projectModel.getDatasource().getDb());
             var payaraResourcesXmlUtil = new PayaraResourcesXmlUtil(mavenProject.getBasedir().toString());
             var payaraResourcesXml = payaraResourcesXmlUtil.getModel();
             payaraResourcesXml.setJdbcResourceModel(
@@ -71,7 +73,7 @@ public class PayaraUtil {
             payaraResourcesXmlUtil.saveModel(payaraResourcesXml);
             log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + payaraResourcesXmlUtil.getXmlPath());
 
-        } catch (IOException | JAXBException ex) {
+        } catch (IOException | JAXBException | InterruptedException | URISyntaxException ex) {
             log.error(ex.getMessage(), ex);
         }
     }
@@ -86,7 +88,7 @@ public class PayaraUtil {
     public static void createPayaraMicroDataSourcePostBootFile(Log log, String fileName, ProjectModel projectModel, MavenProject mavenProject) {
         try {
             log.debug("Creating datasource for PayaraMicro in " + fileName);
-            String driverDataSource = projectModel.getDriver();
+            String driverDataSource = ProjectModelUtil.getDriver(log, projectModel.getDatasource().getDb());
             DataSourceModel dataSource = projectModel.getDatasource();
             String poolName = mavenProject.getArtifactId() + "Pool";
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
@@ -107,7 +109,7 @@ public class PayaraUtil {
             );
             log.debug(fileName + " created");
 
-        } catch (IOException ex) {
+        } catch (IOException | InterruptedException | URISyntaxException ex) {
             log.error(ex.getMessage(), ex);
         }
     }

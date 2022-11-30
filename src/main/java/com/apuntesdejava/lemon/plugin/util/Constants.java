@@ -15,10 +15,7 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import java.util.Map;
-
 /**
- *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class Constants {
@@ -28,34 +25,16 @@ public class Constants {
     private Constants() {
     }
 
+    public final static String DEPENDENCIES_URL = "https://jakartalemon.dev/dependencies.json";
+
     public final static String DATASOURCE = "datasource";
     public final static String DRIVER = "driver";
     public final static String POOL = "pool";
     public final static String SEARCH = "search";
 
-    public static final String QUERY_MAVEN_URL = "https://search.maven.org/solrsearch/select";
+    public static final String QUERY_MAVEN_URL = "https://search.maven.org/solrsearch/select?q=";
 
-    public static final String VIEW_STYLE_JSF ="jsf";
-    public static final String VIEW_STYLE ="style";
-
-    public static final Map<String, Object> DB_DEFINITIONS = Map.of(
-            "mysql", Map.of(
-                    DRIVER, "com.mysql.cj.jdbc.Driver",
-                    DATASOURCE, "com.mysql.cj.jdbc.MysqlDataSource",
-                    POOL, "com.mysql.cj.jdbc.MysqlConnectionPoolDataSource",
-                    SEARCH, "g:mysql+AND+a:mysql-connector-java"
-            ),
-            "postgresql", Map.of(
-                    DRIVER, "org.postgresql.Driver",
-                    DATASOURCE, "org.postgresql.jdbc3.Jdbc3ConnectionPool",
-                    SEARCH, "g:org.postgresql+AND+a:postgresql"
-            ),
-            "mariadb", Map.of(
-                    DRIVER, "org.mariadb.jdbc.Driver",
-                    DATASOURCE, "org.mariadb.jdbc.MariaDbDataSource",
-                    POOL, "org.mariadb.jdbc.MariaDbPoolDataSource",
-                    SEARCH, "g:org.mariadb.jdbc+AND+a:mariadb-java-client"
-            )
-    );
+    public static final String VIEW_STYLE_JSF = "jsf";
+    public static final String VIEW_STYLE = "style";
 
 }
