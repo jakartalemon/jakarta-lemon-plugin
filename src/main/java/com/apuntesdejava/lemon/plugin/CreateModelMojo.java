@@ -23,6 +23,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,22 +55,23 @@ public class CreateModelMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Optional<ProjectModel> opt = ProjectModelUtil.getProjectModel(getLog(), modelProjectFile);
-        if (opt.isPresent()) {
-            this.projectModel = opt.get();
-            buildModel();
-            addDatasource();
-            addDependencies();
-            addPersistenceXML();
-        }
-
+        ProjectModelUtil.getProjectModel(getLog(), modelProjectFile)
+                .ifPresent(pm -> {
+                    this.projectModel = pm;
+                    buildModel();
+                    addDatasource();
+                    addDependencies();
+                    addPersistenceXML();
+                });
     }
 
     private void buildModel() {
         try {
             getLog().debug("Building model");
             String groupId = mavenProject.getGroupId();
-            String packageName = StringUtils.replaceChars(groupId + '.' + mavenProject.getArtifactId(), '-', '.');
+            String packageName
+                    = StringUtils.replaceChars(groupId + '.' + mavenProject.getArtifactId(), '-',
+                            '.');
             projectModel.setPackageName(packageName);
             projectModel.setProjectName(mavenProject.getId());
             Path baseDirPath = mavenProject.getBasedir().toPath();
@@ -113,27 +115,36 @@ public class CreateModelMojo extends AbstractMojo {
             Path target = packageBaseRepository.resolve(className + ".java");
             List<String> lines = new ArrayList<>();
             lines.add("package " + projectModel.getPackageName() + ".repositories;\n");
-            lines.add("import " + projectModel.getPackageName() + ".model." + entity.getName() + ";");
+            lines.add(
+                    "import " + projectModel.getPackageName() + ".model." + entity.getName() + ";");
             lines.add("import jakarta.enterprise.context.ApplicationScoped;");
             lines.add("import jakarta.inject.Inject;");
             lines.add("import jakarta.persistence.EntityManager;\n");
             lines.add("@ApplicationScoped");
-            Optional<Map.Entry<String, FieldModel>> pk = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk()).findFirst();
+            Optional<Map.Entry<String, FieldModel>> pk
+                    = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk())
+                            .findFirst();
             String idClass = "Object";
             if (pk.isPresent()) {
                 idClass = pk.get().getValue().getType();
             }
-            lines.add("public class " + className + " extends AbstractRepository<" + idClass + ", " + entity.getName() + "> {\n");
+            lines.add(
+                    "public class " + className + " extends AbstractRepository<" + idClass + ", "
+                    + entity.getName() + "> {\n");
 
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Inject");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private EntityManager em;\n");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                    + "private EntityManager em;\n");
 
-            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public " + className + "() {");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "super(" + entity.getName() + ".class);");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public " + className
+                    + "() {");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "super("
+                    + entity.getName() + ".class);");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Override");
-            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "protected EntityManager getEntityManager() {");
+            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                    + "protected EntityManager getEntityManager() {");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em;");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
@@ -150,21 +161,30 @@ public class CreateModelMojo extends AbstractMojo {
                             param.append(paramName).append(',');
                         });
                         param.setLength(param.length() - 1);
-                        param.append("\n").append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append(")");
+                        param.append("\n")
+                                .append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB))
+                                .append(")");
                         params = param.toString();
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public " + value.getReturnValueType() + " findBy" + name + params + " {");
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em." + (value.isNativeQuery() ? "createNativeQuery" : "createNamedQuery")
-                            + "(\"" + entity.getName() + ".findBy" + name + "\"," + entity.getName() + ".class)");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public "
+                            + value.getReturnValueType() + " findBy" + name + params + " {");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
+                            + "return em."
+                            + (value.isNativeQuery() ? "createNativeQuery" : "createNamedQuery")
+                            + "(\"" + entity.getName() + ".findBy" + name + "\","
+                            + entity.getName() + ".class)");
                     if (value.getParameters() != null) {
                         value.getParameters().forEach((paramName, param) -> {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3)
+                                    + ".setParameter(\"" + paramName + "\"," + paramName + ")");
                         });
                     }
                     if (value.isUnique()) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".getSingleResult();");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3)
+                                + ".getSingleResult();");
                     } else {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".getResultList();");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3)
+                                + ".getResultList();");
                     }
                     lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
                 });
@@ -184,23 +204,35 @@ public class CreateModelMojo extends AbstractMojo {
             Path target = packageBaseService.resolve(className + ".java");
             StringBuilder lines = new StringBuilder();
             lines.append("package ").append(projectModel.getPackageName()).append(".services;\n\n");
-            StringBuilder repositoryClass = new StringBuilder().append(entity.getName()).append("Repository");
-            lines.append("import ").append(projectModel.getPackageName()).append(".repositories.").append(repositoryClass).append(";\n");
-            lines.append("import ").append(projectModel.getPackageName()).append(".model.").append(entity.getName()).append(';').append('\n');
+            StringBuilder repositoryClass
+                    = new StringBuilder().append(entity.getName()).append("Repository");
+            lines.append("import ").append(projectModel.getPackageName()).append(".repositories.")
+                    .append(repositoryClass).append(";\n");
+            lines.append("import ").append(projectModel.getPackageName()).append(".model.")
+                    .append(entity.getName()).append(';').append('\n');
             lines.append("import jakarta.enterprise.context.ApplicationScoped;\n");
             lines.append("import jakarta.inject.Inject;\n\n");
             lines.append("@ApplicationScoped\n");
-            Optional<Map.Entry<String, FieldModel>> pk = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk()).findFirst();
+            Optional<Map.Entry<String, FieldModel>> pk
+                    = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk())
+                            .findFirst();
             String idClass = pk.isPresent() ? pk.get().getValue().getType() : "Object";
-            lines.append("public class ").append(className).append(" extends AbstractService<").append(idClass).append(',').append(entity.getName()).append(',').append(repositoryClass).append('>').append('{').append('\n');
+            lines.append("public class ").append(className).append(" extends AbstractService<")
+                    .append(idClass).append(',').append(entity.getName()).append(',')
+                    .append(repositoryClass).append('>').append('{').append('\n');
 
-            lines.append('\n').append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("@Inject\n")
-                    .append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("private ").append(repositoryClass).append(" repository;\n");
+            lines.append('\n').append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB))
+                    .append("@Inject\n")
+                    .append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("private ")
+                    .append(repositoryClass).append(" repository;\n");
 
             lines.append("\n\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("@Override\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("public ").append(repositoryClass).append(" getRepository(){\n");
-            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)).append("return repository;\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB))
+                    .append("@Override\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("public ")
+                    .append(repositoryClass).append(" getRepository(){\n");
+            lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2))
+                    .append("return repository;\n");
             lines.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)).append("}\n");
 
             lines.append('}');
@@ -239,7 +271,7 @@ public class CreateModelMojo extends AbstractMojo {
         try {
             getLog().debug("==createFile:\n\tsource=" + source + "\n\ttarget:" + target);
             Files.createDirectories(target.getParent());
-            try ( InputStream is = getClass().getResourceAsStream(source)) {
+            try (InputStream is = getClass().getResourceAsStream(source)) {
                 if (is != null) {
                     List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
                     List<String> newCode = code
@@ -265,23 +297,33 @@ public class CreateModelMojo extends AbstractMojo {
             lines.add("package " + projectModel.getPackageName() + "." + subPackageName + ";\n");
             lines.add("@lombok.Data");
             if (StringUtils.isNotBlank(entity.getTableName())) {
-                lines.add(String.format("@jakarta.persistence.Table(name = \"%s\" )", entity.getTableName()));
+                lines.add(String.format("@jakarta.persistence.Table(name = \"%s\" )",
+                        entity.getTableName()));
             }
             lines.add("@jakarta.persistence.Entity");
             if (entity.getFinders() != null) {
-                entity.getFinders().entrySet().stream().filter(entry -> entry.getValue().isNativeQuery())
+                entity.getFinders().entrySet().stream()
+                        .filter(entry -> entry.getValue().isNativeQuery())
                         .forEach(entry -> {
                             lines.add("@jakarta.persistence.NamedNativeQuery(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + String.format("name = \"%s.findBy%s\",", entity.getName(), entry.getKey()));
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "query = \"" + entry.getValue().getQuery() + ",\n");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "resultClass = " + entry.getValue().getReturnValueType());
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                    + String.format("name = \"%s.findBy%s\",", entity.getName(),
+                                            entry.getKey()));
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                    + "query = \"" + entry.getValue().getQuery() + ",\n");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                    + "resultClass = " + entry.getValue().getReturnValueType());
                             lines.add(")");
                         });
-                entity.getFinders().entrySet().stream().filter(entry -> !entry.getValue().isNativeQuery())
+                entity.getFinders().entrySet().stream()
+                        .filter(entry -> !entry.getValue().isNativeQuery())
                         .forEach(entry -> {
                             lines.add("@jakarta.persistence.NamedQuery(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "name = \"" + entity.getName() + ".findBy" + entry.getKey() + "\",");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "query = \"" + entry.getValue().getQuery() + "\"");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                    + "name = \"" + entity.getName() + ".findBy" + entry.getKey()
+                                    + "\",");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                    + "query = \"" + entry.getValue().getQuery() + "\"");
                             lines.add(")");
                         });
             }
@@ -289,25 +331,33 @@ public class CreateModelMojo extends AbstractMojo {
             if (entity.getFields() != null) {
                 entity.getFields().forEach((key, value) -> {
                     if (value.isPk()) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.Id");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                + "@jakarta.persistence.Id");
                     }
                     if (StringUtils.isNotBlank(value.getJoin())) {
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + String.format("@jakarta.persistence.%s", value.getJoin()));
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                + String.format("@jakarta.persistence.%s", value.getJoin()));
                     }
                     if (StringUtils.isNotBlank(value.getColumnName())) {
                         if (StringUtils.isBlank(value.getJoin())) {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.Column(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                    + "@jakarta.persistence.Column(");
                             List<String> attrsList = new ArrayList<>();
-                            attrsList.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "name = \"" + value.getColumnName() + "\",");
+                            attrsList.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
+                                    + "name = \"" + value.getColumnName() + "\",");
                             if (value.getLength() != null && value.getLength() > 0) {
-                                attrsList.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "length = " + value.getLength() + ",");
+                                attrsList.add(
+                                        StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
+                                        + "length = " + value.getLength() + ",");
                             }
                             removeLastComma(attrsList);
                             lines.addAll(attrsList);
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                         } else {
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.JoinColumn(");
-                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + String.format("name = \"%s\"", value.getColumnName()));
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                    + "@jakarta.persistence.JoinColumn(");
+                            lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
+                                    + String.format("name = \"%s\"", value.getColumnName()));
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
 
                         }
@@ -316,14 +366,19 @@ public class CreateModelMojo extends AbstractMojo {
 
                         GenerationType generatedValueType
                                 = ObjectUtils.defaultIfNull(
-                                        EnumUtils.getEnum(GenerationType.class, value.getGeneratedValue().toUpperCase()),
+                                        EnumUtils.getEnum(GenerationType.class,
+                                                value.getGeneratedValue().toUpperCase()),
                                         GenerationType.AUTO
                                 );
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
-                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
+                                + "@jakarta.persistence.GeneratedValue(");
+                        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
+                                + "strategy = jakarta.persistence.GenerationType."
+                                + generatedValueType.name());
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private " + value.getType() + " " + key + ";\n");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private "
+                            + value.getType() + " " + key + ";\n");
                 });
             }
             lines.add("}");
@@ -335,9 +390,11 @@ public class CreateModelMojo extends AbstractMojo {
     }
 
     private void addDependencies() {
-        if (this.style == DatasourceDefinitionStyleType.WEB) { //se agrega dependencia solo si está incorporado dentro del .war
+        if (this.style
+                == DatasourceDefinitionStyleType.WEB) { //se agrega dependencia solo si está incorporado dentro del .war
             addDBDependencies();
         }
+        addProjectLombokDependency();
     }
 
     private void addDBDependencies() {
@@ -359,24 +416,29 @@ public class CreateModelMojo extends AbstractMojo {
 
         getLog().debug("Creating datasource");
         if (projectModel.getDatasource() != null) {
-            String driverDataSource = projectModel.getDriver();
-            getLog().debug("Driver: " + driverDataSource);
-            String styleSrc = projectModel.getDatasource().getStyle();
-            this.style = DatasourceDefinitionStyleType.findByValue(styleSrc);
-            if (style != null) {
-                switch (style) {
-                    case PAYARA_RESOURCES:
-                        PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel, mavenProject);
-                        break;
-                    case WEB:
-                        createWebXML();
-                        break;
-                    case OPENLIBERTY:
-                        OpenLibertyUtil.createDataSource(getLog(), projectModel, mavenProject);
-                        break;
-                    default:
-                        getLog().error("DataSource Style is invalid:" + styleSrc);
+            try {
+                String driverDataSource = ProjectModelUtil.getDriver(getLog(), projectModel.getDatasource().getDb());
+                getLog().debug("Driver: " + driverDataSource);
+                String styleSrc = projectModel.getDatasource().getStyle();
+                this.style = DatasourceDefinitionStyleType.findByValue(styleSrc);
+                if (style != null) {
+                    switch (style) {
+                        case PAYARA_RESOURCES:
+                            PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel,
+                                    mavenProject);
+                            break;
+                        case WEB:
+                            createWebXML();
+                            break;
+                        case OPENLIBERTY:
+                            OpenLibertyUtil.createDataSource(getLog(), projectModel, mavenProject);
+                            break;
+                        default:
+                            getLog().error("DataSource Style is invalid:" + styleSrc);
+                    }
                 }
+            } catch (IOException | InterruptedException | URISyntaxException ex) {
+                getLog().error(ex.getMessage(), ex);
             }
         }
     }
@@ -402,7 +464,9 @@ public class CreateModelMojo extends AbstractMojo {
 
     private void createWebXML() {
         try {
-            Path webXmlPath = Paths.get(mavenProject.getBasedir().toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
+            Path webXmlPath
+                    = Paths.get(mavenProject.getBasedir().toString(), "src", "main", "webapp",
+                            "WEB-INF", "web.xml").normalize();
             getLog().debug("Creating DataSource at " + webXmlPath);
             Files.createDirectories(webXmlPath.getParent());
             String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
@@ -412,7 +476,7 @@ public class CreateModelMojo extends AbstractMojo {
 
             boolean createDataSource = webXml.getDataSource() == null;
             if (createDataSource) {
-                String driverDataSource = projectModel.getDriver();
+                String driverDataSource = ProjectModelUtil.getDriver(getLog(), projectModel.getDatasource().getDb());
                 var dataSourceModelBuilder = new DataSourceModel.DataSourceModelBuilder()
                         .setName(dataSourceName)
                         .setClassName(driverDataSource)
@@ -421,7 +485,8 @@ public class CreateModelMojo extends AbstractMojo {
                         .setPassword(projectModel.getDatasource().getPassword());
 
                 if (projectModel.getDatasource().getProperties() != null) {
-                    for (Map.Entry<String, String> entry : projectModel.getDatasource().getProperties().entrySet()) {
+                    for (Map.Entry<String, String> entry : projectModel.getDatasource()
+                            .getProperties().entrySet()) {
                         dataSourceModelBuilder.addProperty(entry.getKey(), entry.getValue());
                     }
                 }
@@ -429,10 +494,22 @@ public class CreateModelMojo extends AbstractMojo {
                 webXmlUtil.saveModel(webXml);
 
             }
-        } catch (IOException | JAXBException ex) {
+        } catch (IOException | JAXBException | InterruptedException | URISyntaxException ex) {
             getLog().error(ex.getMessage(), ex);
         }
 
+    }
+
+    private void addProjectLombokDependency() {
+        try {
+            getLog().debug("Add Project Lombok Dependencies");
+            Model model = ProjectModelUtil.getModel(mavenProject);
+            ProjectModelUtil.addDependency(getLog(), model, "org.projectlombok", "lombok");
+
+            ProjectModelUtil.saveModel(mavenProject, model);
+        } catch (IOException | XmlPullParserException ex) {
+            getLog().error(ex.getMessage(), ex);
+        }
     }
 
 }
