@@ -15,11 +15,10 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.jpa.model.DataSourceModel;
-import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.payararesources.model.JdbcConnectionPoolModel;
 import com.apuntesdejava.lemon.jakarta.payararesources.model.JdbcConnectionPoolPropertyModel;
 import com.apuntesdejava.lemon.jakarta.payararesources.model.JdbcResourceModel;
+import jakarta.json.JsonObject;
 import jakarta.xml.bind.JAXBException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.logging.Log;
@@ -32,6 +31,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
@@ -42,13 +43,14 @@ public class PayaraUtil {
     }
 
     public static void createPayaraDataSourceResources(
-            Log log, ProjectModel projectModel, MavenProject mavenProject) {
+            Log log, JsonObject projectModel, MavenProject mavenProject) {
         try {
 
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
             String poolName = mavenProject.getArtifactId() + "Pool";
+            var datasource = projectModel.getJsonObject(DATASOURCE);
 
-            String driverDataSource = ProjectModelUtil.getDriver(log, projectModel.getDatasource().getDb());
+            String driverDataSource = ProjectModelUtil.getDriver(log, datasource.getString(DB));
             var payaraResourcesXmlUtil = new PayaraResourcesXmlUtil(mavenProject.getBasedir().toString());
             var payaraResourcesXml = payaraResourcesXmlUtil.getModel();
             payaraResourcesXml.setJdbcResourceModel(
@@ -62,11 +64,12 @@ public class PayaraUtil {
                     .setName(poolName)
                     .setResType("javax.sql.DataSource");
             jdbcConnectionPoolModelBuilder
-                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance("url", projectModel.getDatasource().getUrl()))
-                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance("user", projectModel.getDatasource().getUser()))
-                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance("password", projectModel.getDatasource().getPassword()));
-            projectModel.getDatasource().getProperties().entrySet().forEach(entry -> jdbcConnectionPoolModelBuilder
-                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance(entry.getKey(), entry.getValue())));
+                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance(URL, datasource.getString(URL)))
+                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance(USER, datasource.getString(USER)))
+                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance(PASSWORD, datasource.getString(PASSWORD)));
+            var properties = datasource.getJsonObject(PROPERTIES);
+            properties.keySet().forEach(key -> jdbcConnectionPoolModelBuilder
+                    .addProperty(JdbcConnectionPoolPropertyModel.newInstance(key, properties.getString(key))));
             payaraResourcesXml.setJdbcConnectionPool(
                     jdbcConnectionPoolModelBuilder.build()
             );
@@ -85,19 +88,20 @@ public class PayaraUtil {
         );
     }
 
-    public static void createPayaraMicroDataSourcePostBootFile(Log log, String fileName, ProjectModel projectModel, MavenProject mavenProject) {
+    public static void createPayaraMicroDataSourcePostBootFile(Log log, String fileName, JsonObject projectModel, MavenProject mavenProject) {
         try {
             log.debug("Creating datasource for PayaraMicro in " + fileName);
-            String driverDataSource = ProjectModelUtil.getDriver(log, projectModel.getDatasource().getDb());
-            DataSourceModel dataSource = projectModel.getDatasource();
+            var datasource = projectModel.getJsonObject(DATASOURCE);
+            String driverDataSource = ProjectModelUtil.getDriver(log, datasource.getString(DB));
             String poolName = mavenProject.getArtifactId() + "Pool";
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
             List<String> lines = new ArrayList<>();
             StringBuilder line = new StringBuilder(String.format("create-jdbc-connection-pool --ping=true --pooling=true --restype=javax.sql.DataSource --datasourceclassname=%s --property ", driverDataSource));
-            line.append(String.format("user=%s:", dataSource.getUser()));
-            line.append(String.format("password=%s:", dataSource.getPassword()));
-            line.append(String.format("url=%s:", replaceChars(dataSource.getUrl())));
-            dataSource.getProperties().forEach((key, value) -> line.append(String.format("%s=%s:", key, value)));
+            line.append(String.format("user=%s:", datasource.getString(USER)));
+            line.append(String.format("password=%s:", datasource.getString(PASSWORD)));
+            line.append(String.format("url=%s:", replaceChars(datasource.getString(URL))));
+            var properties = datasource.getJsonObject(PROPERTIES);
+            properties.keySet().forEach(key -> line.append(String.format("%s=%s:", key, properties.getString(key))));
             line.setLength(line.length() - 1);//quitando último dos puntos
             line.append(' ').append(poolName);
             lines.add(line.toString());

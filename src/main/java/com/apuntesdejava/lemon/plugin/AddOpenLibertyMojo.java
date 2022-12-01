@@ -15,13 +15,12 @@
  */
 package com.apuntesdejava.lemon.plugin;
 
-import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.liberty.model.ServerModel;
 import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
+import jakarta.json.JsonObject;
 import jakarta.xml.bind.JAXBException;
 import java.io.IOException;
-import java.util.Optional;
 import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.PluginManagement;
@@ -35,7 +34,6 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
- *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 @Mojo(name = "add-openliberty")
@@ -48,15 +46,16 @@ public class AddOpenLibertyMojo extends AbstractMojo {
     private String _modelProjectFile;
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
+    private JsonObject projectModel;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Optional<ProjectModel> opt = ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile);
-        if (opt.isPresent()) {
-
+        ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile).ifPresent(pm -> {
+            this.projectModel = pm;
             addPlugin();
             createServerXml();
-        }
+        });
+
     }
 
     private void addPlugin() {
