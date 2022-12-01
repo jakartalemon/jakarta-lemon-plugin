@@ -1,13 +1,28 @@
 package com.apuntesdejava.lemon.plugin;
 
-import com.apuntesdejava.lemon.jakarta.jpa.model.EntityModel;
-import com.apuntesdejava.lemon.jakarta.jpa.model.FieldModel;
-import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
 import com.apuntesdejava.lemon.jakarta.webxml.model.DataSourceModel;
 import com.apuntesdejava.lemon.plugin.util.*;
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+import static com.apuntesdejava.lemon.plugin.util.JsonValuesUtil.*;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import jakarta.persistence.GenerationType;
 import jakarta.xml.bind.JAXBException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -21,19 +36,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Mojo(name = "create-model")
 public class CreateModelMojo extends AbstractMojo {
 
@@ -46,7 +48,7 @@ public class CreateModelMojo extends AbstractMojo {
             defaultValue = "model.json"
     )
     private String modelProjectFile;
-    private ProjectModel projectModel;
+    private JsonObject projectModel;
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
@@ -55,28 +57,30 @@ public class CreateModelMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+
         ProjectModelUtil.getProjectModel(getLog(), modelProjectFile)
                 .ifPresent(pm -> {
-                    this.projectModel = pm;
-                    buildModel();
+
+                    String groupId = mavenProject.getGroupId();
+                    String packageName
+                            = StringUtils.replaceChars(groupId + '.' + mavenProject.getArtifactId(), '-',
+                                    '.');
+                    this.projectModel = Json.createObjectBuilder(pm)
+                            .add(PACKAGE_NAME, Json.createValue(packageName))
+                            .add(PROJECT_NAME, Json.createValue(mavenProject.getId())).build();
+                    getLog().debug("groupId:" + groupId);
+                    getLog().debug("packageName:" + packageName);
+                    buildModel(packageName);
                     addDatasource();
                     addDependencies();
                     addPersistenceXML();
                 });
     }
 
-    private void buildModel() {
+    private void buildModel(String packageName) {
         try {
             getLog().debug("Building model");
-            String groupId = mavenProject.getGroupId();
-            String packageName
-                    = StringUtils.replaceChars(groupId + '.' + mavenProject.getArtifactId(), '-',
-                            '.');
-            projectModel.setPackageName(packageName);
-            projectModel.setProjectName(mavenProject.getId());
             Path baseDirPath = mavenProject.getBasedir().toPath();
-            getLog().debug("groupId:" + groupId);
-            getLog().debug("packageName:" + packageName);
             getLog().debug("baseDir:" + baseDirPath);
 
             Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
@@ -97,40 +101,48 @@ public class CreateModelMojo extends AbstractMojo {
             final Path packageBaseRepository = packageBasePath.resolve("repositories");
             final Path packageBaseService = packageBasePath.resolve("services");
             Files.createDirectories(packageBaseModel);
-            projectModel.getEntities().forEach(entity -> {
-                createEntity(packageBaseModel.resolve(entity.getName() + ".java"), "model", entity);
-                createRepository(packageBaseRepository, entity);
-                createService(packageBaseService, entity);
-            });
+
+            projectModel.getJsonArray(ENTITIES).stream().map(JsonValue::asJsonObject)
+                    .forEach(entity -> {
+                        createEntity(packageBaseModel.resolve(entity.getString(NAME)
+                                + ".java"),
+                                "model", entity);
+                        createRepository(packageBaseRepository, entity);
+                        createService(packageBaseService, entity);
+                    });
+
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
 
     }
 
-    private void createRepository(Path packageBaseRepository, EntityModel entity) {
+    private void createRepository(Path packageBaseRepository, JsonObject entity) {
         try {
-            getLog().debug("Creando repositorio de " + entity.getName());
-            String className = entity.getName() + "Repository";
+            var entityName = entity.getString(NAME);
+            var packageName = projectModel.getString(PACKAGE_NAME);
+            getLog().debug("Creando repositorio de " + entityName);
+            String className = entityName + "Repository";
             Path target = packageBaseRepository.resolve(className + ".java");
             List<String> lines = new ArrayList<>();
-            lines.add("package " + projectModel.getPackageName() + ".repositories;\n");
+            lines.add("package " + packageName + ".repositories;\n");
             lines.add(
-                    "import " + projectModel.getPackageName() + ".model." + entity.getName() + ";");
+                    "import " + packageName + ".model." + entityName + ";");
             lines.add("import jakarta.enterprise.context.ApplicationScoped;");
             lines.add("import jakarta.inject.Inject;");
             lines.add("import jakarta.persistence.EntityManager;\n");
             lines.add("@ApplicationScoped");
-            Optional<Map.Entry<String, FieldModel>> pk
-                    = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk())
+            Optional<Map.Entry<String, JsonValue>> pk
+                    = entity.getJsonObject(FIELDS).entrySet().stream()
+                            .filter(item -> item.getValue().asJsonObject().getBoolean(PK))
                             .findFirst();
-            String idClass = "Object";
-            if (pk.isPresent()) {
-                idClass = pk.get().getValue().getType();
-            }
-            lines.add(
-                    "public class " + className + " extends AbstractRepository<" + idClass + ", "
-                    + entity.getName() + "> {\n");
+            AtomicReference<String> idClass = new AtomicReference<>("Object");
+            pk.ifPresent(pkValue -> {
+                idClass.set(pkValue.getValue().asJsonObject().getString(TYPE));
+            });
+            lines.add(String.format(
+                    "public class %s extends AbstractRepository<%s, %s> {\n", className,
+                    idClass.get(), entityName));
 
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Inject");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
@@ -139,7 +151,7 @@ public class CreateModelMojo extends AbstractMojo {
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public " + className
                     + "() {");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "super("
-                    + entity.getName() + ".class);");
+                    + entityName + ".class);");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Override");
@@ -148,14 +160,17 @@ public class CreateModelMojo extends AbstractMojo {
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em;");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
-            if (entity.getFinders() != null && !entity.getFinders().isEmpty()) {
+            if (!isFieldsEmpty(entity, FINDERS)) {
                 getLog().debug("creando métodos de búsqueda");
-                entity.getFinders().forEach((name, value) -> {
+                entity.getJsonObject(FINDERS).forEach((name, aValue) -> {
+                    var value = aValue.asJsonObject();
                     String params = "()";
-                    if (value.getParameters() != null) {
+                    if (!isFieldsEmpty(value, PARAMETERS)) {
                         StringBuilder param = new StringBuilder();
                         param.append("(\n");
-                        value.getParameters().forEach((paramName, type) -> {
+                        var parameters = value.getJsonObject(PARAMETERS);
+                        parameters.keySet().forEach(paramName -> {
+                            var type = parameters.getString(paramName);
                             param.append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2));
                             param.append(type).append(' ');
                             param.append(paramName).append(',');
@@ -166,20 +181,20 @@ public class CreateModelMojo extends AbstractMojo {
                                 .append(")");
                         params = param.toString();
                     }
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "public "
-                            + value.getReturnValueType() + " findBy" + name + params + " {");
+                    lines.add(String.format(
+                            "%spublic %s findBy%s%s {", StringUtils.repeat(StringUtils.SPACE, Constants.TAB), value.getString(RETURN_VALUE_TYPE), name, params));
                     lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
                             + "return em."
-                            + (value.isNativeQuery() ? "createNativeQuery" : "createNamedQuery")
-                            + "(\"" + entity.getName() + ".findBy" + name + "\","
-                            + entity.getName() + ".class)");
-                    if (value.getParameters() != null) {
-                        value.getParameters().forEach((paramName, param) -> {
+                            + (value.getBoolean(NATIVE_QUERY, false) ? "createNativeQuery" : "createNamedQuery")
+                            + "(\"" + entityName + ".findBy" + name + "\","
+                            + entityName + ".class)");
+                    if (!isFieldsEmpty(value, PARAMETERS)) {
+                        value.getJsonObject(PARAMETERS).keySet().forEach(paramName -> {
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3)
                                     + ".setParameter(\"" + paramName + "\"," + paramName + ")");
                         });
                     }
-                    if (value.isUnique()) {
+                    if (value.getBoolean(UNIQUE, false)) {
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3)
                                 + ".getSingleResult();");
                     } else {
@@ -197,28 +212,31 @@ public class CreateModelMojo extends AbstractMojo {
         }
     }
 
-    private void createService(Path packageBaseService, EntityModel entity) {
+    private void createService(Path packageBaseService, JsonObject entity) {
         try {
-            getLog().debug("Creando servicio de " + entity.getName());
-            String className = entity.getName() + "Service";
+            var entityName = entity.getString(NAME);
+            var packageName = projectModel.getString(PACKAGE_NAME);
+            getLog().debug("Creando servicio de " + entityName);
+            String className = entityName + "Service";
             Path target = packageBaseService.resolve(className + ".java");
             StringBuilder lines = new StringBuilder();
-            lines.append("package ").append(projectModel.getPackageName()).append(".services;\n\n");
+            lines.append("package ").append(packageName).append(".services;\n\n");
             StringBuilder repositoryClass
-                    = new StringBuilder().append(entity.getName()).append("Repository");
-            lines.append("import ").append(projectModel.getPackageName()).append(".repositories.")
+                    = new StringBuilder().append(entityName).append("Repository");
+            lines.append("import ").append(packageName).append(".repositories.")
                     .append(repositoryClass).append(";\n");
-            lines.append("import ").append(projectModel.getPackageName()).append(".model.")
-                    .append(entity.getName()).append(';').append('\n');
+            lines.append("import ").append(packageName).append(".model.")
+                    .append(entityName).append(';').append('\n');
             lines.append("import jakarta.enterprise.context.ApplicationScoped;\n");
             lines.append("import jakarta.inject.Inject;\n\n");
             lines.append("@ApplicationScoped\n");
-            Optional<Map.Entry<String, FieldModel>> pk
-                    = entity.getFields().entrySet().stream().filter(item -> item.getValue().isPk())
-                            .findFirst();
-            String idClass = pk.isPresent() ? pk.get().getValue().getType() : "Object";
+            var fields = entity.getJsonObject(FIELDS);
+            var idClass = fields.entrySet().stream()
+                    .filter(entry -> entry.getValue().asJsonObject().getBoolean(PK))
+                    .map(entry -> entry.getValue().asJsonObject().getString(TYPE))
+                    .findFirst().orElse("Object");
             lines.append("public class ").append(className).append(" extends AbstractService<")
-                    .append(idClass).append(',').append(entity.getName()).append(',')
+                    .append(idClass).append(',').append(entityName).append(',')
                     .append(repositoryClass).append('>').append('{').append('\n');
 
             lines.append('\n').append(StringUtils.repeat(StringUtils.SPACE, Constants.TAB))
@@ -243,26 +261,28 @@ public class CreateModelMojo extends AbstractMojo {
     }
 
     private void createAbstractsClasses(Path packageBasePath) {
+        var packageName = projectModel.getString(PACKAGE_NAME);
+        var projectName = projectModel.getString(PROJECT_NAME);
         createFile(
                 packageBasePath.resolve("repositories").resolve("JpaProvider.java"),
                 "/classes/JpaProvider.javatemplate",
                 Map.of(
-                        "{package}", projectModel.getPackageName(),
-                        "{unitNamePU}", projectModel.getProjectName() + "PU"
+                        "{package}", packageName,
+                        "{unitNamePU}", projectName + "PU"
                 )
         );
         createFile(
                 packageBasePath.resolve("services").resolve("AbstractService.java"),
                 "/classes/AbstractService.javatemplate",
                 Map.of(
-                        "{package}", projectModel.getPackageName()
+                        "{package}", packageName
                 )
         );
         createFile(
                 packageBasePath.resolve("repositories").resolve("AbstractRepository.java"),
                 "/classes/AbstractRepository.javatemplate",
                 Map.of(
-                        "{package}", projectModel.getPackageName()
+                        "{package}", packageName
                 )
         );
     }
@@ -291,64 +311,73 @@ public class CreateModelMojo extends AbstractMojo {
         }
     }
 
-    private void createEntity(Path target, String subPackageName, EntityModel entity) {
+    private void createEntity(Path target, String subPackageName, JsonObject entity) {
         try {
             List<String> lines = new ArrayList<>();
-            lines.add("package " + projectModel.getPackageName() + "." + subPackageName + ";\n");
+            lines.add("package " + projectModel.getString(PACKAGE_NAME) + "." + subPackageName
+                    + ";\n");
             lines.add("@lombok.Data");
-            if (StringUtils.isNotBlank(entity.getTableName())) {
+            if (!isStringEmpty(entity, TABLE_NAME)) {
                 lines.add(String.format("@jakarta.persistence.Table(name = \"%s\" )",
-                        entity.getTableName()));
+                        entity.getString(TABLE_NAME)));
             }
             lines.add("@jakarta.persistence.Entity");
-            if (entity.getFinders() != null) {
-                entity.getFinders().entrySet().stream()
-                        .filter(entry -> entry.getValue().isNativeQuery())
+            if (entity.containsKey(FINDERS)) {
+                entity.getJsonObject(FINDERS).entrySet().
+                        stream()
+                        .filter(entry -> entry.getValue().asJsonObject().containsKey(NATIVE_QUERY)
+                        && entry.getValue().asJsonObject().getBoolean(NATIVE_QUERY))
                         .forEach(entry -> {
+                            var value = entry.getValue().asJsonObject();
                             lines.add("@jakarta.persistence.NamedNativeQuery(");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
-                                    + String.format("name = \"%s.findBy%s\",", entity.getName(),
+                                    + String.format("name = \"%s.findBy%s\",", entity.getString(NAME),
                                             entry.getKey()));
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
-                                    + "query = \"" + entry.getValue().getQuery() + ",\n");
+                                    + "query = \"" + value.getString(QUERY) + ",\n");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
-                                    + "resultClass = " + entry.getValue().getReturnValueType());
+                                    + "resultClass = " + value.getString(RETURN_VALUE_TYPE));
                             lines.add(")");
                         });
-                entity.getFinders().entrySet().stream()
-                        .filter(entry -> !entry.getValue().isNativeQuery())
+                entity.getJsonObject(FINDERS).entrySet().stream()
+                        .filter(entry -> !entry.getValue().asJsonObject().containsKey(NATIVE_QUERY)
+                        || !entry.getValue().asJsonObject().getBoolean(NATIVE_QUERY))
                         .forEach(entry -> {
+                            var value = entry.getValue().asJsonObject();
                             lines.add("@jakarta.persistence.NamedQuery(");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
-                                    + "name = \"" + entity.getName() + ".findBy" + entry.getKey()
+                                    + "name = \"" + entity.getString(NAME) + ".findBy"
+                                    + entry.getKey()
                                     + "\",");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
-                                    + "query = \"" + entry.getValue().getQuery() + "\"");
+                                    + "query = \"" + value.getString(QUERY) + "\"");
                             lines.add(")");
                         });
             }
-            lines.add("public class " + entity.getName() + "{\n");
-            if (entity.getFields() != null) {
-                entity.getFields().forEach((key, value) -> {
-                    if (value.isPk()) {
+            lines.add("public class " + entity.getString(NAME) + "{\n");
+            if (entity.containsKey(FIELDS)) {
+                entity.getJsonObject(FIELDS).forEach((key, item) -> {
+                    var value = item.asJsonObject();
+                    if (value.containsKey(PK) && value.getBoolean(PK)) {
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
                                 + "@jakarta.persistence.Id");
                     }
-                    if (StringUtils.isNotBlank(value.getJoin())) {
+                    var isJoinPresent = !isStringEmpty(value, JOIN);
+                    if (isJoinPresent) {
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
-                                + String.format("@jakarta.persistence.%s", value.getJoin()));
+                                + String.format("@jakarta.persistence.%s", value.getString(JOIN)));
                     }
-                    if (StringUtils.isNotBlank(value.getColumnName())) {
-                        if (StringUtils.isBlank(value.getJoin())) {
+                    if (value.containsKey(COLUMN_NAME)) {
+                        if (!isJoinPresent) {
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
                                     + "@jakarta.persistence.Column(");
                             List<String> attrsList = new ArrayList<>();
                             attrsList.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
-                                    + "name = \"" + value.getColumnName() + "\",");
-                            if (value.getLength() != null && value.getLength() > 0) {
+                                    + "name = \"" + value.getString(COLUMN_NAME) + "\",");
+                            if (!isNumberEmpty(value, LENGTH)) {
                                 attrsList.add(
                                         StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
-                                        + "length = " + value.getLength() + ",");
+                                        + "length = " + value.getJsonNumber(LENGTH) + ",");
                             }
                             removeLastComma(attrsList);
                             lines.addAll(attrsList);
@@ -357,17 +386,17 @@ public class CreateModelMojo extends AbstractMojo {
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
                                     + "@jakarta.persistence.JoinColumn(");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
-                                    + String.format("name = \"%s\"", value.getColumnName()));
+                                    + String.format("name = \"%s\"", value.getString(COLUMN_NAME)));
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
 
                         }
                     }
-                    if (StringUtils.isNotBlank(value.getGeneratedValue())) {
+                    if (!isStringEmpty(value, GENERATED_VALUE)) {
 
                         GenerationType generatedValueType
                                 = ObjectUtils.defaultIfNull(
                                         EnumUtils.getEnum(GenerationType.class,
-                                                value.getGeneratedValue().toUpperCase()),
+                                                StringUtils.upperCase(value.getString(GENERATED_VALUE))),
                                         GenerationType.AUTO
                                 );
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
@@ -378,7 +407,7 @@ public class CreateModelMojo extends AbstractMojo {
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                     }
                     lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private "
-                            + value.getType() + " " + key + ";\n");
+                            + value.getString(TYPE) + " " + key + ";\n");
                 });
             }
             lines.add("}");
@@ -400,7 +429,7 @@ public class CreateModelMojo extends AbstractMojo {
     private void addDBDependencies() {
         try {
             getLog().debug("Add DB Dependencies");
-            String database = projectModel.getDatasource().getDb();
+            String database = projectModel.getJsonObject(DATASOURCE).getString(DB);
 
             Model model = ProjectModelUtil.getModel(mavenProject);
             ProjectModelUtil.addDependenciesDatabase(getLog(), model, database);
@@ -413,13 +442,14 @@ public class CreateModelMojo extends AbstractMojo {
     }
 
     private void addDatasource() {
-
         getLog().debug("Creating datasource");
-        if (projectModel.getDatasource() != null) {
+        if (projectModel.containsKey(DATASOURCE)) {
+            var datasource = projectModel.getJsonObject(DATASOURCE);
             try {
-                String driverDataSource = ProjectModelUtil.getDriver(getLog(), projectModel.getDatasource().getDb());
+                String driverDataSource
+                        = ProjectModelUtil.getDriver(getLog(), datasource.getString(DB));
                 getLog().debug("Driver: " + driverDataSource);
-                String styleSrc = projectModel.getDatasource().getStyle();
+                String styleSrc = datasource.getString(STYLE);
                 this.style = DatasourceDefinitionStyleType.findByValue(styleSrc);
                 if (style != null) {
                     switch (style) {
@@ -450,7 +480,7 @@ public class CreateModelMojo extends AbstractMojo {
             getLog().debug("baseDir:" + baseDir);
             var persistenceUtil = new PersistenceXmlUtil(baseDir.toString());
             var persistenceXml = persistenceUtil.getModel();
-            persistenceXml.getPersistenceUnit().setName(projectModel.getProjectName() + "PU");
+            persistenceXml.getPersistenceUnit().setName(projectModel.getString(PROJECT_NAME) + "PU");
             String dataSourceName = (style == DatasourceDefinitionStyleType.WEB ? "java:app/" : "")
                     + "jdbc/" + mavenProject.getArtifactId();
             persistenceXml.getPersistenceUnit().setJtaDataSource(dataSourceName);
@@ -476,19 +506,22 @@ public class CreateModelMojo extends AbstractMojo {
 
             boolean createDataSource = webXml.getDataSource() == null;
             if (createDataSource) {
-                String driverDataSource = ProjectModelUtil.getDriver(getLog(), projectModel.getDatasource().getDb());
+                var datasource = projectModel.getJsonObject(DATASOURCE);
+                String driverDataSource
+                        = ProjectModelUtil.getDriver(getLog(), datasource.getString(DB));
                 var dataSourceModelBuilder = new DataSourceModel.DataSourceModelBuilder()
                         .setName(dataSourceName)
                         .setClassName(driverDataSource)
-                        .setUrl(projectModel.getDatasource().getUrl())
-                        .setUser(projectModel.getDatasource().getUser())
-                        .setPassword(projectModel.getDatasource().getPassword());
+                        .setUrl(datasource.getString(URL))
+                        .setUser(datasource.getString(USER))
+                        .setPassword(datasource.getString(PASSWORD));
 
-                if (projectModel.getDatasource().getProperties() != null) {
-                    for (Map.Entry<String, String> entry : projectModel.getDatasource()
-                            .getProperties().entrySet()) {
-                        dataSourceModelBuilder.addProperty(entry.getKey(), entry.getValue());
-                    }
+                if (!isFieldsEmpty(datasource, PROPERTIES)) {
+                    var properties = datasource.getJsonObject(PROPERTIES);
+                    properties.keySet().forEach(key -> {
+                        dataSourceModelBuilder.addProperty(key, properties.getString(key));
+                    });
+
                 }
                 webXml.setDataSource(dataSourceModelBuilder.build());
                 webXmlUtil.saveModel(webXml);

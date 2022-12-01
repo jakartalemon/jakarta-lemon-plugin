@@ -15,14 +15,10 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.jpa.model.ProjectModel;
 import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
-
-import static com.apuntesdejava.lemon.plugin.util.Constants.DEPENDENCIES_URL;
-
+import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
-import jakarta.json.bind.Jsonb;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.*;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -33,12 +29,10 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import java.io.*;
+import java.net.URISyntaxException;
 import java.util.*;
 
-import static jakarta.json.bind.JsonbBuilder.create;
-
-import java.net.URISyntaxException;
-
+import static com.apuntesdejava.lemon.plugin.util.Constants.DEPENDENCIES_URL;
 import static java.util.Collections.emptyMap;
 
 /**
@@ -70,11 +64,10 @@ public class ProjectModelUtil {
                 });
     }
 
-    public static Optional<ProjectModel> getProjectModel(Log log, String modelProjectFile) {
+    public static Optional<JsonObject> getProjectModel(Log log, String modelProjectFile) {
         log.debug("Reading model configuration:" + modelProjectFile);
         try (InputStream in = new FileInputStream(modelProjectFile)) {
-            Jsonb jsonb = create();
-            return Optional.ofNullable(jsonb.fromJson(in, ProjectModel.class));
+            return Optional.ofNullable(Json.createReader(in).readObject());
         } catch (IOException ex) {
             log.error(ex.getMessage(), ex);
         }
@@ -112,16 +105,16 @@ public class ProjectModelUtil {
         List<Plugin> plugins = pluginContainer.getPlugins();
         return plugins.stream()
                 .filter(item -> item.getGroupId().equals(groupId)
-                        && item.getArtifactId().equals(artifactId)).findFirst().or(() -> {
-                    Plugin p = new Plugin();
-                    p.setGroupId(groupId);
-                    p.setArtifactId(artifactId);
-                    if (StringUtils.isNotBlank(version)) {
-                        p.setVersion(version);
-                    }
-                    pluginContainer.addPlugin(p);
-                    return Optional.of(p);
-                });
+                && item.getArtifactId().equals(artifactId)).findFirst().or(() -> {
+            Plugin p = new Plugin();
+            p.setGroupId(groupId);
+            p.setArtifactId(artifactId);
+            if (StringUtils.isNotBlank(version)) {
+                p.setVersion(version);
+            }
+            pluginContainer.addPlugin(p);
+            return Optional.of(p);
+        });
 
     }
 
@@ -152,11 +145,11 @@ public class ProjectModelUtil {
 
     public static Xpp3Dom addChildren(Xpp3Dom parent, String name, boolean ignoreDuplicate) {
         return ignoreDuplicate
-               ? createChildren(parent, name)
-               : Arrays.stream(parent.getChildren())
-                       .filter(item -> item.getName().equals(name))
-                       .findFirst()
-                       .orElseGet(() -> createChildren(parent, name));
+                ? createChildren(parent, name)
+                : Arrays.stream(parent.getChildren())
+                        .filter(item -> item.getName().equals(name))
+                        .findFirst()
+                        .orElseGet(() -> createChildren(parent, name));
     }
 
     private static Xpp3Dom createChildren(Xpp3Dom parent, String name) {
@@ -190,7 +183,7 @@ public class ProjectModelUtil {
         return dependencies.stream()
                 .filter(item
                         -> item.getGroupId().equals(dependen.getGroupId())
-                        && item.getArtifactId().equals(dependen.getArtifactId())
+                && item.getArtifactId().equals(dependen.getArtifactId())
                 ).findFirst()
                 .orElseGet(() -> {
                     Dependency dd = new Dependency();
@@ -218,8 +211,8 @@ public class ProjectModelUtil {
             Log log, Model model, String groupId, String artefactId, Map<String, String> props
     ) {
         return addDependency(DependenciesUtil.getLastVersionDependency(log,
-                                "g:" + groupId + "+AND+a:" + artefactId)
-                        .orElse(null),
+                "g:" + groupId + "+AND+a:" + artefactId)
+                .orElse(null),
                 model.getDependencies(),
                 props
         );

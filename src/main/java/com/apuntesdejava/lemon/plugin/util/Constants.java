@@ -22,19 +22,45 @@ public class Constants {
 
     public static final int TAB = 4;
 
-    private Constants() {
-    }
-
     public final static String DEPENDENCIES_URL = "https://jakartalemon.dev/dependencies.json";
 
     public final static String DATASOURCE = "datasource";
+    public final static String URL = "url";
+    public final static String PASSWORD = "password";
     public final static String DRIVER = "driver";
     public final static String POOL = "pool";
     public final static String SEARCH = "search";
+    public final static String USER = "user";
+    public final static String PROPERTIES = "properties";
+    public final static String STYLE = "style";
 
     public static final String QUERY_MAVEN_URL = "https://search.maven.org/solrsearch/select?q=";
 
     public static final String VIEW_STYLE_JSF = "jsf";
     public static final String VIEW_STYLE = "style";
+
+    public static final String PACKAGE_NAME = "packageName";
+    public static final String PROJECT_NAME = "projectName";
+
+    public static final String ENTITIES = "entities";
+    public static final String NAME = "name";
+    public static final String TABLE_NAME = "tableName";
+    public static final String FINDERS = "finders";
+    public static final String NATIVE_QUERY = "native";
+    public static final String QUERY = "query";
+    public static final String RETURN_VALUE_TYPE = "return";
+    public static final String FIELDS = "fields";
+    public static final String PK = "pk";
+    public static final String JOIN = "join";
+    public static final String COLUMN_NAME = "columnName";
+    public static final String LENGTH = "length";
+    public static final String GENERATED_VALUE = "generatedValue";
+    public static final String TYPE = "type";
+    public static final String DB = "db";
+    public static final String PARAMETERS = "parameters";
+    public static final String UNIQUE = "unique";
+
+    private Constants() {
+    }
 
 }
