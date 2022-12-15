@@ -75,7 +75,7 @@ public class AddPayaraMicroMojo extends AbstractMojo {
             Properties props = ProjectModelUtil.getProperties(profile);
             DependenciesUtil.getLastVersionDependency(getLog(),
                     "g:fish.payara.extras+AND+a:payara-micro").ifPresent(dependencyModel -> {
-                props.setProperty("version.payara", dependencyModel.getVersion());
+                props.setProperty("version.payara", dependencyModel.getString(DEPENDENCY_VERSION));
             });
             var datasource = projectModel.getJsonObject(DATASOURCE);
             BuildBase build = ProjectModelUtil.getBuild(profile);

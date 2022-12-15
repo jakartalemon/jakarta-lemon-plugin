@@ -1,28 +1,12 @@
 package com.apuntesdejava.lemon.plugin;
 
 import com.apuntesdejava.lemon.jakarta.model.types.DatasourceDefinitionStyleType;
-import com.apuntesdejava.lemon.jakarta.webxml.model.DataSourceModel;
 import com.apuntesdejava.lemon.plugin.util.*;
-import static com.apuntesdejava.lemon.plugin.util.Constants.*;
-import static com.apuntesdejava.lemon.plugin.util.JsonValuesUtil.*;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.persistence.GenerationType;
 import jakarta.xml.bind.JAXBException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -35,6 +19,23 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+
+import javax.xml.xpath.XPathExpressionException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+import static com.apuntesdejava.lemon.plugin.util.JsonValuesUtil.*;
 
 @Mojo(name = "create-model")
 public class CreateModelMojo extends AbstractMojo {
@@ -106,7 +107,7 @@ public class CreateModelMojo extends AbstractMojo {
                     .forEach(entity -> {
                         createEntity(packageBaseModel.resolve(entity.getString(NAME)
                                 + ".java"),
-                                "model", entity);
+                                entity);
                         createRepository(packageBaseRepository, entity);
                         createService(packageBaseService, entity);
                     });
@@ -117,7 +118,8 @@ public class CreateModelMojo extends AbstractMojo {
 
     }
 
-    private void createRepository(Path packageBaseRepository, JsonObject entity) {
+    private void createRepository(Path packageBaseRepository,
+            JsonObject entity) {
         try {
             var entityName = entity.getString(NAME);
             var packageName = projectModel.getString(PACKAGE_NAME);
@@ -182,10 +184,12 @@ public class CreateModelMojo extends AbstractMojo {
                         params = param.toString();
                     }
                     lines.add(String.format(
-                            "%spublic %s findBy%s%s {", StringUtils.repeat(StringUtils.SPACE, Constants.TAB), value.getString(RETURN_VALUE_TYPE), name, params));
+                            "%spublic %s findBy%s%s {", StringUtils.repeat(StringUtils.SPACE, Constants.TAB),
+                            value.getString(RETURN_VALUE_TYPE), name, params));
                     lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2)
                             + "return em."
-                            + (value.getBoolean(NATIVE_QUERY, false) ? "createNativeQuery" : "createNamedQuery")
+                            + (value.getBoolean(NATIVE_QUERY,
+                                    false) ? "createNativeQuery" : "createNamedQuery")
                             + "(\"" + entityName + ".findBy" + name + "\","
                             + entityName + ".class)");
                     if (!isFieldsEmpty(value, PARAMETERS)) {
@@ -212,7 +216,8 @@ public class CreateModelMojo extends AbstractMojo {
         }
     }
 
-    private void createService(Path packageBaseService, JsonObject entity) {
+    private void createService(Path packageBaseService,
+            JsonObject entity) {
         try {
             var entityName = entity.getString(NAME);
             var packageName = projectModel.getString(PACKAGE_NAME);
@@ -231,9 +236,9 @@ public class CreateModelMojo extends AbstractMojo {
             lines.append("import jakarta.inject.Inject;\n\n");
             lines.append("@ApplicationScoped\n");
             var fields = entity.getJsonObject(FIELDS);
-            var idClass = fields.entrySet().stream()
-                    .filter(entry -> entry.getValue().asJsonObject().getBoolean(PK))
-                    .map(entry -> entry.getValue().asJsonObject().getString(TYPE))
+            var idClass = fields.values().stream()
+                    .filter(jsonValue -> jsonValue.asJsonObject().getBoolean(PK))
+                    .map(jsonValue -> jsonValue.asJsonObject().getString(TYPE))
                     .findFirst().orElse("Object");
             lines.append("public class ").append(className).append(" extends AbstractService<")
                     .append(idClass).append(',').append(entityName).append(',')
@@ -287,7 +292,9 @@ public class CreateModelMojo extends AbstractMojo {
         );
     }
 
-    private void createFile(Path target, String source, Map<String, String> maps) {
+    private void createFile(Path target,
+            String source,
+            Map<String, String> maps) {
         try {
             getLog().debug("==createFile:\n\tsource=" + source + "\n\ttarget:" + target);
             Files.createDirectories(target.getParent());
@@ -311,10 +318,11 @@ public class CreateModelMojo extends AbstractMojo {
         }
     }
 
-    private void createEntity(Path target, String subPackageName, JsonObject entity) {
+    private void createEntity(Path target,
+            JsonObject entity) {
         try {
             List<String> lines = new ArrayList<>();
-            lines.add("package " + projectModel.getString(PACKAGE_NAME) + "." + subPackageName
+            lines.add("package " + projectModel.getString(PACKAGE_NAME) + "." + "model"
                     + ";\n");
             lines.add("@lombok.Data");
             if (!isStringEmpty(entity, TABLE_NAME)) {
@@ -494,40 +502,47 @@ public class CreateModelMojo extends AbstractMojo {
 
     private void createWebXML() {
         try {
-            Path webXmlPath
-                    = Paths.get(mavenProject.getBasedir().toString(), "src", "main", "webapp",
-                            "WEB-INF", "web.xml").normalize();
-            getLog().debug("Creating DataSource at " + webXmlPath);
-            Files.createDirectories(webXmlPath.getParent());
+
+            var webXmlDocument = WebXmlUtil.openWebXml(mavenProject.getBasedir());
+
             String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
 
-            var webXmlUtil = new WebXmlUtil(mavenProject.getBasedir().toString());
-            var webXml = webXmlUtil.getModel();
-
-            boolean createDataSource = webXml.getDataSource() == null;
+            boolean createDataSource = DocumentXmlUtil.findElementsByFilter(webXmlDocument, "/web-app/data-source")
+                    .isEmpty();
             if (createDataSource) {
                 var datasource = projectModel.getJsonObject(DATASOURCE);
                 String driverDataSource
                         = ProjectModelUtil.getDriver(getLog(), datasource.getString(DB));
-                var dataSourceModelBuilder = new DataSourceModel.DataSourceModelBuilder()
-                        .setName(dataSourceName)
-                        .setClassName(driverDataSource)
-                        .setUrl(datasource.getString(URL))
-                        .setUser(datasource.getString(USER))
-                        .setPassword(datasource.getString(PASSWORD));
 
-                if (!isFieldsEmpty(datasource, PROPERTIES)) {
-                    var properties = datasource.getJsonObject(PROPERTIES);
-                    properties.keySet().forEach(key -> {
-                        dataSourceModelBuilder.addProperty(key, properties.getString(key));
-                    });
+                DocumentXmlUtil.createElement(webXmlDocument, "/web-app", "data-source")
+                        .ifPresent(datasourceElement -> {
+                            DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, "name", dataSourceName);
+                            DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, "class-name",
+                                    driverDataSource);
+                            DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, URL,
+                                    datasource.getString(URL));
+                            DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, USER,
+                                    datasource.getString(USER));
+                            DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, PASSWORD,
+                                    datasource.getString(PASSWORD));
+                            if (!isFieldsEmpty(datasource, PROPERTIES)) {
+                                var properties = datasource.getJsonObject(PROPERTIES);
+                                properties.keySet().forEach(key -> {
+                                    DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, "property")
+                                            .ifPresent(property -> {
+                                                DocumentXmlUtil.createElement(webXmlDocument, property, NAME, key);
+                                                DocumentXmlUtil.createElement(webXmlDocument, property, "value",
+                                                        properties.getString(key));
+                                            });
 
-                }
-                webXml.setDataSource(dataSourceModelBuilder.build());
-                webXmlUtil.saveModel(webXml);
+                                });
+
+                            }
+                        });
+                WebXmlUtil.saveWebXml(mavenProject.getBasedir(), webXmlDocument);
 
             }
-        } catch (IOException | JAXBException | InterruptedException | URISyntaxException ex) {
+        } catch (IOException | InterruptedException | URISyntaxException | XPathExpressionException ex) {
             getLog().error(ex.getMessage(), ex);
         }
 

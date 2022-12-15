@@ -43,7 +43,9 @@ public class PayaraUtil {
     }
 
     public static void createPayaraDataSourceResources(
-            Log log, JsonObject projectModel, MavenProject mavenProject) {
+            Log log,
+            JsonObject projectModel,
+            MavenProject mavenProject) {
         try {
 
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
@@ -74,7 +76,8 @@ public class PayaraUtil {
                     jdbcConnectionPoolModelBuilder.build()
             );
             payaraResourcesXmlUtil.saveModel(payaraResourcesXml);
-            log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + payaraResourcesXmlUtil.getXmlPath());
+            log.info(
+                    "To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + payaraResourcesXmlUtil.getXmlPath());
 
         } catch (IOException | JAXBException | InterruptedException | URISyntaxException ex) {
             log.error(ex.getMessage(), ex);
@@ -83,12 +86,15 @@ public class PayaraUtil {
 
     private static String replaceChars(String str) {
         return StringUtils.replaceEach(str,
-                new String[]{":"},
-                new String[]{'\\' + ":"}
+                                       new String[]{":"},
+                                       new String[]{'\\' + ":"}
         );
     }
 
-    public static void createPayaraMicroDataSourcePostBootFile(Log log, String fileName, JsonObject projectModel, MavenProject mavenProject) {
+    public static void createPayaraMicroDataSourcePostBootFile(Log log,
+                                                               String fileName,
+                                                               JsonObject projectModel,
+                                                               MavenProject mavenProject) {
         try {
             log.debug("Creating datasource for PayaraMicro in " + fileName);
             var datasource = projectModel.getJsonObject(DATASOURCE);
@@ -96,7 +102,9 @@ public class PayaraUtil {
             String poolName = mavenProject.getArtifactId() + "Pool";
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
             List<String> lines = new ArrayList<>();
-            StringBuilder line = new StringBuilder(String.format("create-jdbc-connection-pool --ping=true --pooling=true --restype=javax.sql.DataSource --datasourceclassname=%s --property ", driverDataSource));
+            StringBuilder line = new StringBuilder(String.format(
+                    "create-jdbc-connection-pool --ping=true --pooling=true --restype=javax.sql.DataSource --datasourceclassname=%s --property ",
+                    driverDataSource));
             line.append(String.format("user=%s:", datasource.getString(USER)));
             line.append(String.format("password=%s:", datasource.getString(PASSWORD)));
             line.append(String.format("url=%s:", replaceChars(datasource.getString(URL))));
