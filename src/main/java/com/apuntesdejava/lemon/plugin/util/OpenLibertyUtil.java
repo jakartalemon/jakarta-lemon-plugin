@@ -47,7 +47,9 @@ public class OpenLibertyUtil {
 
     private static final Path SERVER_XML_PATH = Paths.get("src", "main", "liberty", "config", "server.xml");
 
-    public static void createDataSource(Log log, JsonObject projectModel, MavenProject mavenProject) {
+    public static void createDataSource(Log log,
+                                        JsonObject projectModel,
+                                        MavenProject mavenProject) {
         try {
             log.debug("Updating server.xml");
             ServerModel serverModel = getServerModel(log, mavenProject);
@@ -57,8 +59,7 @@ public class OpenLibertyUtil {
                             "jdbcLib", new FilesetModel(
                             "jdbc",
                             "*.jar"
-                    )
-                    )
+                    ))
             );
             String jndiName = "jdbc/" + mavenProject.getArtifactId();
             OpenLibertyDataSourcePropertiesModel properties = new OpenLibertyDataSourcePropertiesModel();
@@ -89,7 +90,8 @@ public class OpenLibertyUtil {
             Model model = ProjectModelUtil.getModel(mavenProject);
             Profile profile = ProjectModelUtil.getProfile(model, "openliberty");
             BuildBase build = ProjectModelUtil.getBuild(profile);
-            Optional<Plugin> pluginOpt = ProjectModelUtil.addPlugin(build, "io.openliberty.tools", "liberty-maven-plugin", "3.3.4");
+            Optional<Plugin> pluginOpt = ProjectModelUtil.addPlugin(build, "io.openliberty.tools",
+                                                                    "liberty-maven-plugin", "3.3.4");
             if (pluginOpt.isPresent()) {
                 Plugin plugin = pluginOpt.get();
                 Xpp3Dom conf = ProjectModelUtil.getConfiguration(plugin);
@@ -111,7 +113,8 @@ public class OpenLibertyUtil {
         }
     }
 
-    public static ServerModel getServerModel(Log log, MavenProject mavenProject) throws JAXBException, IOException {
+    public static ServerModel getServerModel(Log log,
+                                             MavenProject mavenProject) throws JAXBException, IOException {
         log.debug("Creating server.xml file");
         Path baseDirPath = mavenProject.getBasedir().toPath();
         log.debug("baseDirPath:" + baseDirPath);
@@ -131,7 +134,8 @@ public class OpenLibertyUtil {
         return serverModel;
     }
 
-    public static void saveServerModel(MavenProject mavenProject, ServerModel serverModel) throws JAXBException {
+    public static void saveServerModel(MavenProject mavenProject,
+                                       ServerModel serverModel) throws JAXBException {
         Path baseDirPath = mavenProject.getBasedir().toPath();
         Path serverXmlPath = baseDirPath.resolve(SERVER_XML_PATH);
         JAXBContext ctx = JAXBContext.newInstance(ServerModel.class);

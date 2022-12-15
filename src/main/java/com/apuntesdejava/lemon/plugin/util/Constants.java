@@ -24,6 +24,10 @@ public class Constants {
 
     public final static String DEPENDENCIES_URL = "https://jakartalemon.dev/dependencies.json";
 
+    public final static String DEPENDENCY_GROUP_ID = "groupId";
+    public final static String DEPENDENCY_ARTIFACT_ID = "artifactId";
+    public final static String DEPENDENCY_VERSION = "version";
+
     public final static String DATASOURCE = "datasource";
     public final static String URL = "url";
     public final static String PASSWORD = "password";
@@ -59,6 +63,14 @@ public class Constants {
     public static final String DB = "db";
     public static final String PARAMETERS = "parameters";
     public static final String UNIQUE = "unique";
+
+    public static final String FACES_SERVLET = "jakarta.faces.webapp.FacesServlet";
+    public static final String FACES_SERVLET_NAME = "Server Faces Servlet";
+
+    public static final String SERVLET_NAME = "servlet-name";
+    public static final String SERVLET_CLASS = "servlet-class";
+    public static final String SERVLET = "servlet";
+    public static final String URL_PATTERN = "url-pattern";
 
     private Constants() {
     }

@@ -15,46 +15,51 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.webxml.model.SessionConfigModel;
-import com.apuntesdejava.lemon.jakarta.webxml.model.WebAppModel;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.PropertyException;
+import org.w3c.dom.Document;
 
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathExpressionException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
-public class WebXmlUtil extends AbstractXmlUtil<WebAppModel> {
+public class WebXmlUtil {
 
-
-    public WebXmlUtil(String basedir) {
-        super(WebAppModel.class, basedir);
-    }
-
-    @Override
-    protected WebAppModel newModelInstance() {
-        var model = new WebAppModel();
-        model.setSessionConfig(new SessionConfigModel("30"));
-        return model;
-    }
-
-    @Override
-    protected Path getXmlFullPath(String baseDir) {
-        return Paths.get(baseDir, "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
-    }
-
-    @Override
-    public void saveModel(WebAppModel model) throws JAXBException {
-        super.saveModel(model, (marshaller) -> {
+    public static Document openWebXml(File basedir) throws IOException {
+        Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
+        Files.createDirectories(webXmlPath.getParent());
+        return DocumentXmlUtil.openDocument(webXmlPath).orElseGet(() -> {
             try {
-                marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-                marshaller.setProperty(Marshaller.JAXB_SCHEMA_LOCATION, "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
-            } catch (PropertyException e) {
+                var document = DocumentXmlUtil.newDocument("web-app");
+                DocumentXmlUtil.findElementsByFilter(document, "/web-app").stream().findFirst()
+                        .ifPresent(webappElement -> {
+                            webappElement.setAttribute("xmlns", "https://jakarta.ee/xml/ns/jakartaee");
+                            webappElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+                            webappElement.setAttribute("xsi:schemaLocation",
+                                                       "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
+                            webappElement.setAttribute("version", "5.0");
+                            DocumentXmlUtil.createElement(document, webappElement, "session-config")
+                                    .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem, "session-timeout",
+                                                                                              "30"));
+                        });
+
+
+                return document;
+            } catch (ParserConfigurationException | XPathExpressionException e) {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    public static void saveWebXml(File basedir,
+                                  Document document) {
+        Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
+        DocumentXmlUtil.saveDocument(webXmlPath, document);
+
     }
 }

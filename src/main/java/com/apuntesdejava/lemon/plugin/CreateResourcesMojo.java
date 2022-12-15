@@ -245,25 +245,25 @@ public class CreateResourcesMojo extends AbstractMojo {
         String parameters = !operationModel.containsKey("parameters")
                 ? StringUtils.EMPTY
                 : operationModel.getJsonArray("parameters").stream()
-                .map(JsonValue::asJsonObject)
-                .map(param -> {
-                    StringBuilder result = new StringBuilder();
-                    if ("path".equals(param.getString("in"))) {
-                        result.append("@PathParam(\"").append(param.getString("name")).append("\") ");
-                    }
-                    result.append(getJavaType(param.getJsonObject("schema").getString("type")))
-                            .append(' ')
-                            .append(param.getString("name"));
-                    return result.toString();
-                }).collect(joining(","));
+                        .map(JsonValue::asJsonObject)
+                        .map(param -> {
+                            StringBuilder result = new StringBuilder();
+                            if ("path".equals(param.getString("in"))) {
+                                result.append("@PathParam(\"").append(param.getString("name")).append("\") ");
+                            }
+                            result.append(getJavaType(param.getJsonObject("schema").getString("type")))
+                                    .append(' ')
+                                    .append(param.getString("name"));
+                            return result.toString();
+                        }).collect(joining(","));
         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
-                        + StringUtils.replaceEach(
+                + StringUtils.replaceEach(
                         "public Response {operationId}({parameters}) {",
                         new String[]{"{operationId}", "{parameters}"},
                         new String[]{operationModel.getString("operationId"),
-                                bodyParams.length() == 0
-                                        ? parameters
-                                        : bodyParams.toString()}
+                            bodyParams.length() == 0
+                            ? parameters
+                            : bodyParams.toString()}
                 )
         );
     }

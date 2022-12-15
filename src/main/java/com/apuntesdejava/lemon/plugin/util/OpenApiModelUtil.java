@@ -18,8 +18,11 @@ package com.apuntesdejava.lemon.plugin.util;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
+
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -27,12 +30,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.project.MavenProject;
 
 /**
- *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class OpenApiModelUtil {
@@ -44,7 +43,11 @@ public class OpenApiModelUtil {
         return OpenApiModelUtilHolder.INSTANCE;
     }
 
-    public String createClass(Log log, String packageName, MavenProject mavenProject, String schemaName, JsonObject properties) {
+    public String createClass(Log log,
+                              String packageName,
+                              MavenProject mavenProject,
+                              String schemaName,
+                              JsonObject properties) {
         try {
             Path basedir = mavenProject.getBasedir().toPath();
             log.debug("basedir:" + basedir);
@@ -55,7 +58,9 @@ public class OpenApiModelUtil {
                 packageName += ".response";
             }
             String[] paths = packageName.split("\\.");
-            Path packageFile = Paths.get(mavenProject.getBasedir().toPath().resolve("src").resolve("main").resolve("java").toString(), paths);
+            Path packageFile = Paths.get(
+                    mavenProject.getBasedir().toPath().resolve("src").resolve("main").resolve("java").toString(),
+                    paths);
             Files.createDirectories(packageFile);
 
             Path classFile = packageFile.resolve(schemaName + ".java");
@@ -95,7 +100,8 @@ public class OpenApiModelUtil {
     }
 
     public JsonObject getModel(Path modelProjectFile) throws IOException {
-        try ( InputStream in = new FileInputStream(modelProjectFile.toFile());  JsonReader reader = Json.createReader(in)) {
+        try (InputStream in = new FileInputStream(modelProjectFile.toFile()); JsonReader reader = Json.createReader(
+                in)) {
             return reader.readObject();
         }
     }
