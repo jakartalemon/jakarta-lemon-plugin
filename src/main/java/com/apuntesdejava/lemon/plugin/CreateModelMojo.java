@@ -6,7 +6,6 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.persistence.GenerationType;
-import jakarta.xml.bind.JAXBException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -128,7 +127,7 @@ public class CreateModelMojo extends AbstractMojo {
             AtomicReference<String> idClass = new AtomicReference<>("Object");
             pk.ifPresent(pkValue -> idClass.set(pkValue.getValue().asJsonObject().getString(TYPE)));
             lines.add(String.format("public class %s extends AbstractRepository<%s, %s> {\n", className, idClass.get(),
-                                    entityName));
+                    entityName));
 
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Inject");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private EntityManager em;\n");
@@ -139,7 +138,7 @@ public class CreateModelMojo extends AbstractMojo {
 
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Override");
             lines.add(StringUtils.repeat(StringUtils.SPACE,
-                                         Constants.TAB) + "protected EntityManager getEntityManager() {");
+                    Constants.TAB) + "protected EntityManager getEntityManager() {");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em;");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "}\n");
 
@@ -163,8 +162,8 @@ public class CreateModelMojo extends AbstractMojo {
                         params = param.toString();
                     }
                     lines.add(String.format("%spublic %s findBy%s%s {",
-                                            StringUtils.repeat(StringUtils.SPACE, Constants.TAB),
-                                            value.getString(RETURN_VALUE_TYPE), name, params));
+                            StringUtils.repeat(StringUtils.SPACE, Constants.TAB),
+                            value.getString(RETURN_VALUE_TYPE), name, params));
                     lines.add(
                             StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em." + (value.getBoolean(
                                     NATIVE_QUERY,
@@ -172,7 +171,7 @@ public class CreateModelMojo extends AbstractMojo {
                     if (!isFieldsEmpty(value, PARAMETERS)) {
                         value.getJsonObject(PARAMETERS).keySet().forEach(paramName -> lines.add(
                                 StringUtils.repeat(StringUtils.SPACE,
-                                                   Constants.TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")"));
+                                        Constants.TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")"));
                     }
                     if (value.getBoolean(UNIQUE, false)) {
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".getSingleResult();");
@@ -235,12 +234,12 @@ public class CreateModelMojo extends AbstractMojo {
         var packageName = projectModel.getString(PACKAGE_NAME);
         var projectName = projectModel.getString(PROJECT_NAME);
         createFile(packageBasePath.resolve("repositories").resolve("JpaProvider.java"),
-                   "/classes/JpaProvider.javatemplate",
-                   Map.of("{package}", packageName, "{unitNamePU}", projectName + "PU"));
+                "/classes/JpaProvider.javatemplate",
+                Map.of("{package}", packageName, "{unitNamePU}", projectName + "PU"));
         createFile(packageBasePath.resolve("services").resolve("AbstractService.java"),
-                   "/classes/AbstractService.javatemplate", Map.of("{package}", packageName));
+                "/classes/AbstractService.javatemplate", Map.of("{package}", packageName));
         createFile(packageBasePath.resolve("repositories").resolve("AbstractRepository.java"),
-                   "/classes/AbstractRepository.javatemplate", Map.of("{package}", packageName));
+                "/classes/AbstractRepository.javatemplate", Map.of("{package}", packageName));
     }
 
     private void createFile(Path target,
@@ -254,7 +253,7 @@ public class CreateModelMojo extends AbstractMojo {
                     List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
                     List<String> newCode = code.stream()
                             .map(line -> StringUtils.replaceEach(line, maps.keySet().toArray(String[]::new),
-                                                                 maps.values().toArray(String[]::new)))
+                                    maps.values().toArray(String[]::new)))
                             .collect(Collectors.toList());
                     Files.write(target, newCode);
                 }
@@ -315,14 +314,14 @@ public class CreateModelMojo extends AbstractMojo {
                     if (value.containsKey(COLUMN_NAME)) {
                         if (!isJoinPresent) {
                             lines.add(StringUtils.repeat(StringUtils.SPACE,
-                                                         Constants.TAB) + "@jakarta.persistence.Column(");
+                                    Constants.TAB) + "@jakarta.persistence.Column(");
                             List<String> attrsList = new ArrayList<>();
                             attrsList.add(StringUtils.repeat(StringUtils.SPACE,
-                                                             Constants.TAB * 2) + "name = \"" + value.getString(
+                                    Constants.TAB * 2) + "name = \"" + value.getString(
                                     COLUMN_NAME) + "\",");
                             if (!isNumberEmpty(value, LENGTH)) {
                                 attrsList.add(StringUtils.repeat(StringUtils.SPACE,
-                                                                 Constants.TAB * 2) + "length = " + value.getJsonNumber(
+                                        Constants.TAB * 2) + "length = " + value.getJsonNumber(
                                         LENGTH) + ",");
                             }
                             removeLastComma(attrsList);
@@ -330,7 +329,7 @@ public class CreateModelMojo extends AbstractMojo {
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                         } else {
                             lines.add(StringUtils.repeat(StringUtils.SPACE,
-                                                         Constants.TAB) + "@jakarta.persistence.JoinColumn(");
+                                    Constants.TAB) + "@jakarta.persistence.JoinColumn(");
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + String.format(
                                     "name = \"%s\"", value.getString(COLUMN_NAME)));
                             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
@@ -341,12 +340,12 @@ public class CreateModelMojo extends AbstractMojo {
 
                         GenerationType generatedValueType = ObjectUtils.defaultIfNull(
                                 EnumUtils.getEnum(GenerationType.class,
-                                                  StringUtils.upperCase(value.getString(GENERATED_VALUE))),
+                                        StringUtils.upperCase(value.getString(GENERATED_VALUE))),
                                 GenerationType.AUTO);
                         lines.add(StringUtils.repeat(StringUtils.SPACE,
-                                                     Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
+                                Constants.TAB) + "@jakarta.persistence.GeneratedValue(");
                         lines.add(StringUtils.repeat(StringUtils.SPACE,
-                                                     Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
+                                Constants.TAB * 2) + "strategy = jakarta.persistence.GenerationType." + generatedValueType.name());
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + ")");
                     }
                     lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "private " + value.getString(
@@ -418,14 +417,23 @@ public class CreateModelMojo extends AbstractMojo {
             getLog().debug("Create persistence.xml");
             var baseDir = mavenProject.getBasedir();
             getLog().debug("baseDir:" + baseDir);
-            var persistenceUtil = new PersistenceXmlUtil(baseDir.toString());
-            var persistenceXml = persistenceUtil.getModel();
-            persistenceXml.getPersistenceUnit().setName(projectModel.getString(PROJECT_NAME) + "PU");
-            String dataSourceName = (style == DatasourceDefinitionStyleType.WEB ? "java:app/" : "") + "jdbc/" + mavenProject.getArtifactId();
-            persistenceXml.getPersistenceUnit().setJtaDataSource(dataSourceName);
-            persistenceUtil.saveModel(persistenceXml);
+            var persistenceXml = PersistenceXmlUtil.openPersistenceXml(baseDir);
+            DocumentXmlUtil.createElement(persistenceXml, "/persistence", "persistence-unit")
+                    .ifPresent(persistenceUnitElement -> {
+                        persistenceUnitElement.setAttribute("transaction-type", "JTA");
+                        persistenceUnitElement.setAttribute("name", projectModel.getString(PROJECT_NAME) + "PU");
+                        var dataSourceName = (style == DatasourceDefinitionStyleType.WEB ? "java:app/" : "") + "jdbc/" + mavenProject.getArtifactId();
+                        DocumentXmlUtil.createElement(persistenceXml, persistenceUnitElement, "jta-data-source", dataSourceName);
+                        DocumentXmlUtil.createElement(persistenceXml, persistenceUnitElement, "properties")
+                                .flatMap(propertiesElement -> DocumentXmlUtil.createElement(persistenceXml, propertiesElement, "property"))
+                                .ifPresent(propertyElement -> {
+                                    propertyElement.setAttribute("name", "jakarta.persistence.schema-generation.database.action");
+                                    propertyElement.setAttribute("value", "create");
+                                });
+                    });
+            PersistenceXmlUtil.saveWebXml(baseDir, persistenceXml);
 
-        } catch (IOException | JAXBException ex) {
+        } catch (XPathExpressionException | IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
 
@@ -448,21 +456,21 @@ public class CreateModelMojo extends AbstractMojo {
                         .ifPresent(datasourceElement -> {
                             DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, "name", dataSourceName);
                             DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, "class-name",
-                                                          driverDataSource);
+                                    driverDataSource);
                             DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, URL,
-                                                          datasource.getString(URL));
+                                    datasource.getString(URL));
                             DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, USER,
-                                                          datasource.getString(USER));
+                                    datasource.getString(USER));
                             DocumentXmlUtil.createElement(webXmlDocument, datasourceElement, PASSWORD,
-                                                          datasource.getString(PASSWORD));
+                                    datasource.getString(PASSWORD));
                             if (!isFieldsEmpty(datasource, PROPERTIES)) {
                                 var properties = datasource.getJsonObject(PROPERTIES);
                                 properties.keySet().forEach(
                                         key -> DocumentXmlUtil.createElement(webXmlDocument, datasourceElement,
-                                                                             "property").ifPresent(property -> {
+                                                "property").ifPresent(property -> {
                                             DocumentXmlUtil.createElement(webXmlDocument, property, NAME, key);
                                             DocumentXmlUtil.createElement(webXmlDocument, property, "value",
-                                                                          properties.getString(key));
+                                                    properties.getString(key));
                                         }));
 
                             }

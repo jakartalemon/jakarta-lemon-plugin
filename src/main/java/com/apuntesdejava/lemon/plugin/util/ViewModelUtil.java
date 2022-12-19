@@ -58,11 +58,11 @@ public class ViewModelUtil {
     private Path packageBasePath;
 
     private ViewModelUtil(Log log,
-                          MavenProject mavenProject) {
+            MavenProject mavenProject) {
         this.mavenProject = mavenProject;
         this.log = log;
         this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-',
-                                                    '.');
+                '.');
         var baseDirPath = mavenProject.getBasedir().toPath();
         var mainPath = baseDirPath.resolve("src").resolve("main");
         Path javaMainSrc = mainPath.resolve("java");
@@ -75,19 +75,19 @@ public class ViewModelUtil {
 
         }
 
-        try (var validationsReader = Json.createReader(ViewModelUtil.class.getResourceAsStream("/validations.json"))) {
+        try ( var validationsReader = Json.createReader(ViewModelUtil.class.getResourceAsStream("/validations.json"))) {
             this.validationJson = validationsReader.readObject();
         }
 
     }
 
     private synchronized static void newInstance(Log log,
-                                                 MavenProject mavenProject) {
+            MavenProject mavenProject) {
         INSTANCE = new ViewModelUtil(log, mavenProject);
     }
 
     public static ViewModelUtil getInstance(Log log,
-                                            MavenProject mavenProject) {
+            MavenProject mavenProject) {
         if (INSTANCE == null) {
             newInstance(log, mavenProject);
         }
@@ -103,7 +103,7 @@ public class ViewModelUtil {
     }
 
     private static void insertImportType(Set<String> lines,
-                                         String fieldType) {
+            String fieldType) {
         switch (fieldType) {
             case "LocalDate":
                 lines.add("import java.time.LocalDate;");
@@ -130,12 +130,12 @@ public class ViewModelUtil {
     private static Optional<String> getPrimaryKey(JsonObject formBean) {
         return formBean.entrySet().stream()
                 .filter(entry -> entry.getValue().asJsonObject().containsKey(KEY_PRIMARY) && entry.getValue()
-                        .asJsonObject().getBoolean(KEY_PRIMARY)).map(Map.Entry::getKey).findFirst();
+                .asJsonObject().getBoolean(KEY_PRIMARY)).map(Map.Entry::getKey).findFirst();
     }
 
     private void insertValidation(Set<String> imports,
-                                  List<String> lines,
-                                  JsonObject bodyStruct) {
+            List<String> lines,
+            JsonObject bodyStruct) {
         validationJson.entrySet().stream().filter(entry -> bodyStruct.containsKey(entry.getKey())).forEach(($entry) -> {
             var validationName = $entry.getKey();
             var validationBodyJson = $entry.getValue().asJsonObject();
@@ -209,7 +209,7 @@ public class ViewModelUtil {
                         "/web-app/servlet/servlet-class[text()='%s']", FACES_SERVLET)).isEmpty()) {
                     DocumentXmlUtil.createElement(webXmlDocument, "/web-app", SERVLET).ifPresent(servletElem -> {
                         DocumentXmlUtil.createElement(webXmlDocument, servletElem, SERVLET_NAME,
-                                                      FACES_SERVLET_NAME);
+                                FACES_SERVLET_NAME);
                         DocumentXmlUtil.createElement(webXmlDocument, servletElem, SERVLET_CLASS, FACES_SERVLET);
                     });
                     saveXml = true;
@@ -220,13 +220,14 @@ public class ViewModelUtil {
                     DocumentXmlUtil.createElement(webXmlDocument, "/web-app", "servlet-mapping")
                             .ifPresent(servletElem -> {
                                 DocumentXmlUtil.createElement(webXmlDocument, servletElem, SERVLET_NAME,
-                                                              FACES_SERVLET_NAME);
+                                        FACES_SERVLET_NAME);
                                 DocumentXmlUtil.createElement(webXmlDocument, servletElem, URL_PATTERN, "*.jsf");
                             });
                     saveXml = true;
                 }
-                if (saveXml)
+                if (saveXml) {
                     WebXmlUtil.saveWebXml(baseDir, webXmlDocument);
+                }
             } catch (XPathExpressionException e) {
                 log.error(e.getMessage(), e);
             }
@@ -242,8 +243,8 @@ public class ViewModelUtil {
     }
 
     public void createPaths(Set<Map.Entry<String, JsonValue>> entrySet,
-                            Set<Map.Entry<String, JsonValue>> formBeans,
-                            String primeflexVersion) {
+            Set<Map.Entry<String, JsonValue>> formBeans,
+            String primeflexVersion) {
         try {
 
             final Path packageViewPath = packageBasePath.resolve("view");
@@ -255,8 +256,8 @@ public class ViewModelUtil {
                     String formBeanName = currentEntry.getString("formBean");
                     var formBean = formBeans.stream().filter(entry -> entry.getKey().equals(formBeanName)).findFirst();
                     formBean.ifPresent(stringJsonValueEntry -> createView(item, formBeanName,
-                                                                          stringJsonValueEntry.getValue()
-                                                                                  .asJsonObject(), primeflexVersion));
+                            stringJsonValueEntry.getValue()
+                                    .asJsonObject(), primeflexVersion));
                 } catch (IOException ex) {
                     log.error(ex.getMessage(), ex);
                 }
@@ -267,7 +268,7 @@ public class ViewModelUtil {
     }
 
     private void createManagedBean(Path packageViewPath,
-                                   Map.Entry<String, JsonValue> entry) throws IOException {
+            Map.Entry<String, JsonValue> entry) throws IOException {
         Set<String> imports = new TreeSet<>();
 
         var pathName = entry.getKey();
@@ -308,7 +309,7 @@ public class ViewModelUtil {
             var variableListView = name2Variable(variableNameView);
             variablesMap.put("variableName", variableName);
             lines.add(String.format("%sprivate %s %s;", StringUtils.repeat(SPACE, TAB), classNameListView,
-                                    variableListView));
+                    variableListView));
 
         }
         lines.add(EMPTY);
@@ -323,14 +324,14 @@ public class ViewModelUtil {
             newInstance = "ArrayList<>";
         }
         lines.add(String.format("%sprivate %s %s = new %s();", StringUtils.repeat(SPACE, TAB), fieldType, fieldName,
-                                newInstance));
+                newInstance));
 
         //methods setter & getter
         var setterName = "set" + name2ClassName(fieldName);
         var getterName = "get" + name2ClassName(fieldName);
         lines.add(EMPTY);
         lines.add(String.format("%spublic void %s(%s %s) {", StringUtils.repeat(SPACE, TAB), setterName, fieldType,
-                                fieldName));
+                fieldName));
         lines.add(String.format("%sthis.%2$s = %2$s;", StringUtils.repeat(SPACE, TAB * 2), fieldName));
         lines.add(String.format("%s}", StringUtils.repeat(SPACE, TAB)));
 
@@ -343,10 +344,10 @@ public class ViewModelUtil {
             lines.add(EMPTY);
             lines.add(String.format("%spublic String save() {", StringUtils.repeat(SPACE, TAB)));
             lines.add(String.format("%s%sView.get%sList().add(%s);", StringUtils.repeat(SPACE, TAB * 2),
-                                    variablesMap.get("variableName"), name2ClassName(variablesMap.get("variableName")),
-                                    fieldName));
+                    variablesMap.get("variableName"), name2ClassName(variablesMap.get("variableName")),
+                    fieldName));
             lines.add(String.format("%sreturn \"%s?faces-redirect=true\";", StringUtils.repeat(SPACE, TAB * 2),
-                                    entry.getValue().asJsonObject().getString("listView", "/index")));
+                    entry.getValue().asJsonObject().getString("listView", "/index")));
             lines.add(String.format("%s}", StringUtils.repeat(SPACE, TAB)));
             lines.add(EMPTY);
             lines.add(String.format("%spublic void onload() {", StringUtils.repeat(SPACE, TAB)));
@@ -371,7 +372,7 @@ public class ViewModelUtil {
     }
 
     private void createFormBean(Path packageFormBean,
-                                Map.Entry<String, JsonValue> entry) {
+            Map.Entry<String, JsonValue> entry) {
         try {
             var pathName = entry.getKey();
             log.info("Creating Form bean:" + pathName);
@@ -434,9 +435,9 @@ public class ViewModelUtil {
     }
 
     private void createView(Map.Entry<String, JsonValue> entry,
-                            String formBeanName,
-                            JsonObject formBean,
-                            String primeflexVersion) {
+            String formBeanName,
+            JsonObject formBean,
+            String primeflexVersion) {
         var pathJson = entry.getValue().asJsonObject();
         var isList = pathJson.getString("type").equals("list");
         try {
@@ -457,44 +458,44 @@ public class ViewModelUtil {
                     .addAttribute("xmlns:ui", "http://xmlns.jcp.org/jsf/facelets")
                     .addAttribute("xmlns:p", "http://primefaces.org/ui")
                     .addAttribute("xmlns:f", "http://xmlns.jcp.org/jsf/core").addChild(
-                            DocumentXmlUtil.ElementBuilder.newInstance("h:head").addChild(
-                                    DocumentXmlUtil.ElementBuilder.newInstance("h:outputStylesheet")
-                                            .addAttribute("library", "webjars").addAttribute("name", String.format(
-                                                    "primeflex/%s/primeflex.min.css", primeflexVersion))).addChild(
+                    DocumentXmlUtil.ElementBuilder.newInstance("h:head").addChild(
+                            DocumentXmlUtil.ElementBuilder.newInstance("h:outputStylesheet")
+                                    .addAttribute("library", "webjars").addAttribute("name", String.format(
+                                    "primeflex/%s/primeflex.min.css", primeflexVersion))).addChild(
                                     DocumentXmlUtil.ElementBuilder.newInstance("f:loadBundle")
                                             .addAttribute("var", "messages").addAttribute("basename", "messages")));
             if (!isList) {
                 getPrimaryKey(formBean).ifPresent(id -> htmlElem.addChild(ElementBuilder.newInstance("f:metadata")
-                                                                                  .addChild(ElementBuilder.newInstance(
-                                                                                          "f:viewParam").addAttribute(
-                                                                                          "name", "id").addAttribute(
-                                                                                          "value", String.format(
-                                                                                                  "#{%sView.%s.%s}",
-                                                                                                  pathName,
-                                                                                                  formBeanName, id)))
-                                                                                  .addChild(ElementBuilder.newInstance(
-                                                                                          "f:viewAction").addAttribute(
-                                                                                          "action", String.format(
-                                                                                                  "#{%sView.onload}",
-                                                                                                  pathName)))));
+                        .addChild(ElementBuilder.newInstance(
+                                "f:viewParam").addAttribute(
+                                        "name", "id").addAttribute(
+                                        "value", String.format(
+                                                "#{%sView.%s.%s}",
+                                                pathName,
+                                                formBeanName, id)))
+                        .addChild(ElementBuilder.newInstance(
+                                "f:viewAction").addAttribute(
+                                        "action", String.format(
+                                                "#{%sView.onload}",
+                                                pathName)))));
             }
             htmlElem.addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:body").addChild(
                     DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup").addAttribute("styleClass", "card")
                             .addAttribute("layout", "block").addChild(
-                                    DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
-                                            .addAttribute("styleClass", "card-container").addAttribute("layout", "block")
-                                            .addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
-                                                              .addAttribute("styleClass", "block p-4 mb-3")
-                                                              .addAttribute("layout", "block").addChild(
-                                                            hForm = DocumentXmlUtil.ElementBuilder.newInstance("h:form"))))));
+                            DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
+                                    .addAttribute("styleClass", "card-container").addAttribute("layout", "block")
+                                    .addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
+                                            .addAttribute("styleClass", "block p-4 mb-3")
+                                            .addAttribute("layout", "block").addChild(
+                                            hForm = DocumentXmlUtil.ElementBuilder.newInstance("h:form"))))));
 
             if (isList) {
                 hForm.addChild(DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
-                                       .addAttribute("outcome", "/customerForm")
-                                       .addAttribute("icon", "pi pi-plus-circle")
-                                       .addAttribute("value", "#{messages['list.new_record']}")).addChild(
+                        .addAttribute("outcome", "/customerForm")
+                        .addAttribute("icon", "pi pi-plus-circle")
+                        .addAttribute("value", "#{messages['list.new_record']}")).addChild(
                         createList(pathName, formBeanName, formBean,
-                                   entry.getValue().asJsonObject().getString("editForm")));
+                                entry.getValue().asJsonObject().getString("editForm")));
             } else {
                 hForm.addChild(createForm(formBeanName, formBean))
                         .addChild(createButtons(entry.getValue().asJsonObject().getString("listView"), formBeanName));
@@ -510,7 +511,7 @@ public class ViewModelUtil {
     }
 
     private ElementBuilder createForm(String formBeanName,
-                                      JsonObject formBean) {
+            JsonObject formBean) {
         var panel = DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup").addAttribute("layout", "block")
                 .addAttribute("id", "formPanel").addAttribute("styleClass", "card");
         var $formBeanName = name2ClassName(formBeanName);
@@ -518,9 +519,9 @@ public class ViewModelUtil {
             ElementBuilder fieldPanelGroup;
             panel.addChild(fieldPanelGroup = DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
                     .addAttribute("layout", "block").addAttribute("styleClass", "field col-12 md:col-6").addChild(
-                            DocumentXmlUtil.ElementBuilder.newInstance("p:outputLabel").addAttribute("for", fieldName)
-                                    .addAttribute("value",
-                                                  String.format("#{messages.%s_%s}", $formBeanName, fieldName))));
+                    DocumentXmlUtil.ElementBuilder.newInstance("p:outputLabel").addAttribute("for", fieldName)
+                            .addAttribute("value",
+                                    String.format("#{messages.%s_%s}", $formBeanName, fieldName))));
             log.debug("----" + fieldName + ":" + type);
             var fieldType = getFileType(type);
             ElementBuilder child = null;
@@ -557,23 +558,23 @@ public class ViewModelUtil {
     }
 
     private ElementBuilder createList(String variableName,
-                                      String formBeanName,
-                                      JsonObject formBean,
-                                      String editForm) {
+            String formBeanName,
+            JsonObject formBean,
+            String editForm) {
         var pDataTable = DocumentXmlUtil.ElementBuilder.newInstance("p:dataTable")
                 .addAttribute("value", String.format("#{%1$sView.%1$sList}", variableName)).addAttribute("var", "item");
         var $formBeanName = name2ClassName(formBeanName);
         formBean.forEach((fieldName, type) -> pDataTable.addChild(ElementBuilder.newInstance("p:column")
-                                                                          .addAttribute("headerText", String.format(
-                                                                                  "#{messages.%s_%s}", $formBeanName,
-                                                                                  fieldName)).addChild(
+                .addAttribute("headerText", String.format(
+                        "#{messages.%s_%s}", $formBeanName,
+                        fieldName)).addChild(
                         ElementBuilder.newInstance("h:outputText")
                                 .addAttribute("value", String.format("#{item.%s}", fieldName)))));
         getPrimaryKey(formBean).ifPresent(field -> pDataTable.addChild(ElementBuilder.newInstance("p:column").addChild(
                 ElementBuilder.newInstance("p:linkButton").addAttribute("outcome", editForm)
                         .addAttribute("icon", "pi pi-pencil").addChild(
-                                ElementBuilder.newInstance("f:param").addAttribute("name", "id")
-                                        .addAttribute("value", String.format("#{item.%s}", field))))));
+                        ElementBuilder.newInstance("f:param").addAttribute("name", "id")
+                                .addAttribute("value", String.format("#{item.%s}", field))))));
         return pDataTable;
 
     }
@@ -581,12 +582,12 @@ public class ViewModelUtil {
     /**
      * Create lables for properties
      *
-     * @param labels     Map of messages
+     * @param labels Map of messages
      * @param bodyStruct JSON Structure from view.json
      */
     private void insertLabels(Map<String, String> labels,
-                              String fieldName,
-                              JsonObject bodyStruct) {
+            String fieldName,
+            JsonObject bodyStruct) {
         if (bodyStruct.containsKey("label")) {
             var value = bodyStruct.get("label");
             if (value.getValueType() == JsonValue.ValueType.STRING) {
@@ -609,23 +610,23 @@ public class ViewModelUtil {
     }
 
     public void createViews(JsonObject viewModel,
-                            String version) {
+            String version) {
         Set<Map.Entry<String, JsonValue>> formBeans = viewModel.getJsonObject("formBeans").entrySet();
         createPaths(viewModel.getJsonObject("paths").entrySet(), formBeans, version);
         createFormBeans(formBeans);
     }
 
     private ElementBuilder createButtons(String listLink,
-                                         String formBeanName) {
+            String formBeanName) {
         return DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup").addAttribute("layout", "block")
                 .addAttribute("styleClass", "card").addChild(
-                        DocumentXmlUtil.ElementBuilder.newInstance("p:commandButton")
-                                .addAttribute("value", "#{messages['form.save']}").addAttribute("styleClass", "mr-3")
-                                .addAttribute("update", "formPanel")
-                                .addAttribute("action", String.format("#{%sFormView.save()}", formBeanName))).addChild(
-                        DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
-                                .addAttribute("value", "#{messages['form.cancel']}")
-                                .addAttribute("styleClass", "ui-button-secondary mr-3")
-                                .addAttribute("outcome", listLink));
+                DocumentXmlUtil.ElementBuilder.newInstance("p:commandButton")
+                        .addAttribute("value", "#{messages['form.save']}").addAttribute("styleClass", "mr-3")
+                        .addAttribute("update", "formPanel")
+                        .addAttribute("action", String.format("#{%sFormView.save()}", formBeanName))).addChild(
+                DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
+                        .addAttribute("value", "#{messages['form.cancel']}")
+                        .addAttribute("styleClass", "ui-button-secondary mr-3")
+                        .addAttribute("outcome", listLink));
     }
 }

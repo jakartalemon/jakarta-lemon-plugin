@@ -122,6 +122,8 @@ public class DocumentXmlUtil {
             var transformer = transformerFactory.newTransformer(xslt);
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty(OutputKeys.STANDALONE, "yes");
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            document.setXmlStandalone(true);
             var source = new DOMSource(document);
             var result = new StreamResult(fos);
             transformer.transform(source, result);
