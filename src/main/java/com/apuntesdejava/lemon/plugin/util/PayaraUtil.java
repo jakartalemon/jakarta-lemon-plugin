@@ -71,7 +71,7 @@ public class PayaraUtil {
                                         .ifPresent(jdbcConnectionPoolElement -> {
                                             jdbcConnectionPoolElement.setAttribute("datasource-classname", driverDataSource);
                                             jdbcConnectionPoolElement.setAttribute(NAME, poolName);
-                                            jdbcConnectionPoolElement.setAttribute("resType", "javax.sql.DataSource");
+                                            jdbcConnectionPoolElement.setAttribute("res-type", "javax.sql.DataSource");
                                             DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
                                                     .ifPresent(propertyElement -> {
                                                         propertyElement.setAttribute(NAME, URL);

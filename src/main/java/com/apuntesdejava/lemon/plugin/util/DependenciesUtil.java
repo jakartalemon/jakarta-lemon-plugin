@@ -41,8 +41,8 @@ public class DependenciesUtil {
             return Optional.ofNullable(dependenciesDefinitions.getJsonObject(database)).map(dependency -> {
 
                 var query = String.format("g:%s+AND+a:%s", dependency.getString("g"), dependency.getString("a"));
-                return getLastVersionDependency(log, query).get();
-            });
+                return getLastVersionDependency(log, query);
+            }).filter(Optional::isPresent).flatMap(item -> item);
         } catch (IOException | InterruptedException | URISyntaxException ex) {
             log.error(ex.getMessage(), ex);
         }
@@ -57,10 +57,10 @@ public class DependenciesUtil {
             var docsJson = responseJson.getJsonArray("docs");
             var docJson = docsJson.get(0).asJsonObject();
             return Optional.of(Json.createObjectBuilder()
-                    .add(DEPENDENCY_GROUP_ID, docJson.getString("g"))
-                    .add(DEPENDENCY_ARTIFACT_ID, docJson.getString("a"))
-                    .add(DEPENDENCY_VERSION, docJson.getString("latestVersion"))
-                    .build());
+                .add(DEPENDENCY_GROUP_ID, docJson.getString("g"))
+                .add(DEPENDENCY_ARTIFACT_ID, docJson.getString("a"))
+                .add(DEPENDENCY_VERSION, docJson.getString("latestVersion"))
+                .build());
 
         } catch (URISyntaxException | IOException | InterruptedException ex) {
             log.error(ex.getMessage(), ex);

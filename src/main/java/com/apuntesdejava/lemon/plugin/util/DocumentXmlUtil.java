@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 
+import static java.util.Collections.emptyMap;
 import static javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING;
 
 /**
@@ -96,7 +97,9 @@ public class DocumentXmlUtil {
 
     public static Optional<Element> createElement(Document document, Element parentElement, String elementName, String textContent) {
         var element = document.createElement(elementName);
-        if (StringUtils.isNotBlank(textContent)) element.setTextContent(textContent);
+        if (StringUtils.isNotBlank(textContent)) {
+            element.setTextContent(textContent);
+        }
         parentElement.appendChild(element);
         return Optional.of(element);
     }
@@ -106,13 +109,18 @@ public class DocumentXmlUtil {
     }
 
     public static void saveDocument(Path path, Document document) {
+        saveDocument(path, document, emptyMap());
+    }
+
+    public static void saveDocument(Path path, Document document, Map<String, String> outputProperties) {
         try (var fos = new FileOutputStream(path.toFile()); var xlsIs = DocumentXmlUtil.class.getResourceAsStream("/xml/strip.xsl")) {
             Source xslt = new StreamSource(xlsIs);
             var transformerFactory = TransformerFactory.newInstance();
             var transformer = transformerFactory.newTransformer(xslt);
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty(OutputKeys.STANDALONE, "yes");
+            transformer.setOutputProperty(OutputKeys.STANDALONE, "no");
             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            outputProperties.forEach(transformer::setOutputProperty);
             document.setXmlStandalone(true);
             var source = new DOMSource(document);
             var result = new StreamResult(fos);

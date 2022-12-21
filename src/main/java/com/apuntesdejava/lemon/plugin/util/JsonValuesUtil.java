@@ -9,11 +9,12 @@ public class JsonValuesUtil {
 
     }
 
-    public static boolean isStringEmpty(JsonObject jsonObject, String fieldName) {
-        return !jsonObject.containsKey(fieldName) || StringUtils.isEmpty(jsonObject.getString(fieldName));
+    public static boolean isStringNotEmpty(JsonObject jsonObject, String fieldName) {
+        return jsonObject.containsKey(fieldName) && StringUtils.isNotBlank(jsonObject.getString(fieldName));
     }
 
-    public static boolean isFieldsEmpty(JsonObject jsonObject, String fieldName) {
-        return !jsonObject.containsKey(fieldName) || jsonObject.getJsonObject(fieldName).isEmpty();
+
+    public static boolean isFieldsNotEmpty(JsonObject jsonObject, String fieldName) {
+        return jsonObject.containsKey(fieldName) && !jsonObject.getJsonObject(fieldName).isEmpty();
     }
 }
