@@ -74,8 +74,7 @@ public class DocumentXmlUtil {
         return Optional.empty();
     }
 
-    public static List<Element> findElementsByFilter(Document document,
-                                                     String expression) throws XPathExpressionException {
+    public static List<Element> findElementsByFilter(Document document, String expression) throws XPathExpressionException {
         var xPath = XPathFactory.newInstance().newXPath();
         var nodeList = (NodeList) xPath.compile(expression).evaluate(document, XPathConstants.NODESET);
         List<Element> elementList = new ArrayList<>();
@@ -85,9 +84,7 @@ public class DocumentXmlUtil {
         return elementList;
     }
 
-    public static Optional<Element> createElement(Document document,
-                                                  String inPath,
-                                                  String elementName) throws XPathExpressionException {
+    public static Optional<Element> createElement(Document document, String inPath, String elementName) throws XPathExpressionException {
         var elements = findElementsByFilter(document, inPath);
         if (!elements.isEmpty()) {
             Element element = document.createElement(elementName);
@@ -97,26 +94,19 @@ public class DocumentXmlUtil {
         return Optional.empty();
     }
 
-    public static Optional<Element> createElement(Document document,
-                                                  Element parentElement,
-                                                  String elementName,
-                                                  String textContent) {
+    public static Optional<Element> createElement(Document document, Element parentElement, String elementName, String textContent) {
         var element = document.createElement(elementName);
         if (StringUtils.isNotBlank(textContent)) element.setTextContent(textContent);
         parentElement.appendChild(element);
         return Optional.of(element);
     }
 
-    public static Optional<Element> createElement(Document document,
-                                                  Element parentElement,
-                                                  String elementName) {
+    public static Optional<Element> createElement(Document document, Element parentElement, String elementName) {
         return createElement(document, parentElement, elementName, null);
     }
 
-    public static void saveDocument(Path path,
-                                    Document document) {
-        try (var fos = new FileOutputStream(path.toFile()); var xlsIs = DocumentXmlUtil.class.getResourceAsStream(
-                "/xml/strip.xsl")) {
+    public static void saveDocument(Path path, Document document) {
+        try (var fos = new FileOutputStream(path.toFile()); var xlsIs = DocumentXmlUtil.class.getResourceAsStream("/xml/strip.xsl")) {
             Source xslt = new StreamSource(xlsIs);
             var transformerFactory = TransformerFactory.newInstance();
             var transformer = transformerFactory.newTransformer(xslt);
@@ -148,8 +138,7 @@ public class DocumentXmlUtil {
             return new ElementBuilder(tagName);
         }
 
-        public ElementBuilder addAttribute(String name,
-                                           String value) {
+        public ElementBuilder addAttribute(String name, String value) {
             attributes.add(new String[]{name, value});
             return this;
         }

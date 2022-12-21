@@ -31,12 +31,11 @@ public class Constants {
     public final static String DATASOURCE = "datasource";
     public final static String URL = "url";
     public final static String PASSWORD = "password";
-    public final static String DRIVER = "driver";
-    public final static String POOL = "pool";
-    public final static String SEARCH = "search";
     public final static String USER = "user";
     public final static String PROPERTIES = "properties";
     public final static String STYLE = "style";
+
+    public static final String PROPERTY = "property";
 
     public static final String QUERY_MAVEN_URL = "https://search.maven.org/solrsearch/select?q=";
 
@@ -48,6 +47,7 @@ public class Constants {
 
     public static final String ENTITIES = "entities";
     public static final String NAME = "name";
+    public static final String VALUE = "value";
     public static final String TABLE_NAME = "tableName";
     public static final String FINDERS = "finders";
     public static final String NATIVE_QUERY = "native";

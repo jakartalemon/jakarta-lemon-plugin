@@ -46,25 +46,22 @@ public class ProjectModelUtil {
     }
 
     public static Properties getProperties(Profile profile) {
-        return Optional.ofNullable(profile.getProperties())
-                .orElseGet(() -> {
-                    Properties props = new Properties();
-                    profile.setProperties(props);
-                    return profile.getProperties();
-                });
+        return Optional.ofNullable(profile.getProperties()).orElseGet(() -> {
+            Properties props = new Properties();
+            profile.setProperties(props);
+            return profile.getProperties();
+        });
     }
 
     public static Xpp3Dom getConfiguration(ConfigurationContainer plugin) {
-        return Optional.ofNullable((Xpp3Dom) plugin.getConfiguration())
-                .orElseGet(() -> {
-                    Xpp3Dom xpp3Dom = new Xpp3Dom("configuration");
-                    plugin.setConfiguration(xpp3Dom);
-                    return xpp3Dom;
-                });
+        return Optional.ofNullable((Xpp3Dom) plugin.getConfiguration()).orElseGet(() -> {
+            Xpp3Dom xpp3Dom = new Xpp3Dom("configuration");
+            plugin.setConfiguration(xpp3Dom);
+            return xpp3Dom;
+        });
     }
 
-    public static Optional<JsonObject> getProjectModel(Log log,
-                                                       String modelProjectFile) {
+    public static Optional<JsonObject> getProjectModel(Log log, String modelProjectFile) {
         log.debug("Reading model configuration:" + modelProjectFile);
         try (InputStream in = new FileInputStream(modelProjectFile)) {
             return Optional.ofNullable(Json.createReader(in).readObject());
@@ -75,15 +72,13 @@ public class ProjectModelUtil {
         return Optional.empty();
     }
 
-    public static Profile getProfile(Model model,
-                                     String profile) {
-        return model.getProfiles().stream().filter(p -> p.getId().equals(profile)).findFirst()
-                .orElseGet(() -> {
-                    Profile p = new Profile();
-                    p.setId(profile);
-                    model.addProfile(p);
-                    return p;
-                });
+    public static Profile getProfile(Model model, String profile) {
+        return model.getProfiles().stream().filter(p -> p.getId().equals(profile)).findFirst().orElseGet(() -> {
+            Profile p = new Profile();
+            p.setId(profile);
+            model.addProfile(p);
+            return p;
+        });
     }
 
     public static PluginManagement getPluginManagement(BuildBase build) {
@@ -94,24 +89,16 @@ public class ProjectModelUtil {
         });
     }
 
-    public static Optional<Plugin> addPlugin(
-            PluginContainer pluginContainer,
-            String groupId,
-            String artifactId
-    ) {
+    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId) {
         return addPlugin(pluginContainer, groupId, artifactId, null);
     }
 
-    public static Optional<Plugin> addPlugin(
-            PluginContainer pluginContainer,
-            String groupId,
-            String artifactId,
-            String version
-    ) {
+    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId, String version) {
         List<Plugin> plugins = pluginContainer.getPlugins();
         return plugins.stream()
-                .filter(item -> item.getGroupId().equals(groupId)
-                        && item.getArtifactId().equals(artifactId)).findFirst().or(() -> {
+                .filter(item -> item.getGroupId().equals(groupId) && item.getArtifactId().equals(artifactId))
+                .findFirst()
+                .or(() -> {
                     Plugin p = new Plugin();
                     p.setGroupId(groupId);
                     p.setArtifactId(artifactId);
@@ -132,51 +119,41 @@ public class ProjectModelUtil {
         });
     }
 
-    public static void saveModel(MavenProject mavenProject,
-                                 Model model) throws IOException {
+    public static void saveModel(MavenProject mavenProject, Model model) throws IOException {
         File projectFile = mavenProject.getFile();
         MavenXpp3Writer writer = new MavenXpp3Writer();
         writer.write(new FileWriter(projectFile), model);
     }
 
-    public static Model getModel(MavenProject mavenProject)
-            throws IOException, XmlPullParserException {
+    public static Model getModel(MavenProject mavenProject) throws IOException, XmlPullParserException {
         File projectFile = mavenProject.getFile();
         MavenXpp3Reader reader = new MavenXpp3Reader();
         return reader.read(new FileReader(projectFile));
     }
 
-    public static Xpp3Dom addChildren(Xpp3Dom parent,
-                                      String name) {
+    public static Xpp3Dom addChildren(Xpp3Dom parent, String name) {
         return addChildren(parent, name, false);
     }
 
-    public static Xpp3Dom addChildren(Xpp3Dom parent,
-                                      String name,
-                                      boolean ignoreDuplicate) {
-        return ignoreDuplicate
-                ? createChildren(parent, name)
-                : Arrays.stream(parent.getChildren())
-                        .filter(item -> item.getName().equals(name))
-                        .findFirst()
-                        .orElseGet(() -> createChildren(parent, name));
+    public static Xpp3Dom addChildren(Xpp3Dom parent, String name, boolean ignoreDuplicate) {
+        return ignoreDuplicate ? createChildren(parent, name) : Arrays.stream(parent.getChildren())
+                .filter(item -> item.getName().equals(name))
+                .findFirst()
+                .orElseGet(() -> createChildren(parent, name));
     }
 
-    private static Xpp3Dom createChildren(Xpp3Dom parent,
-                                          String name) {
+    private static Xpp3Dom createChildren(Xpp3Dom parent, String name) {
         Xpp3Dom xpp3Dom = new Xpp3Dom(name);
         parent.addChild(xpp3Dom);
         return xpp3Dom;
     }
 
-    public static void addDependenciesDatabase(Log log,
-                                               Xpp3Dom dependency,
-                                               String database) {
+    public static void addDependenciesDatabase(Log log, Xpp3Dom dependency, String database) {
 
         DependenciesUtil.getByDatabase(log, database).ifPresent(dependen -> {
 
-            ProjectModelUtil.addChildren(dependency, DEPENDENCY_GROUP_ID).setValue(dependen.getString(
-                    DEPENDENCY_GROUP_ID));
+            ProjectModelUtil.addChildren(dependency, DEPENDENCY_GROUP_ID)
+                    .setValue(dependen.getString(DEPENDENCY_GROUP_ID));
             ProjectModelUtil.addChildren(dependency, DEPENDENCY_ARTIFACT_ID)
                     .setValue(dependen.getString(DEPENDENCY_ARTIFACT_ID));
             ProjectModelUtil.addChildren(dependency, DEPENDENCY_VERSION)
@@ -185,25 +162,18 @@ public class ProjectModelUtil {
 
     }
 
-    public static Dependency addDependenciesDatabase(Log log,
-                                                     Model model,
-                                                     String database) {
-        return addDependency(DependenciesUtil.getByDatabase(log, database).orElse(null),
-                             model.getDependencies(),
-                             emptyMap());
+    public static Dependency addDependenciesDatabase(Log log, Model model, String database) {
+        return addDependency(DependenciesUtil.getByDatabase(log, database)
+                .orElse(null), model.getDependencies(), emptyMap());
 
     }
 
-    private static Dependency addDependency(
-            JsonObject dependencyJson,
-            List<Dependency> dependencies,
-            Map<String, String> props
-    ) {
+    private static Dependency addDependency(JsonObject dependencyJson, List<Dependency> dependencies, Map<String, String> props) {
         return dependencies.stream()
-                .filter(item
-                                -> item.getGroupId().equals(dependencyJson.getString(DEPENDENCY_GROUP_ID))
-                        && item.getArtifactId().equals(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID))
-                ).findFirst()
+                .filter(item -> item.getGroupId()
+                        .equals(dependencyJson.getString(DEPENDENCY_GROUP_ID)) && item.getArtifactId()
+                        .equals(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID)))
+                .findFirst()
                 .orElseGet(() -> {
                     Dependency dependency = new Dependency();
                     dependency.setGroupId(dependencyJson.getString(DEPENDENCY_GROUP_ID));
@@ -220,48 +190,25 @@ public class ProjectModelUtil {
                 });
     }
 
-    public static Dependency addDependency(
-            Log log,
-            Model model,
-            String groupId,
-            String artefactId
-    ) {
+    public static Dependency addDependency(Log log, Model model, String groupId, String artefactId) {
         return addDependency(log, model, groupId, artefactId, emptyMap());
     }
 
-    public static Dependency addDependency(
-            Log log,
-            Model model,
-            String groupId,
-            String artefactId,
-            Map<String, String> props
-    ) {
-        return addDependency(DependenciesUtil
-                                     .getLastVersionDependency(log,
-                                                               String.format("g:%s+AND+a:%s", groupId,
-                                                                             artefactId))
-                                     .orElse(null),
-                             model.getDependencies(),
-                             props
-        );
+    public static Dependency addDependency(Log log, Model model, String groupId, String artefactId, Map<String, String> props) {
+        return addDependency(DependenciesUtil.getLastVersionDependency(log, String.format("g:%s+AND+a:%s", groupId, artefactId))
+                .orElse(null), model.getDependencies(), props);
     }
 
-    public static String getDriver(Log log,
-                                   String dbName)
-            throws IOException, InterruptedException, URISyntaxException {
+    public static String getDriver(Log log, String dbName) throws IOException, InterruptedException, URISyntaxException {
         if (DEPENDENCIES_DEFINITIONS == null) {
-            DEPENDENCIES_DEFINITIONS = new ThreadLocal<>() {
-                @Override
-                protected JsonObject initialValue() {
-                    try {
-                        return HttpClientUtil.getJson(log, DEPENDENCIES_URL,
-                                                      JsonReader::readObject);
-                    } catch (IOException | InterruptedException | URISyntaxException ex) {
-                        log.error(ex.getMessage(), ex);
-                    }
-                    return null;
+            DEPENDENCIES_DEFINITIONS = ThreadLocal.withInitial(() -> {
+                try {
+                    return HttpClientUtil.getJson(log, DEPENDENCIES_URL, JsonReader::readObject);
+                } catch (IOException | InterruptedException | URISyntaxException ex) {
+                    log.error(ex.getMessage(), ex);
                 }
-            };
+                return null;
+            });
         }
         var dependenciesDefinitions = DEPENDENCIES_DEFINITIONS.get();
         return dependenciesDefinitions.getJsonObject(dbName).getString(DATASOURCE);

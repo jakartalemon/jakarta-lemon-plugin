@@ -36,16 +36,16 @@ public class WebXmlUtil {
         return DocumentXmlUtil.openDocument(webXmlPath).orElseGet(() -> {
             try {
                 var document = DocumentXmlUtil.newDocument("web-app");
-                DocumentXmlUtil.findElementsByFilter(document, "/web-app").stream().findFirst()
+                DocumentXmlUtil.findElementsByFilter(document, "/web-app")
+                        .stream()
+                        .findFirst()
                         .ifPresent(webappElement -> {
                             webappElement.setAttribute("xmlns", "https://jakarta.ee/xml/ns/jakartaee");
                             webappElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-                            webappElement.setAttribute("xsi:schemaLocation",
-                                                       "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
+                            webappElement.setAttribute("xsi:schemaLocation", "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
                             webappElement.setAttribute("version", "5.0");
                             DocumentXmlUtil.createElement(document, webappElement, "session-config")
-                                    .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem, "session-timeout",
-                                                                                              "30"));
+                                    .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem, "session-timeout", "30"));
                         });
 
 
@@ -56,8 +56,7 @@ public class WebXmlUtil {
         });
     }
 
-    public static void saveWebXml(File basedir,
-                                  Document document) {
+    public static void saveWebXml(File basedir, Document document) {
         Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
         DocumentXmlUtil.saveDocument(webXmlPath, document);
 

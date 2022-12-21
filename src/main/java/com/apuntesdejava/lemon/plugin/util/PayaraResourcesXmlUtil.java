@@ -15,30 +15,51 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.payararesources.model.PayaraResourcesModel;
+import org.w3c.dom.Document;
 
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathExpressionException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
-public class PayaraResourcesXmlUtil extends AbstractXmlUtil<PayaraResourcesModel> {
+public class PayaraResourcesXmlUtil {
 
     private static final String PAYARA_RESOURCE_DOCTYPE_PUBLIC = "-//Payara.fish//DTD Payara Server 4 Resource Definitions//EN";
     private static final String PAYARA_RESOURCE_DOCTYPE_SYSTEM = "https://raw.githubusercontent.com/payara/Payara-Community-Documentation/master/docs/modules/ROOT/pages/schemas/payara-resources_1_6.dtd";
 
-    public PayaraResourcesXmlUtil(String basedir) {
-        super(PayaraResourcesModel.class, basedir);
+
+    public static Document openPayaraXml(File basedir) throws IOException {
+        Path xmlPath = getPayaraResourcesPath(basedir);
+        Files.createDirectories(xmlPath.getParent());
+        return DocumentXmlUtil.openDocument(xmlPath).orElseGet(() -> {
+            try {
+                var document = DocumentXmlUtil.newDocument("resources");
+                DocumentXmlUtil.findElementsByFilter(document, "/resources")
+                        .stream()
+                        .findFirst()
+                        .ifPresent(webappElement -> {
+                        });
+                return document;
+            } catch (ParserConfigurationException | XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
-    @Override
-    protected PayaraResourcesModel newModelInstance() {
-        return new PayaraResourcesModel();
+    public static void savePayaraXml(File basedir, Document document) {
+        DocumentXmlUtil.saveDocument(getPayaraResourcesPath(basedir), document);
+
     }
 
-    @Override
-    protected Path getXmlFullPath(String baseDir) {
-        return Paths.get(baseDir, "src", "main", "setup", "payara-resources.xml").normalize();
+    public static Path getPayaraResourcesPath(File basedir) {
+        return Paths.get(basedir.toString(), "src", "main", "setup", "payara-resources.xml").normalize();
     }
+
+
 }

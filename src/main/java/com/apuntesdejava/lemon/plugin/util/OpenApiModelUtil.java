@@ -43,11 +43,7 @@ public class OpenApiModelUtil {
         return OpenApiModelUtilHolder.INSTANCE;
     }
 
-    public String createClass(Log log,
-                              String packageName,
-                              MavenProject mavenProject,
-                              String schemaName,
-                              JsonObject properties) {
+    public String createClass(Log log, String packageName, MavenProject mavenProject, String schemaName, JsonObject properties) {
         try {
             Path basedir = mavenProject.getBasedir().toPath();
             log.debug("basedir:" + basedir);
@@ -58,9 +54,12 @@ public class OpenApiModelUtil {
                 packageName += ".response";
             }
             String[] paths = packageName.split("\\.");
-            Path packageFile = Paths.get(
-                    mavenProject.getBasedir().toPath().resolve("src").resolve("main").resolve("java").toString(),
-                    paths);
+            Path packageFile = Paths.get(mavenProject.getBasedir()
+                    .toPath()
+                    .resolve("src")
+                    .resolve("main")
+                    .resolve("java")
+                    .toString(), paths);
             Files.createDirectories(packageFile);
 
             Path classFile = packageFile.resolve(schemaName + ".java");
@@ -68,9 +67,8 @@ public class OpenApiModelUtil {
             content.add("package " + packageName + ";\n");
             content.add("@lombok.Data");
             content.add("public class " + schemaName + " {\n");
-            properties.entrySet().forEach((entry0) -> {
-                String fieldName = entry0.getKey();
-                String type = getJavaType(entry0.getValue().asJsonObject().getString("type"));
+            properties.forEach((fieldName, value) -> {
+                String type = getJavaType(value.asJsonObject().getString("type"));
                 content.add(StringUtils.repeat(StringUtils.SPACE, 4) + "private " + type + " " + fieldName + ";");
             });
             content.add("}");
@@ -100,8 +98,7 @@ public class OpenApiModelUtil {
     }
 
     public JsonObject getModel(Path modelProjectFile) throws IOException {
-        try (InputStream in = new FileInputStream(modelProjectFile.toFile()); JsonReader reader = Json.createReader(
-                in)) {
+        try (InputStream in = new FileInputStream(modelProjectFile.toFile()); JsonReader reader = Json.createReader(in)) {
             return reader.readObject();
         }
     }

@@ -35,35 +35,32 @@ public class DependenciesUtil {
 
     }
 
-    public static Optional<JsonObject> getByDatabase(Log log,
-            String database) {
+    public static Optional<JsonObject> getByDatabase(Log log, String database) {
         try {
             var dependenciesDefinitions = HttpClientUtil.getJson(log, DEPENDENCIES_URL, JsonReader::readObject);
-            return Optional.ofNullable(dependenciesDefinitions.getJsonObject(database))
-                    .map(dependency -> {
+            return Optional.ofNullable(dependenciesDefinitions.getJsonObject(database)).map(dependency -> {
 
-                        var query = String.format("g:%s+AND+a:%s", dependency.getString("g"),
-                                dependency.getString("a"));
-                        return getLastVersionDependency(log, query).get();
-                    });
+                var query = String.format("g:%s+AND+a:%s", dependency.getString("g"), dependency.getString("a"));
+                return getLastVersionDependency(log, query).get();
+            });
         } catch (IOException | InterruptedException | URISyntaxException ex) {
             log.error(ex.getMessage(), ex);
         }
         return Optional.empty();
     }
 
-    public static Optional<JsonObject> getLastVersionDependency(Log log,
-            String query) {
+    public static Optional<JsonObject> getLastVersionDependency(Log log, String query) {
         try {
             String uri = QUERY_MAVEN_URL + query;
             var jsonResp = HttpClientUtil.getJson(log, uri, JsonReader::readObject);
             var responseJson = jsonResp.getJsonObject("response");
             var docsJson = responseJson.getJsonArray("docs");
             var docJson = docsJson.get(0).asJsonObject();
-            return Optional.of(Json.createObjectBuilder().add(DEPENDENCY_GROUP_ID, docJson.getString("g"))
+            return Optional.of(Json.createObjectBuilder()
+                    .add(DEPENDENCY_GROUP_ID, docJson.getString("g"))
                     .add(DEPENDENCY_ARTIFACT_ID, docJson.getString("a"))
-                    .add(DEPENDENCY_VERSION, docJson.getString("latestVersion")).build()
-            );
+                    .add(DEPENDENCY_VERSION, docJson.getString("latestVersion"))
+                    .build());
 
         } catch (URISyntaxException | IOException | InterruptedException ex) {
             log.error(ex.getMessage(), ex);

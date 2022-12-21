@@ -59,9 +59,7 @@ public class CreateViewMojo extends AbstractMojo {
         try {
             getLog().info("Creating view layer...");
             var viewModelUtil = ViewModelUtil.getInstance(getLog(), mavenProject);
-            viewModelUtil.getViewModel(viewProjectFile).ifPresent(model -> {
-                this.viewModel = model;
-            });
+            viewModelUtil.getViewModel(viewProjectFile).ifPresent(model -> this.viewModel = model);
             String viewStyle = this.viewModel.getString(VIEW_STYLE, VIEW_STYLE_JSF);
             if (VIEW_STYLE_JSF.equals(viewStyle)) {
                 addJsfDependencies();
@@ -80,8 +78,7 @@ public class CreateViewMojo extends AbstractMojo {
         try {
             getLog().debug("Modifing pom.xml");
             Model model = ProjectModelUtil.getModel(mavenProject);
-            ProjectModelUtil.addDependency(getLog(), model, "org.primefaces", "primefaces",
-                                           Map.of("classifier", "jakarta"));
+            ProjectModelUtil.addDependency(getLog(), model, "org.primefaces", "primefaces", Map.of("classifier", "jakarta"));
             this.primeflexDependency = ProjectModelUtil.addDependency(getLog(), model, "org.webjars.npm", "primeflex");
             ProjectModelUtil.saveModel(mavenProject, model);
         } catch (IOException | XmlPullParserException ex) {

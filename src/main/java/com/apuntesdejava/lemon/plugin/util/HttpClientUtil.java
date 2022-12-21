@@ -33,23 +33,15 @@ import java.util.function.Function;
  */
 public class HttpClientUtil {
 
-    public static <T> T getJson(Log log,
-                                String uri,
-                                Function<JsonReader, T> read)
-            throws IOException, InterruptedException, URISyntaxException {
+    public static <T> T getJson(Log log, String uri, Function<JsonReader, T> read) throws IOException, InterruptedException, URISyntaxException {
         log.debug("getting uri:" + uri);
-        var httpRequest = HttpRequest.newBuilder(new URI(uri))
-                .GET()
-                .build();
-        var httpResponse = HttpClient.newBuilder()
-                .build()
-                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        var httpRequest = HttpRequest.newBuilder(new URI(uri)).GET().build();
+        var httpResponse = HttpClient.newBuilder().build().send(httpRequest, HttpResponse.BodyHandlers.ofString());
         log.debug("code:" + httpResponse.statusCode());
         var json = httpResponse.body();
 
         log.debug("resp:" + json);
-        try (var stringReader = new StringReader(json);
-             var jsonReader = Json.createReader(stringReader)) {
+        try (var stringReader = new StringReader(json); var jsonReader = Json.createReader(stringReader)) {
             return read.apply(jsonReader);
         }
     }
