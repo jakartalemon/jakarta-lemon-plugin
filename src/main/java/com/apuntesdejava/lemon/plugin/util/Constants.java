@@ -76,6 +76,9 @@ public class Constants {
     public static final String SERVLET = "servlet";
     public static final String URL_PATTERN = "url-pattern";
 
+    public static final String LIBERTY_VAR_SYSTEM_HTTP_PORT="liberty.var.system.http.port";
+    public static final String LIBERTY_VAR_DEFAULT_HTTP_PORT="liberty.var.default.http.port";
+    public static final String LIBERTY_VAR_DEFAULT_HTTPS_PORT="liberty.var.default.https.port";
     private Constants() {
     }
 
