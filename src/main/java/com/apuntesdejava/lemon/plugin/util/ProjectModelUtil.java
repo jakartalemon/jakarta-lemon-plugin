@@ -90,25 +90,86 @@ public class ProjectModelUtil {
     }
 
     public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId) {
-        return addPlugin(pluginContainer, groupId, artifactId, null);
+        return addPlugin(pluginContainer, groupId, artifactId, StringUtils.EMPTY);
     }
 
+
     public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId, String version) {
+        return addPlugin(pluginContainer, groupId, artifactId, version, null);
+    }
+
+    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId, String version, Map<String, ?> configurationOptions) {
         List<Plugin> plugins = pluginContainer.getPlugins();
         return plugins.stream()
                 .filter(item -> item.getGroupId().equals(groupId) && item.getArtifactId().equals(artifactId))
                 .findFirst()
                 .or(() -> {
-                    Plugin p = new Plugin();
-                    p.setGroupId(groupId);
-                    p.setArtifactId(artifactId);
+                    Plugin plugin = new Plugin();
+                    plugin.setGroupId(groupId);
+                    plugin.setArtifactId(artifactId);
                     if (StringUtils.isNotBlank(version)) {
-                        p.setVersion(version);
+                        plugin.setVersion(version);
                     }
-                    pluginContainer.addPlugin(p);
-                    return Optional.of(p);
+                    setConfigurationOptions(plugin, configurationOptions);
+
+                    pluginContainer.addPlugin(plugin);
+                    return Optional.of(plugin);
                 });
 
+    }
+
+    public static void setConfigurationOptions(ConfigurationContainer plugin, Map<String, ?> configurationOptions) {
+        Optional.ofNullable(configurationOptions)
+                .ifPresent(conf -> {
+                    if (!conf.isEmpty()) {
+                        var xpp3DomConf = getConfiguration(plugin);
+
+                        conf.forEach((name, value) -> {
+                            if (value instanceof String) {
+                                addChildren(xpp3DomConf, name, true)
+                                        .setValue(value.toString());
+                            } else if (value instanceof List) {
+                                addConfiguration(xpp3DomConf, name, (List<?>) value);
+                            } else if (value instanceof Map) {
+                                addConfiguration(xpp3DomConf, name, (Map<String, ?>) value);
+                            }
+                        });
+                        plugin.setConfiguration(xpp3DomConf);
+                    }
+                });
+    }
+
+    private static void addConfiguration(Xpp3Dom parent, String elementName, Map<String, ?> configuration) {
+        Xpp3Dom newChildDom = addChildren(parent, elementName, true);
+        configuration.forEach((name, value) -> {
+            if (value instanceof String) {
+                addChildren(newChildDom, name, true)
+                        .setValue((String) value);
+
+            } else if (value instanceof Map) {
+                addConfiguration(newChildDom, name, (Map<String, ?>) value);
+            } else if (value instanceof List) {
+                addConfiguration(newChildDom, name, (List<?>) value);
+
+            }
+        });
+    }
+
+    private static void addConfiguration(Xpp3Dom parent, String elementName, List< ?> configuration) {
+        Xpp3Dom newChildDom = addChildren(parent, elementName, true);
+        configuration.forEach(value -> {
+
+            if (value instanceof String) {
+                addChildren(newChildDom, elementName, true)
+                        .setValue((String) value);
+
+            } else if (value instanceof Map) {
+                addConfiguration(newChildDom, "option", (Map<String, ?>) value);
+            } else if (value instanceof List) {
+                addConfiguration(newChildDom, "option", (List<?>) value);
+
+            }
+        });
     }
 
     public static BuildBase getBuild(Profile profile) {
@@ -152,11 +213,11 @@ public class ProjectModelUtil {
 
         DependenciesUtil.getByDatabase(log, database).ifPresent(dependen -> {
 
-            ProjectModelUtil.addChildren(dependency, DEPENDENCY_GROUP_ID)
+            addChildren(dependency, DEPENDENCY_GROUP_ID)
                     .setValue(dependen.getString(DEPENDENCY_GROUP_ID));
-            ProjectModelUtil.addChildren(dependency, DEPENDENCY_ARTIFACT_ID)
+            addChildren(dependency, DEPENDENCY_ARTIFACT_ID)
                     .setValue(dependen.getString(DEPENDENCY_ARTIFACT_ID));
-            ProjectModelUtil.addChildren(dependency, DEPENDENCY_VERSION)
+            addChildren(dependency, DEPENDENCY_VERSION)
                     .setValue(dependen.getString(DEPENDENCY_VERSION));
         });
 
@@ -171,8 +232,8 @@ public class ProjectModelUtil {
     private static Dependency addDependency(JsonObject dependencyJson, List<Dependency> dependencies, Map<String, String> props) {
         return dependencies.stream()
                 .filter(item -> item.getGroupId()
-                        .equals(dependencyJson.getString(DEPENDENCY_GROUP_ID)) && item.getArtifactId()
-                        .equals(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID)))
+                .equals(dependencyJson.getString(DEPENDENCY_GROUP_ID)) && item.getArtifactId()
+                .equals(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID)))
                 .findFirst()
                 .orElseGet(() -> {
                     Dependency dependency = new Dependency();
@@ -190,13 +251,13 @@ public class ProjectModelUtil {
                 });
     }
 
-    public static Dependency addDependency(Log log, Model model, String groupId, String artefactId) {
-        return addDependency(log, model, groupId, artefactId, emptyMap());
+    public static Dependency addDependency(Log log, List<Dependency> dependencies, String groupId, String artefactId) {
+        return addDependency(log, dependencies, groupId, artefactId, emptyMap());
     }
 
-    public static Dependency addDependency(Log log, Model model, String groupId, String artefactId, Map<String, String> props) {
+    public static Dependency addDependency(Log log, List<Dependency> dependencies, String groupId, String artefactId, Map<String, String> props) {
         return addDependency(DependenciesUtil.getLastVersionDependency(log, String.format("g:%s+AND+a:%s", groupId, artefactId))
-                .orElse(null), model.getDependencies(), props);
+                .orElse(null), dependencies, props);
     }
 
     public static String getDriver(Log log, String dbName) throws IOException, InterruptedException, URISyntaxException {

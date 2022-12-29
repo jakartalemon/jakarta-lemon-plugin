@@ -499,7 +499,7 @@ public class CreateModelMojo extends AbstractMojo {
         try {
             getLog().debug("Add Project Lombok Dependencies");
             Model model = ProjectModelUtil.getModel(mavenProject);
-            ProjectModelUtil.addDependency(getLog(), model, "org.projectlombok", "lombok");
+            ProjectModelUtil.addDependency(getLog(), model.getDependencies(), "org.projectlombok", "lombok");
 
             ProjectModelUtil.saveModel(mavenProject, model);
         } catch (IOException | XmlPullParserException ex) {

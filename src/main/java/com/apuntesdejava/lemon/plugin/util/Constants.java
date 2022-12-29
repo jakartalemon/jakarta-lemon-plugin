@@ -36,6 +36,10 @@ public class Constants {
     public final static String STYLE = "style";
 
     public static final String PROPERTY = "property";
+    public static final String GET = "get";
+    public static final String POST = "post";
+    public static final String PUT = "put";
+    public static final String DELETE = "delete";
 
     public static final String QUERY_MAVEN_URL = "https://search.maven.org/solrsearch/select?q=";
 

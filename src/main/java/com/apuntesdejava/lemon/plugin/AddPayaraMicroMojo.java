@@ -28,11 +28,12 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
@@ -43,7 +44,14 @@ import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 @Mojo(name = "add-payara-micro")
 public class AddPayaraMicroMojo extends AbstractMojo {
 
-    private static final List<List<String>> options = List.of(List.of("--autoBindHttp"), List.of("--deploy", "${project.build.directory}/${project.build.finalName}"), List.of("--postbootcommandfile", "post-boot-commands.txt"), List.of("--contextroot", "/"), List.of("--addlibs", "target/lib"));
+    private static final List<Map<String, String>> OPTIONS_LIST
+            = List.of(
+                    Map.of("key", "--autoBindHttp"),
+                    Map.of("key", "--deploy", "value", "${project.build.directory}/${project.build.finalName}"),
+                    Map.of("key", "--postbootcommandfile", "value", "post-boot-commands.txt"),
+                    Map.of("key", "--contextroot", "value", "/"),
+                    Map.of("key", "--addlibs", "value", "target/lib")
+            );
 
     @Parameter(
             property = "model",
@@ -76,26 +84,28 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                     .ifPresent(dependencyModel -> props.setProperty("version.payara", dependencyModel.getString(DEPENDENCY_VERSION)));
             var datasource = projectModel.getJsonObject(DATASOURCE);
             BuildBase build = ProjectModelUtil.getBuild(profile);
-            ProjectModelUtil.addPlugin(build, "fish.payara.maven.plugins", "payara-micro-maven-plugin", "1.4.0")
-                    .ifPresent(plugin -> {
-                        Xpp3Dom conf = ProjectModelUtil.getConfiguration(plugin);
-                        ProjectModelUtil.addChildren(conf, "payaraVersion").setValue("${version.payara}");
-                        ProjectModelUtil.addChildren(conf, "deployWar").setValue("false");
-                        Xpp3Dom commandLineOptions = ProjectModelUtil.addChildren(conf, "commandLineOptions");
+            List<Map<String, String>> commandLineOptionsList = new ArrayList<>(OPTIONS_LIST);
+            DatasourceDefinitionStyleType style = DatasourceDefinitionStyleType.findByValue(datasource.getString(STYLE));
+            if (style == DatasourceDefinitionStyleType.PAYARA_RESOURCES) {
+                commandLineOptionsList.addAll(
+                        List.of(
+                                Map.of(
+                                        "key", "--postbootcommandfile",
+                                        "value", "post-boot-commands.txt"
+                                ),
+                                Map.of(
+                                        "key", "--addLibs",
+                                        "value", "target/lib"
+                                )
+                        )
+                );
+                PayaraUtil.createPayaraMicroDataSourcePostBootFile(getLog(), "post-boot-commands.txt", projectModel, mavenProject);
+            }
+            ProjectModelUtil.addPlugin(build, "fish.payara.maven.plugins", "payara-micro-maven-plugin", "1.4.0",
+                    Map.of("payaraVersion", "${version.payara}",
+                            "deployWar", "false",
+                            "commandLineOptions", commandLineOptionsList));
 
-                        options.forEach(option -> {
-                            Xpp3Dom opt = ProjectModelUtil.addChildren(commandLineOptions, "option", true);
-                            ProjectModelUtil.addChildren(opt, "key").setValue(option.get(0));
-                            if (option.size() > 1) {
-                                ProjectModelUtil.addChildren(opt, "value").setValue(option.get(1));
-                            }
-                        });
-
-                        DatasourceDefinitionStyleType style = DatasourceDefinitionStyleType.findByValue(datasource.getString(STYLE));
-                        if (style == DatasourceDefinitionStyleType.PAYARA_RESOURCES) {
-                            addPayaraMicroResources(commandLineOptions);
-                        }
-                    });
             ProjectModelUtil.addPlugin(build, "org.apache.maven.plugins", "maven-dependency-plugin")
                     .ifPresent(plugin -> {
                         PluginExecution execution = plugin.getExecutions()
@@ -112,13 +122,17 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                             execution.addGoal("copy");
                             return "copy";
                         });
-                        Xpp3Dom conf = ProjectModelUtil.getConfiguration(execution);
-                        ProjectModelUtil.addChildren(conf, "outputDirectory").setValue("target/lib");
-                        ProjectModelUtil.addChildren(conf, "stripVersion").setValue("true");
-                        Xpp3Dom artifactItems = ProjectModelUtil.addChildren(conf, "artifactItems");
-                        Xpp3Dom artifactItem = ProjectModelUtil.addChildren(artifactItems, "artifactItem");
-
-                        ProjectModelUtil.addDependenciesDatabase(getLog(), artifactItem, datasource.getString(DB));
+                        DependenciesUtil.getByDatabase(getLog(), datasource.getString(DB)).ifPresent(dependen -> ProjectModelUtil.setConfigurationOptions(execution, Map.of(
+                                "outputDirectory", "target/lib",
+                                "stripVersion", "true",
+                                "artifactItems", Map.of(
+                                        "artifactItem", Map.of(
+                                                DEPENDENCY_GROUP_ID, dependen.getString(DEPENDENCY_GROUP_ID),
+                                                DEPENDENCY_ARTIFACT_ID, dependen.getString(DEPENDENCY_ARTIFACT_ID),
+                                                DEPENDENCY_VERSION, dependen.getString(DEPENDENCY_VERSION)
+                                        )
+                                )
+                        )));
 
                     });
 
@@ -128,17 +142,5 @@ public class AddPayaraMicroMojo extends AbstractMojo {
         }
     }
 
-    private void addPayaraMicroResources(Xpp3Dom commandLineOptions) {
-        Xpp3Dom opt1 = ProjectModelUtil.addChildren(commandLineOptions, "option");
-        ProjectModelUtil.addChildren(opt1, "key").setValue("--postbootcommandfile");
-        ProjectModelUtil.addChildren(opt1, "value").setValue("post-boot-commands.txt");
-
-        Xpp3Dom opt2 = ProjectModelUtil.addChildren(commandLineOptions, "option");
-        ProjectModelUtil.addChildren(opt2, "key").setValue("--addLibs");
-        ProjectModelUtil.addChildren(opt2, "value").setValue("target/lib");
-
-        PayaraUtil.createPayaraMicroDataSourcePostBootFile(getLog(), "post-boot-commands.txt", projectModel, mavenProject);
-
-    }
 
 }

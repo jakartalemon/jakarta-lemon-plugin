@@ -20,10 +20,7 @@ import com.apuntesdejava.lemon.plugin.util.OpenLibertyUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import jakarta.json.JsonObject;
 import jakarta.xml.bind.JAXBException;
-import java.io.IOException;
-import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Model;
-import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.Profile;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -33,6 +30,9 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
+import java.io.IOException;
+import java.util.Map;
+
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
@@ -40,11 +40,14 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 public class AddOpenLibertyMojo extends AbstractMojo {
 
     @Parameter(
-            property = "model",
-            defaultValue = "model.json"
+        property = "model",
+        defaultValue = "model.json"
     )
     private String _modelProjectFile;
-    @Parameter(defaultValue = "${project}", readonly = true)
+    @Parameter(
+        defaultValue = "${project}",
+        readonly = true
+    )
     private MavenProject mavenProject;
     private JsonObject projectModel;
 
@@ -63,12 +66,11 @@ public class AddOpenLibertyMojo extends AbstractMojo {
             getLog().debug("Add OpenLiberty Plugin");
             Model model = ProjectModelUtil.getModel(mavenProject);
             Profile profile = ProjectModelUtil.getProfile(model, "openliberty");
-            BuildBase build = ProjectModelUtil.getBuild(profile);
-            PluginManagement pm = ProjectModelUtil.getPluginManagement(build);
+            var build = ProjectModelUtil.getBuild(profile);
+            var pm = ProjectModelUtil.getPluginManagement(build);
             ProjectModelUtil.addPlugin(pm, "org.apache.maven.plugins", "maven-war-plugin", "3.3.2");
-            ProjectModelUtil.addPlugin(pm, "io.openliberty.tools", "liberty-maven-plugin", "3.5.1");
+            ProjectModelUtil.addPlugin(pm, "io.openliberty.tools", "liberty-maven-plugin", "3.7.1", Map.of("serverName", "guideNameServer"));
             ProjectModelUtil.addPlugin(build, "io.openliberty.tools", "liberty-maven-plugin");
-
             ProjectModelUtil.saveModel(mavenProject, model);
 
         } catch (IOException | XmlPullParserException ex) {
