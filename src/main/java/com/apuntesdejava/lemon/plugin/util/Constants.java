@@ -23,6 +23,7 @@ public class Constants {
     public static final int TAB = 4;
 
     public final static String DEPENDENCIES_URL = "https://jakartalemon.dev/dependencies.json";
+    public final static String LEMON_CONFIG_URL = "https://jakartalemon.dev/lemon-plugin-config.json";
 
     public final static String DEPENDENCY_GROUP_ID = "groupId";
     public final static String DEPENDENCY_ARTIFACT_ID = "artifactId";
@@ -76,9 +77,10 @@ public class Constants {
     public static final String SERVLET = "servlet";
     public static final String URL_PATTERN = "url-pattern";
 
-    public static final String LIBERTY_VAR_SYSTEM_HTTP_PORT="liberty.var.system.http.port";
-    public static final String LIBERTY_VAR_DEFAULT_HTTP_PORT="liberty.var.default.http.port";
-    public static final String LIBERTY_VAR_DEFAULT_HTTPS_PORT="liberty.var.default.https.port";
+    public static final String LIBERTY_VAR_SYSTEM_HTTP_PORT = "liberty.var.system.http.port";
+    public static final String LIBERTY_VAR_DEFAULT_HTTP_PORT = "liberty.var.default.http.port";
+    public static final String LIBERTY_VAR_DEFAULT_HTTPS_PORT = "liberty.var.default.https.port";
+
     private Constants() {
     }
 
