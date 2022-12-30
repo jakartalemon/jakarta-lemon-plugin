@@ -15,7 +15,9 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 import org.apache.maven.plugin.logging.Log;
 
 import java.io.IOException;
@@ -23,7 +25,6 @@ import java.net.URISyntaxException;
 import java.util.Optional;
 
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
-import jakarta.json.JsonReader;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
@@ -34,31 +35,32 @@ public class DependenciesUtil {
 
     }
 
-    public static Optional<DependencyModel> getByDatabase(Log log, String database) {
+    public static Optional<JsonObject> getByDatabase(Log log, String database) {
         try {
             var dependenciesDefinitions = HttpClientUtil.getJson(log, DEPENDENCIES_URL, JsonReader::readObject);
-            return Optional.ofNullable(dependenciesDefinitions.getJsonObject(database))
-                    .map(dependency -> {
+            return Optional.ofNullable(dependenciesDefinitions.getJsonObject(database)).map(dependency -> {
 
-                        var query = String.format("g:%s+AND+a:%s", dependency.getString("g"), dependency.getString("a"));
-                        return getLastVersionDependency(log, query).get();
-                    });
+                var query = String.format("g:%s+AND+a:%s", dependency.getString("g"), dependency.getString("a"));
+                return getLastVersionDependency(log, query);
+            }).filter(Optional::isPresent).flatMap(item -> item);
         } catch (IOException | InterruptedException | URISyntaxException ex) {
             log.error(ex.getMessage(), ex);
         }
         return Optional.empty();
     }
 
-    public static Optional<DependencyModel> getLastVersionDependency(Log log, String query) {
+    public static Optional<JsonObject> getLastVersionDependency(Log log, String query) {
         try {
             String uri = QUERY_MAVEN_URL + query;
             var jsonResp = HttpClientUtil.getJson(log, uri, JsonReader::readObject);
             var responseJson = jsonResp.getJsonObject("response");
             var docsJson = responseJson.getJsonArray("docs");
             var docJson = docsJson.get(0).asJsonObject();
-            return Optional.of(
-                    new DependencyModel(docJson.getString("g"), docJson.getString("a"),
-                            docJson.getString("latestVersion")));
+            return Optional.of(Json.createObjectBuilder()
+                .add(DEPENDENCY_GROUP_ID, docJson.getString("g"))
+                .add(DEPENDENCY_ARTIFACT_ID, docJson.getString("a"))
+                .add(DEPENDENCY_VERSION, docJson.getString("latestVersion"))
+                .build());
 
         } catch (URISyntaxException | IOException | InterruptedException ex) {
             log.error(ex.getMessage(), ex);

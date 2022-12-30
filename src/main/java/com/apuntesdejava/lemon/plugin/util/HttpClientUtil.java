@@ -17,6 +17,7 @@ package com.apuntesdejava.lemon.plugin.util;
 
 import jakarta.json.Json;
 import jakarta.json.JsonReader;
+import org.apache.maven.plugin.logging.Log;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -27,28 +28,20 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.function.Function;
 
-import org.apache.maven.plugin.logging.Log;
-
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class HttpClientUtil {
 
-    public static <T> T getJson(Log log, String uri, Function<JsonReader, T> read)
-            throws IOException, InterruptedException, URISyntaxException {
+    public static <T> T getJson(Log log, String uri, Function<JsonReader, T> read) throws IOException, InterruptedException, URISyntaxException {
         log.debug("getting uri:" + uri);
-        var httpRequest = HttpRequest.newBuilder(new URI(uri))
-                .GET()
-                .build();
-        var httpResponse = HttpClient.newBuilder()
-                .build()
-                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        var httpRequest = HttpRequest.newBuilder(new URI(uri)).GET().build();
+        var httpResponse = HttpClient.newBuilder().build().send(httpRequest, HttpResponse.BodyHandlers.ofString());
         log.debug("code:" + httpResponse.statusCode());
         var json = httpResponse.body();
 
         log.debug("resp:" + json);
-        try (var stringReader = new StringReader(json);
-             var jsonReader = Json.createReader(stringReader)) {
+        try (var stringReader = new StringReader(json); var jsonReader = Json.createReader(stringReader)) {
             return read.apply(jsonReader);
         }
     }

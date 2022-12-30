@@ -15,25 +15,131 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Source;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.logging.Logger;
+
+import static java.util.Collections.emptyMap;
+import static javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING;
 
 /**
- *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class DocumentXmlUtil {
 
+    private static final Logger LOGGER = Logger.getLogger(DocumentXmlUtil.class.getName());
+
+    public static Document newDocument(String rootElementName) throws ParserConfigurationException {
+        var documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setFeature(FEATURE_SECURE_PROCESSING, true);
+        var documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        var document = documentBuilder.newDocument();
+        var rootElement = document.createElement(rootElementName);
+        document.appendChild(rootElement);
+        return document;
+
+    }
+
+    public static Optional<Document> openDocument(Path path) {
+
+        var documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        try {
+            documentBuilderFactory.setFeature(FEATURE_SECURE_PROCESSING, true);
+            var documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            var document = documentBuilder.parse(path.toFile());
+            document.getDocumentElement().normalize();
+            return Optional.of(document);
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            LOGGER.severe(e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    public static List<Element> findElementsByFilter(Document document, String expression) throws XPathExpressionException {
+        var xPath = XPathFactory.newInstance().newXPath();
+        var nodeList = (NodeList) xPath.compile(expression).evaluate(document, XPathConstants.NODESET);
+        List<Element> elementList = new ArrayList<>();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            elementList.add((Element) nodeList.item(i));
+        }
+        return elementList;
+    }
+
+    public static Optional<Element> createElement(Document document, String inPath, String elementName) throws XPathExpressionException {
+        var elements = findElementsByFilter(document, inPath);
+        if (!elements.isEmpty()) {
+            Element element = document.createElement(elementName);
+            elements.stream().findFirst().ifPresent(elem -> elem.appendChild(element));
+            return Optional.of(element);
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<Element> createElement(Document document, Element parentElement, String elementName, String textContent) {
+        var element = document.createElement(elementName);
+        if (StringUtils.isNotBlank(textContent)) {
+            element.setTextContent(textContent);
+        }
+        parentElement.appendChild(element);
+        return Optional.of(element);
+    }
+
+    public static Optional<Element> createElement(Document document, Element parentElement, String elementName) {
+        return createElement(document, parentElement, elementName, null);
+    }
+
+    public static void saveDocument(Path path, Document document) {
+        saveDocument(path, document, emptyMap());
+    }
+
+    public static void saveDocument(Path path, Document document, Map<String, String> outputProperties) {
+        try (var fos = new FileOutputStream(path.toFile()); var xlsIs = DocumentXmlUtil.class.getResourceAsStream("/xml/strip.xsl")) {
+            Source xslt = new StreamSource(xlsIs);
+            var transformerFactory = TransformerFactory.newInstance();
+            var transformer = transformerFactory.newTransformer(xslt);
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty(OutputKeys.STANDALONE, "no");
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            outputProperties.forEach(transformer::setOutputProperty);
+            document.setXmlStandalone(true);
+            var source = new DOMSource(document);
+            var result = new StreamResult(fos);
+            transformer.transform(source, result);
+        } catch (IOException | TransformerException e) {
+            LOGGER.severe(e.getMessage());
+        }
+    }
+
     public static class ElementBuilder {
 
         private final String tagName;
-        private final Set<String[]> attributes = new LinkedHashSet<>();
-        private final Set<ElementBuilder> children = new LinkedHashSet<>();
+        private final Set<String[]> attributes;
+        private final Set<ElementBuilder> children;
 
         private ElementBuilder(String tagName) {
             this.tagName = tagName;
+            attributes = new LinkedHashSet<>();
+            children = new LinkedHashSet<>();
         }
 
         public static ElementBuilder newInstance(String tagName) {

@@ -30,11 +30,14 @@ import org.apache.maven.project.MavenProject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 import static com.apuntesdejava.lemon.plugin.util.OpenApiModelUtil.getJavaType;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
@@ -42,25 +45,24 @@ import static java.util.stream.Collectors.toList;
 @Mojo(name = "create-rest")
 public class CreateResourcesMojo extends AbstractMojo {
 
+    private final Map<String, String> componentsMap = new LinkedHashMap<>();
     @Parameter(
-            property = "openapi",
-            defaultValue = "openapi.json"
+        property = "openapi",
+        defaultValue = "openapi.json"
     )
     private String modelProjectFile;
-
-    @Parameter(defaultValue = "${project}", readonly = true)
+    @Parameter(
+        defaultValue = "${project}",
+        readonly = true
+    )
     private MavenProject mavenProject;
-    private final Map<String, String> componentsMap = new LinkedHashMap<>();
     private String packageName;
     private JsonObject openApiModel;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         try {
-            Path path = mavenProject
-                    .getBasedir()
-                    .toPath()
-                    .resolve(modelProjectFile);
+            Path path = mavenProject.getBasedir().toPath().resolve(modelProjectFile);
             getLog().debug("modelProjectFile:" + path);
             this.openApiModel = OpenApiModelUtil.getInstance().getModel(path);
             getLog().debug("openApiModel:" + openApiModel);
@@ -80,8 +82,9 @@ public class CreateResourcesMojo extends AbstractMojo {
             String type = item.asJsonObject().getString("type");
 
             if ("object".equals(type)) {
-                String className = OpenApiModelUtil.getInstance().createClass(getLog(), packageName, mavenProject,
-                        schemaName, item.asJsonObject().getJsonObject("properties"));
+                String className = OpenApiModelUtil.getInstance()
+                    .createClass(getLog(), packageName, mavenProject, schemaName, item.asJsonObject()
+                        .getJsonObject("properties"));
                 componentsMap.put(schemaName, className);
             }
 
@@ -92,9 +95,7 @@ public class CreateResourcesMojo extends AbstractMojo {
     private void createResources() {
         try {
             getLog().debug("Creating paths");
-            List<String> paths = openApiModel.getJsonObject("paths")
-                    .keySet()
-                    .stream().collect(toList());
+            List<String> paths = new ArrayList<>(openApiModel.getJsonObject("paths").keySet());
             int pos = 0;
 
             String aPath = paths.get(0);
@@ -125,8 +126,8 @@ public class CreateResourcesMojo extends AbstractMojo {
             Files.createDirectories(packageBaseResources);
 
             openApiModel.getJsonObject("paths")
-                    .entrySet()
-                    .forEach(entry -> createResource(StringUtils.substringAfter(entry.getKey(), rootPath), entry.getValue().asJsonObject(), packageBaseResources));
+                .forEach((key, value) -> createResource(StringUtils.substringAfter(key, rootPath), value
+                    .asJsonObject(), packageBaseResources));
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
@@ -153,14 +154,14 @@ public class CreateResourcesMojo extends AbstractMojo {
 
             }
             JsonObject operation = null;
-            if (pathModel.containsKey("get")) {
-                createOperation(lines, "@GET", operation = pathModel.getJsonObject("get"), pathName, resourceName);
-            } else if (pathModel.containsKey("post")) {
-                createOperation(lines, "@POST", operation = pathModel.getJsonObject("post"), pathName, resourceName);
-            } else if (pathModel.containsKey("put")) {
-                createOperation(lines, "@PUT", operation = pathModel.getJsonObject("put"), pathName, resourceName);
-            } else if (pathModel.containsKey("delete")) {
-                createOperation(lines, "@DELETE", operation = pathModel.getJsonObject("delete"), pathName, resourceName);
+            if (pathModel.containsKey(GET)) {
+                createOperation(lines, "@GET", operation = pathModel.getJsonObject(GET), pathName, resourceName);
+            } else if (pathModel.containsKey(POST)) {
+                createOperation(lines, "@POST", operation = pathModel.getJsonObject(POST), pathName, resourceName);
+            } else if (pathModel.containsKey(PUT)) {
+                createOperation(lines, "@PUT", operation = pathModel.getJsonObject(PUT), pathName, resourceName);
+            } else if (pathModel.containsKey(DELETE)) {
+                createOperation(lines, "@DELETE", operation = pathModel.getJsonObject(DELETE), pathName, resourceName);
             }
 //preparando response
 
@@ -170,9 +171,7 @@ public class CreateResourcesMojo extends AbstractMojo {
                 var schema = (Map<String, Object>) content.get("schema");
                 var type = (String) schema.get("type");
                 var items = (Map<String, String>) schema.get("items");
-                var $ref = items != null
-                        ? items.get("$ref")
-                        : (String) schema.get("$ref");
+                var $ref = items != null ? items.get("$ref") : (String) schema.get("$ref");
                 String onlyClassName = "";
                 if (StringUtils.isNotBlank($ref)) {
                     String modelResponse = componentsMap.get(StringUtils.substringAfterLast($ref, "/"));
@@ -207,9 +206,9 @@ public class CreateResourcesMojo extends AbstractMojo {
     private void createOperation(List<String> lines, String method, JsonObject operationModel, String pathName, String resourceName) {
         lines.add(StringUtils.EMPTY);
         boolean paramsIn = operationModel.containsKey("parameters") && operationModel.getJsonArray("parameters")
-                .stream()
-                .map(JsonValue::asJsonObject)
-                .anyMatch(item -> item.containsKey("in") && StringUtils.equals(item.getString("in"), "path"));
+            .stream()
+            .map(JsonValue::asJsonObject)
+            .anyMatch(item -> item.containsKey("in") && StringUtils.equals(item.getString("in"), "path"));
         if (paramsIn) {
             String operationPath = StringUtils.substringBetween(StringUtils.substringAfter(pathName, resourceName), "{", "}");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Path(\"{" + operationPath + "}\")");
@@ -242,30 +241,21 @@ public class CreateResourcesMojo extends AbstractMojo {
             }
         }
         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + method);
-        String parameters = !operationModel.containsKey("parameters")
-                ? StringUtils.EMPTY
-                : operationModel.getJsonArray("parameters").stream()
-                .map(JsonValue::asJsonObject)
-                .map(param -> {
-                    StringBuilder result = new StringBuilder();
-                    if ("path".equals(param.getString("in"))) {
-                        result.append("@PathParam(\"").append(param.getString("name")).append("\") ");
-                    }
-                    result.append(getJavaType(param.getJsonObject("schema").getString("type")))
-                            .append(' ')
-                            .append(param.getString("name"));
-                    return result.toString();
-                }).collect(joining(","));
-        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB)
-                        + StringUtils.replaceEach(
-                        "public Response {operationId}({parameters}) {",
-                        new String[]{"{operationId}", "{parameters}"},
-                        new String[]{operationModel.getString("operationId"),
-                                bodyParams.length() == 0
-                                        ? parameters
-                                        : bodyParams.toString()}
-                )
-        );
+        String parameters = !operationModel.containsKey("parameters") ? StringUtils.EMPTY : operationModel.getJsonArray("parameters")
+            .stream()
+            .map(JsonValue::asJsonObject)
+            .map(param -> {
+                StringBuilder result = new StringBuilder();
+                if ("path".equals(param.getString("in"))) {
+                    result.append("@PathParam(\"").append(param.getString("name")).append("\") ");
+                }
+                result.append(getJavaType(param.getJsonObject("schema").getString("type")))
+                    .append(' ')
+                    .append(param.getString("name"));
+                return result.toString();
+            })
+            .collect(joining(","));
+        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + StringUtils.replaceEach("public Response {operationId}({parameters}) {", new String[]{"{operationId}", "{parameters}"}, new String[]{operationModel.getString("operationId"), bodyParams.length() == 0 ? parameters : bodyParams.toString()}));
     }
 
 }

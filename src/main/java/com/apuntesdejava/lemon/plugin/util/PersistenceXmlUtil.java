@@ -15,40 +15,49 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.persistence.model.PersistenceModel;
-import com.apuntesdejava.lemon.jakarta.persistence.model.PersistenceUnitModel;
-import com.apuntesdejava.lemon.jakarta.persistence.model.PropertiesModel;
-import com.apuntesdejava.lemon.jakarta.persistence.model.PropertyModel;
+import org.w3c.dom.Document;
 
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathExpressionException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
-public class PersistenceXmlUtil extends AbstractXmlUtil<PersistenceModel> {
+public class PersistenceXmlUtil {
 
+    public static Document openPersistenceXml(File basedir) throws IOException {
+        Path xmlPath = Paths.get(basedir.toString(), "src", "main", "resources", "META-INF", "persistence.xml")
+                .normalize();
+        Files.createDirectories(xmlPath.getParent());
+        return DocumentXmlUtil.openDocument(xmlPath).orElseGet(() -> {
+            try {
+                var document = DocumentXmlUtil.newDocument("persistence");
+                DocumentXmlUtil.findElementsByFilter(document, "/persistence")
+                        .stream()
+                        .findFirst()
+                        .ifPresent(persistenceElement -> {
+                            persistenceElement.setAttribute("xmlns", "https://jakarta.ee/xml/ns/persistence");
+                            persistenceElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+                            persistenceElement.setAttribute("version", "3.0");
+                        });
+                return document;
+            } catch (ParserConfigurationException | XPathExpressionException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
 
-    public PersistenceXmlUtil(String basedir) {
-        super(PersistenceModel.class, basedir);
     }
 
-    @Override
-    protected PersistenceModel newModelInstance() {
-        var model = new PersistenceModel();
-        var persistenceUnit = new PersistenceUnitModel();
-        persistenceUnit.setProperties(
-                new PropertiesModel(
-                        List.of(new PropertyModel("jakarta.persistence.schema-generation.database.action", "create"))
-                )
-        );
-        model.setPersistenceUnit(persistenceUnit);
-        return model;
+    public static void saveWebXml(File basedir, Document document) {
+        Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "resources", "META-INF", "persistence.xml")
+                .normalize();
+        DocumentXmlUtil.saveDocument(webXmlPath, document);
+
     }
 
-    @Override
-    protected Path getXmlFullPath(String baseDir) {
-        return Paths.get(baseDir, "src", "main", "resources", "META-INF", "persistence.xml");
-    }
 }

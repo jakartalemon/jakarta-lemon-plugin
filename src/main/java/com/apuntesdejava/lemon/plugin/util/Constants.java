@@ -23,16 +23,24 @@ public class Constants {
     public static final int TAB = 4;
 
     public final static String DEPENDENCIES_URL = "https://jakartalemon.dev/dependencies.json";
+    public final static String LEMON_CONFIG_URL = "https://jakartalemon.dev/lemon-plugin-config.json";
+
+    public final static String DEPENDENCY_GROUP_ID = "groupId";
+    public final static String DEPENDENCY_ARTIFACT_ID = "artifactId";
+    public final static String DEPENDENCY_VERSION = "version";
 
     public final static String DATASOURCE = "datasource";
     public final static String URL = "url";
     public final static String PASSWORD = "password";
-    public final static String DRIVER = "driver";
-    public final static String POOL = "pool";
-    public final static String SEARCH = "search";
     public final static String USER = "user";
     public final static String PROPERTIES = "properties";
     public final static String STYLE = "style";
+
+    public static final String PROPERTY = "property";
+    public static final String GET = "get";
+    public static final String POST = "post";
+    public static final String PUT = "put";
+    public static final String DELETE = "delete";
 
     public static final String QUERY_MAVEN_URL = "https://search.maven.org/solrsearch/select?q=";
 
@@ -44,6 +52,7 @@ public class Constants {
 
     public static final String ENTITIES = "entities";
     public static final String NAME = "name";
+    public static final String VALUE = "value";
     public static final String TABLE_NAME = "tableName";
     public static final String FINDERS = "finders";
     public static final String NATIVE_QUERY = "native";
@@ -59,6 +68,18 @@ public class Constants {
     public static final String DB = "db";
     public static final String PARAMETERS = "parameters";
     public static final String UNIQUE = "unique";
+
+    public static final String FACES_SERVLET = "jakarta.faces.webapp.FacesServlet";
+    public static final String FACES_SERVLET_NAME = "Server Faces Servlet";
+
+    public static final String SERVLET_NAME = "servlet-name";
+    public static final String SERVLET_CLASS = "servlet-class";
+    public static final String SERVLET = "servlet";
+    public static final String URL_PATTERN = "url-pattern";
+
+    public static final String LIBERTY_VAR_SYSTEM_HTTP_PORT = "liberty.var.system.http.port";
+    public static final String LIBERTY_VAR_DEFAULT_HTTP_PORT = "liberty.var.default.http.port";
+    public static final String LIBERTY_VAR_DEFAULT_HTTPS_PORT = "liberty.var.default.https.port";
 
     private Constants() {
     }
