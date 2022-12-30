@@ -40,7 +40,7 @@ public class DependenciesUtil {
             var dependenciesDefinitions = HttpClientUtil.getJson(log, DEPENDENCIES_URL, JsonReader::readObject);
             return Optional.ofNullable(dependenciesDefinitions.getJsonObject(database)).map(dependency -> {
 
-                var query = String.format("g:%s+AND+a:%s", dependency.getString("g"), dependency.getString("a"));
+                var query = String.format("g:%s+AND+a:%s", dependency.getString(G_KEY), dependency.getString(A_KEY));
                 return getLastVersionDependency(log, query);
             }).filter(Optional::isPresent).flatMap(item -> item);
         } catch (IOException | InterruptedException | URISyntaxException ex) {
@@ -53,13 +53,13 @@ public class DependenciesUtil {
         try {
             String uri = QUERY_MAVEN_URL + query;
             var jsonResp = HttpClientUtil.getJson(log, uri, JsonReader::readObject);
-            var responseJson = jsonResp.getJsonObject("response");
-            var docsJson = responseJson.getJsonArray("docs");
+            var responseJson = jsonResp.getJsonObject(RESPONSE);
+            var docsJson = responseJson.getJsonArray(DOCS);
             var docJson = docsJson.get(0).asJsonObject();
             return Optional.of(Json.createObjectBuilder()
-                .add(DEPENDENCY_GROUP_ID, docJson.getString("g"))
-                .add(DEPENDENCY_ARTIFACT_ID, docJson.getString("a"))
-                .add(DEPENDENCY_VERSION, docJson.getString("latestVersion"))
+                .add(DEPENDENCY_GROUP_ID, docJson.getString(G_KEY))
+                .add(DEPENDENCY_ARTIFACT_ID, docJson.getString(A_KEY))
+                .add(DEPENDENCY_VERSION, docJson.getString(LATEST_VERSION))
                 .build());
 
         } catch (URISyntaxException | IOException | InterruptedException ex) {

@@ -17,6 +17,7 @@ package com.apuntesdejava.lemon.plugin.util;
 
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
 import jakarta.xml.bind.JAXBException;
 import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Model;
@@ -40,93 +41,92 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
-import jakarta.json.JsonString;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class OpenLibertyUtil {
 
-    private static final Path SERVER_XML_PATH = Paths.get("src", "main", "liberty", "config", "server.xml");
+    private static final Path SERVER_XML_PATH = Paths.get(SRC_PATH, MAIN_PATH, "liberty", "config", "server.xml");
 
     private OpenLibertyUtil() {
 
     }
 
     public static void createDataSource(Log log,
-            JsonObject projectModel,
-            MavenProject mavenProject) {
+                                        JsonObject projectModel,
+                                        MavenProject mavenProject) {
         try {
             log.info("Updating server.xml");
             getServerModel(log, mavenProject, Collections.emptyMap())
-                    .ifPresent(serverModel -> {
-                        try {
-                           
-                            DocumentXmlUtil.createElement(serverModel, "/server", "library")
-                                    .ifPresent(libraryElement -> {
-                                        libraryElement.setAttribute("id", "jdbcLib");
-                                        DocumentXmlUtil.createElement(serverModel, libraryElement, "fileset")
-                                                .ifPresent(filesetElement -> {
-                                                    filesetElement.setAttribute("dir", "jdbc");
-                                                    filesetElement.setAttribute("includes", "*.jar");
-                                                });
+                .ifPresent(serverModel -> {
+                    try {
+
+                        DocumentXmlUtil.createElement(serverModel, "/server", "library")
+                            .ifPresent(libraryElement -> {
+                                libraryElement.setAttribute(ID, JDBC_LIB);
+                                DocumentXmlUtil.createElement(serverModel, libraryElement, "fileset")
+                                    .ifPresent(filesetElement -> {
+                                        filesetElement.setAttribute("dir", JDBC);
+                                        filesetElement.setAttribute("includes", "*.jar");
                                     });
+                            });
 
-                            String jndiName = "jdbc/" + mavenProject.getArtifactId();
-                            var datasourceModel = projectModel.getJsonObject(DATASOURCE);
+                        String jndiName = "jdbc/" + mavenProject.getArtifactId();
+                        var datasourceModel = projectModel.getJsonObject(DATASOURCE);
 
-                            DocumentXmlUtil.createElement(serverModel, "server", "dataSource")
-                                    .ifPresent(dataSourceElement -> {
-                                        dataSourceElement.setAttribute("jndiName", jndiName);
-                                        DocumentXmlUtil.createElement(serverModel, dataSourceElement, "jdbcDriver")
-                                                .ifPresent(jdbcDriverElement -> jdbcDriverElement.setAttribute("libraryRef", "jdbcLib"));
-                                        DocumentXmlUtil.createElement(serverModel, dataSourceElement, "properties")
-                                                .ifPresent(propertiesElement -> {
-                                                    propertiesElement.setAttribute(URL, datasourceModel.getString(URL));
-                                                    propertiesElement.setAttribute(USER, datasourceModel.getString(USER));
-                                                    propertiesElement.setAttribute(PASSWORD, datasourceModel.getString(PASSWORD));
-                                                    var props = datasourceModel.getJsonObject(PROPERTIES);
-                                                    props.keySet().forEach(key -> {
-                                                        var value = props.getString(key);
-                                                        propertiesElement.setAttribute(key, value);
-                                                    });
+                        DocumentXmlUtil.createElement(serverModel, "server", "dataSource")
+                            .ifPresent(dataSourceElement -> {
+                                dataSourceElement.setAttribute(JNDI_NAME, jndiName);
+                                DocumentXmlUtil.createElement(serverModel, dataSourceElement, "jdbcDriver")
+                                    .ifPresent(jdbcDriverElement -> jdbcDriverElement.setAttribute("libraryRef", JDBC_LIB));
+                                DocumentXmlUtil.createElement(serverModel, dataSourceElement, PROPERTIES)
+                                    .ifPresent(propertiesElement -> {
+                                        propertiesElement.setAttribute(URL, datasourceModel.getString(URL));
+                                        propertiesElement.setAttribute(USER, datasourceModel.getString(USER));
+                                        propertiesElement.setAttribute(PASSWORD, datasourceModel.getString(PASSWORD));
+                                        var props = datasourceModel.getJsonObject(PROPERTIES);
+                                        props.keySet().forEach(key -> {
+                                            var value = props.getString(key);
+                                            propertiesElement.setAttribute(key, value);
+                                        });
 
-                                                });
                                     });
+                            });
 
-                            log.debug("Modifing pom.xml");
-                            Model model = ProjectModelUtil.getModel(mavenProject);
-                            Profile profile = ProjectModelUtil.getProfile(model, "openliberty");
-                            BuildBase build = ProjectModelUtil.getBuild(profile);
-                            Optional<Plugin> pluginOpt = ProjectModelUtil.addPlugin(build, "io.openliberty.tools",
-                                    "liberty-maven-plugin", "3.3.4");
-                            if (pluginOpt.isPresent()) {
-                                Plugin plugin = pluginOpt.get();
-                                Xpp3Dom conf = ProjectModelUtil.getConfiguration(plugin);
-                                Xpp3Dom copyDependencies = ProjectModelUtil.addChildren(conf, "copyDependencies");
-                                Xpp3Dom dependencyGroup = ProjectModelUtil.addChildren(copyDependencies, "dependencyGroup");
-                                Xpp3Dom location = ProjectModelUtil.addChildren(dependencyGroup, "location");
-                                location.setValue("jdbc");
+                        log.debug("Modifing pom.xml");
+                        Model model = ProjectModelUtil.getModel(mavenProject);
+                        Profile profile = ProjectModelUtil.getProfile(model, OPENLIBERTY);
+                        BuildBase build = ProjectModelUtil.getBuild(profile);
+                        Optional<Plugin> pluginOpt = ProjectModelUtil.addPlugin(build, "io.openliberty.tools",
+                            "liberty-maven-plugin", "3.3.4");
+                        if (pluginOpt.isPresent()) {
+                            Plugin plugin = pluginOpt.get();
+                            Xpp3Dom conf = ProjectModelUtil.getConfiguration(plugin);
+                            Xpp3Dom copyDependencies = ProjectModelUtil.addChildren(conf, "copyDependencies");
+                            Xpp3Dom dependencyGroup = ProjectModelUtil.addChildren(copyDependencies, "dependencyGroup");
+                            Xpp3Dom location = ProjectModelUtil.addChildren(dependencyGroup, "location");
+                            location.setValue(JDBC);
 
-                                Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, "dependency");
-                                ProjectModelUtil.addDependenciesDatabase(log, dependency, datasourceModel.getString(DB));
+                            Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, DEPENDENCY);
+                            ProjectModelUtil.addDependenciesDatabase(log, dependency, datasourceModel.getString(DB));
 
-                                ProjectModelUtil.saveModel(mavenProject, model);
-                            }
-
-                            saveServerModel(mavenProject, serverModel);
-                        } catch (IOException | XmlPullParserException | JAXBException | XPathExpressionException ex) {
-                            log.error(ex.getMessage(), ex);
+                            ProjectModelUtil.saveModel(mavenProject, model);
                         }
-                    });
+
+                        saveServerModel(mavenProject, serverModel);
+                    } catch (IOException | XmlPullParserException | JAXBException | XPathExpressionException ex) {
+                        log.error(ex.getMessage(), ex);
+                    }
+                });
         } catch (IOException | JAXBException | ParserConfigurationException ex) {
             log.error(ex.getMessage(), ex);
         }
     }
 
     public static Optional<Document> getServerModel(Log log,
-            MavenProject mavenProject,
-            Map<String, String> options) throws JAXBException, IOException, ParserConfigurationException {
+                                                    MavenProject mavenProject,
+                                                    Map<String, String> options) throws JAXBException, IOException, ParserConfigurationException {
         log.info("Creating server.xml file");
         Path baseDirPath = mavenProject.getBasedir().toPath();
         log.debug("baseDirPath:" + baseDirPath);
@@ -139,47 +139,47 @@ public class OpenLibertyUtil {
         var document = DocumentXmlUtil.newDocument("server");
         try {
             DocumentXmlUtil.findElementsByFilter(document, "/server")
-                    .stream()
-                    .findFirst()
-                    .ifPresent(serverElement -> {
-                        try {
-                            String projectName = mavenProject.getName();
-                            serverElement.setAttribute("description", projectName);
-                            var config = HttpClientUtil.getJson(log, LEMON_CONFIG_URL, JsonReader::readObject);
-                            var features = config.getJsonObject("openliberty")
-                                    .getJsonObject("server")
-                                    .getJsonObject("featureManager")
-                                    .getJsonArray("feature");
+                .stream()
+                .findFirst()
+                .ifPresent(serverElement -> {
+                    try {
+                        String projectName = mavenProject.getName();
+                        serverElement.setAttribute("description", projectName);
+                        var config = HttpClientUtil.getJson(log, LEMON_CONFIG_URL, JsonReader::readObject);
+                        var features = config.getJsonObject(OPENLIBERTY)
+                            .getJsonObject("server")
+                            .getJsonObject("featureManager")
+                            .getJsonArray("feature");
 
-                            DocumentXmlUtil.createElement(document, serverElement, "featureManager")
-                                    .ifPresent(featureManagerElement -> features.stream()
-                                    .map(item -> ((JsonString) item).getString())
-                                    .forEach(featureItem -> DocumentXmlUtil.createElement(document, featureManagerElement,
+                        DocumentXmlUtil.createElement(document, serverElement, "featureManager")
+                            .ifPresent(featureManagerElement -> features.stream()
+                                .map(item -> ((JsonString) item).getString())
+                                .forEach(featureItem -> DocumentXmlUtil.createElement(document, featureManagerElement,
                                     "feature", featureItem)));
 
-                            DocumentXmlUtil.createElement(document, serverElement, "applicationManager")
-                                    .ifPresent(applicationManagerElement -> applicationManagerElement.setAttribute("autoExpand", "true"));
-                            DocumentXmlUtil.createElement(document, serverElement, "webApplication")
-                                    .ifPresent(webApplicationElement -> {
-                                        webApplicationElement.setAttribute("contextRoot", "/" + projectName);
-                                        webApplicationElement.setAttribute("location", projectName + ".war");
-                                    });
-                            if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTP_PORT) || options.containsKey(LIBERTY_VAR_DEFAULT_HTTPS_PORT)) {
-                                DocumentXmlUtil.createElement(document, serverElement, "httpEndpoint")
-                                        .ifPresent(httpEndpointElement -> {
-                                            httpEndpointElement.setAttribute("id", "defaultHttpEndpoint");
-                                            if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTP_PORT)) {
-                                                httpEndpointElement.setAttribute("httpPort", options.get(LIBERTY_VAR_DEFAULT_HTTP_PORT));
-                                            }
-                                            if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTPS_PORT)) {
-                                                httpEndpointElement.setAttribute("httpsPort", options.get(LIBERTY_VAR_DEFAULT_HTTPS_PORT));
-                                            }
-                                        });
-                            }
-                        } catch (IOException | InterruptedException | URISyntaxException ex) {
-                            log.error(ex.getMessage(), ex);
+                        DocumentXmlUtil.createElement(document, serverElement, "applicationManager")
+                            .ifPresent(applicationManagerElement -> applicationManagerElement.setAttribute("autoExpand", "true"));
+                        DocumentXmlUtil.createElement(document, serverElement, "webApplication")
+                            .ifPresent(webApplicationElement -> {
+                                webApplicationElement.setAttribute("contextRoot", "/" + projectName);
+                                webApplicationElement.setAttribute("location", projectName + ".war");
+                            });
+                        if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTP_PORT) || options.containsKey(LIBERTY_VAR_DEFAULT_HTTPS_PORT)) {
+                            DocumentXmlUtil.createElement(document, serverElement, "httpEndpoint")
+                                .ifPresent(httpEndpointElement -> {
+                                    httpEndpointElement.setAttribute(ID, "defaultHttpEndpoint");
+                                    if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTP_PORT)) {
+                                        httpEndpointElement.setAttribute("httpPort", options.get(LIBERTY_VAR_DEFAULT_HTTP_PORT));
+                                    }
+                                    if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTPS_PORT)) {
+                                        httpEndpointElement.setAttribute("httpsPort", options.get(LIBERTY_VAR_DEFAULT_HTTPS_PORT));
+                                    }
+                                });
                         }
-                    });
+                    } catch (IOException | InterruptedException | URISyntaxException ex) {
+                        log.error(ex.getMessage(), ex);
+                    }
+                });
         } catch (XPathExpressionException ex) {
             log.error(ex.getMessage(), ex);
         }
@@ -189,7 +189,7 @@ public class OpenLibertyUtil {
     }
 
     public static void saveServerModel(MavenProject mavenProject,
-            Document serverModel) throws JAXBException {
+                                       Document serverModel) throws JAXBException {
         Path baseDirPath = mavenProject.getBasedir().toPath();
         Path serverXmlPath = baseDirPath.resolve(SERVER_XML_PATH);
         DocumentXmlUtil.saveDocument(serverXmlPath, serverModel);

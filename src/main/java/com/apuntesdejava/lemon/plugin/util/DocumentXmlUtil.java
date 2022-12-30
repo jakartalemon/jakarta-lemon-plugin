@@ -41,6 +41,8 @@ import java.util.logging.Logger;
 
 import static java.util.Collections.emptyMap;
 import static javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING;
+import static org.apache.commons.lang3.BooleanUtils.NO;
+import static org.apache.commons.lang3.BooleanUtils.YES;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
@@ -48,6 +50,7 @@ import static javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING;
 public class DocumentXmlUtil {
 
     private static final Logger LOGGER = Logger.getLogger(DocumentXmlUtil.class.getName());
+    private static final String STRIP_XSL_FILE_NAME = "/xml/strip.xsl";
 
     public static Document newDocument(String rootElementName) throws ParserConfigurationException {
         var documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -113,13 +116,13 @@ public class DocumentXmlUtil {
     }
 
     public static void saveDocument(Path path, Document document, Map<String, String> outputProperties) {
-        try (var fos = new FileOutputStream(path.toFile()); var xlsIs = DocumentXmlUtil.class.getResourceAsStream("/xml/strip.xsl")) {
+        try ( var fos = new FileOutputStream(path.toFile());  var xlsIs = DocumentXmlUtil.class.getResourceAsStream(STRIP_XSL_FILE_NAME)) {
             Source xslt = new StreamSource(xlsIs);
             var transformerFactory = TransformerFactory.newInstance();
             var transformer = transformerFactory.newTransformer(xslt);
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty(OutputKeys.STANDALONE, "no");
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            transformer.setOutputProperty(OutputKeys.INDENT, YES);
+            transformer.setOutputProperty(OutputKeys.STANDALONE, NO);
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, NO);
             outputProperties.forEach(transformer::setOutputProperty);
             document.setXmlStandalone(true);
             var source = new DOMSource(document);

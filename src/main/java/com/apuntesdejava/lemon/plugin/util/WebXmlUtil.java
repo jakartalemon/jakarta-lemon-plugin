@@ -25,13 +25,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class WebXmlUtil {
 
     public static Document openWebXml(File basedir) throws IOException {
-        Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
+        Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, WEBAPP, WEB_INF_PATH, WEBXML).normalize();
         Files.createDirectories(webXmlPath.getParent());
         return DocumentXmlUtil.openDocument(webXmlPath).orElseGet(() -> {
             try {
@@ -57,7 +59,7 @@ public class WebXmlUtil {
     }
 
     public static void saveWebXml(File basedir, Document document) {
-        Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
+        Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, WEBAPP, WEB_INF_PATH, WEBXML).normalize();
         DocumentXmlUtil.saveDocument(webXmlPath, document);
 
     }

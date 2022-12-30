@@ -27,6 +27,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
@@ -40,7 +42,7 @@ public class PayaraResourcesXmlUtil {
         Files.createDirectories(xmlPath.getParent());
         return DocumentXmlUtil.openDocument(xmlPath).orElseGet(() -> {
             try {
-                var document = DocumentXmlUtil.newDocument("resources");
+                var document = DocumentXmlUtil.newDocument(RESOURCES);
                 DocumentXmlUtil.findElementsByFilter(document, "/resources")
                     .stream()
                     .findFirst()
@@ -63,7 +65,7 @@ public class PayaraResourcesXmlUtil {
     }
 
     public static Path getPayaraResourcesPath(File basedir) {
-        return Paths.get(basedir.toString(), "src", "main", "setup", "payara-resources.xml").normalize();
+        return Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, "setup", "payara-resources.xml").normalize();
     }
 
 }

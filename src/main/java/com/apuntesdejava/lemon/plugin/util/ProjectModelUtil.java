@@ -223,9 +223,9 @@ public class ProjectModelUtil {
 
     }
 
-    public static Dependency addDependenciesDatabase(Log log, Model model, String database) {
-        return addDependency(DependenciesUtil.getByDatabase(log, database)
-                .orElse(null), model.getDependencies(), emptyMap());
+    public static void addDependenciesDatabase(Log log, Model model, String database) {
+        addDependency(DependenciesUtil.getByDatabase(log, database)
+            .orElse(null), model.getDependencies(), emptyMap());
 
     }
 

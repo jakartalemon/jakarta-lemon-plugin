@@ -31,8 +31,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import java.io.IOException;
 import java.util.Map;
 
-import static com.apuntesdejava.lemon.plugin.util.Constants.VIEW_STYLE;
-import static com.apuntesdejava.lemon.plugin.util.Constants.VIEW_STYLE_JSF;
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
@@ -78,8 +77,16 @@ public class CreateViewMojo extends AbstractMojo {
         try {
             getLog().debug("Modifing pom.xml");
             Model model = ProjectModelUtil.getModel(mavenProject);
-            ProjectModelUtil.addDependency(getLog(), model.getDependencies(), "org.primefaces", "primefaces", Map.of("classifier", "jakarta"));
-            this.primeflexDependency = ProjectModelUtil.addDependency(getLog(), model.getDependencies(), "org.webjars.npm", "primeflex");
+            ProjectModelUtil.addDependency(
+                getLog(),
+                model.getDependencies(),
+                PRIMEFACES_GROUP_ID,
+                PRIMEFACES_ARTIFACT_ID,
+                Map.of("classifier", "jakarta")
+            );
+            this.primeflexDependency = ProjectModelUtil.addDependency(
+                getLog(), model.getDependencies(), PRIMEFLEX_GROUP_ID, PRIMEFLEX_ARTIFACT_ID
+            );
             ProjectModelUtil.saveModel(mavenProject, model);
         } catch (IOException | XmlPullParserException ex) {
             getLog().error(ex.getMessage(), ex);

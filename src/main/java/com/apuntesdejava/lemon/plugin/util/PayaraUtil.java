@@ -42,65 +42,65 @@ public class PayaraUtil {
     public static void createPayaraDataSourceResources(Log log, JsonObject projectModel, MavenProject mavenProject) {
         try {
 
-            String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
+            String dataSourceName = JDBC + '/' + mavenProject.getArtifactId();
             String poolName = mavenProject.getArtifactId() + "Pool";
             var datasource = projectModel.getJsonObject(DATASOURCE);
 
             String driverDataSource = ProjectModelUtil.getDriver(log, datasource.getString(DB));
             var payaraResourcesXml = PayaraResourcesXmlUtil.openPayaraXml(mavenProject.getBasedir());
             DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, "/resources")
-                    .stream()
-                    .findFirst()
-                    .ifPresent(resourcesElement -> {
+                .stream()
+                .findFirst()
+                .ifPresent(resourcesElement -> {
+                    try {
                         try {
-                            try {
-                                if (DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-resource[@jndi-name=\"%s\"]", dataSourceName))
-                                        .isEmpty()) {
-                                    DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-resource")
-                                            .ifPresent(jdbcResourceElement -> {
-                                                jdbcResourceElement.setAttribute("jndi-name", dataSourceName);
-                                                jdbcResourceElement.setAttribute("pool-name", poolName);
-                                            });
-                                }
-                            } catch (XPathExpressionException ex) {
-                                log.error(ex.getMessage(), ex);
-                            }
-                            if (DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-connection-pool[@name=\"%s\"]", poolName))
-                                    .isEmpty()) {
-                                DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-connection-pool")
-                                        .ifPresent(jdbcConnectionPoolElement -> {
-                                            jdbcConnectionPoolElement.setAttribute("datasource-classname", driverDataSource);
-                                            jdbcConnectionPoolElement.setAttribute(NAME, poolName);
-                                            jdbcConnectionPoolElement.setAttribute("res-type", "javax.sql.DataSource");
-                                            DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
-                                                    .ifPresent(propertyElement -> {
-                                                        propertyElement.setAttribute(NAME, URL);
-                                                        propertyElement.setAttribute(VALUE, datasource.getString(URL));
-                                                    });
-                                            DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
-                                                    .ifPresent(propertyElement -> {
-                                                        propertyElement.setAttribute(NAME, USER);
-                                                        propertyElement.setAttribute(VALUE, datasource.getString(USER));
-                                                    });
-                                            DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
-                                                    .ifPresent(propertyElement -> {
-                                                        propertyElement.setAttribute(NAME, PASSWORD);
-                                                        propertyElement.setAttribute(VALUE, datasource.getString(PASSWORD));
-                                                    });
-                                            var properties = datasource.getJsonObject(PROPERTIES);
-                                            properties.keySet()
-                                                    .forEach(key -> DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
-                                                            .ifPresent(propertyElement -> {
-                                                                propertyElement.setAttribute(NAME, key);
-                                                                propertyElement.setAttribute(VALUE, properties.getString(key));
-                                                            }));
-
-                                        });
+                            if (DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-resource[@jndi-name=\"%s\"]", dataSourceName))
+                                .isEmpty()) {
+                                DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-resource")
+                                    .ifPresent(jdbcResourceElement -> {
+                                        jdbcResourceElement.setAttribute("jndi-name", dataSourceName);
+                                        jdbcResourceElement.setAttribute("pool-name", poolName);
+                                    });
                             }
                         } catch (XPathExpressionException ex) {
                             log.error(ex.getMessage(), ex);
                         }
-                    });
+                        if (DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-connection-pool[@name=\"%s\"]", poolName))
+                            .isEmpty()) {
+                            DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-connection-pool")
+                                .ifPresent(jdbcConnectionPoolElement -> {
+                                    jdbcConnectionPoolElement.setAttribute("datasource-classname", driverDataSource);
+                                    jdbcConnectionPoolElement.setAttribute(NAME, poolName);
+                                    jdbcConnectionPoolElement.setAttribute("res-type", "javax.sql.DataSource");
+                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
+                                        .ifPresent(propertyElement -> {
+                                            propertyElement.setAttribute(NAME, URL);
+                                            propertyElement.setAttribute(VALUE, datasource.getString(URL));
+                                        });
+                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
+                                        .ifPresent(propertyElement -> {
+                                            propertyElement.setAttribute(NAME, USER);
+                                            propertyElement.setAttribute(VALUE, datasource.getString(USER));
+                                        });
+                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
+                                        .ifPresent(propertyElement -> {
+                                            propertyElement.setAttribute(NAME, PASSWORD);
+                                            propertyElement.setAttribute(VALUE, datasource.getString(PASSWORD));
+                                        });
+                                    var properties = datasource.getJsonObject(PROPERTIES);
+                                    properties.keySet()
+                                        .forEach(key -> DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
+                                            .ifPresent(propertyElement -> {
+                                                propertyElement.setAttribute(NAME, key);
+                                                propertyElement.setAttribute(VALUE, properties.getString(key));
+                                            }));
+
+                                });
+                        }
+                    } catch (XPathExpressionException ex) {
+                        log.error(ex.getMessage(), ex);
+                    }
+                });
             PayaraResourcesXmlUtil.savePayaraXml(mavenProject.getBasedir(), payaraResourcesXml);
             log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + PayaraResourcesXmlUtil.getPayaraResourcesPath(mavenProject.getBasedir()));
 
@@ -122,9 +122,9 @@ public class PayaraUtil {
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
             List<String> lines = new ArrayList<>();
             StringBuilder line = new StringBuilder(String.format("create-jdbc-connection-pool --ping=true --pooling=true --restype=javax.sql.DataSource --datasourceclassname=%s --property ", driverDataSource));
-            line.append(String.format("user=%s:", datasource.getString(USER)));
-            line.append(String.format("password=%s:", datasource.getString(PASSWORD)));
-            line.append(String.format("url=%s:", replaceChars(datasource.getString(URL))));
+            line.append(String.format("%s=%s:", USER, datasource.getString(USER)));
+            line.append(String.format("%s=%s:", PASSWORD, datasource.getString(PASSWORD)));
+            line.append(String.format("%s=%s:", URL, replaceChars(datasource.getString(URL))));
             var properties = datasource.getJsonObject(PROPERTIES);
             properties.keySet().forEach(key -> line.append(String.format("%s=%s:", key, properties.getString(key))));
             line.setLength(line.length() - 1);//quitando último dos puntos

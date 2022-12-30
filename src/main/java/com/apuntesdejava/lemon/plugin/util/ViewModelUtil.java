@@ -64,10 +64,10 @@ public class ViewModelUtil {
         this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-',
                 '.');
         var baseDirPath = mavenProject.getBasedir().toPath();
-        var mainPath = baseDirPath.resolve("src").resolve("main");
-        Path javaMainSrc = mainPath.resolve("java");
-        this.webAppPath = mainPath.resolve("webapp");
-        this.resourcePath = mainPath.resolve("resources");
+        var mainPath = baseDirPath.resolve(SRC_PATH).resolve(MAIN_PATH);
+        Path javaMainSrc = mainPath.resolve(JAVA_PATH);
+        this.webAppPath = mainPath.resolve(WEBAPP);
+        this.resourcePath = mainPath.resolve(RESOURCES);
         String[] packagePaths = packageName.split("\\.");
         this.packageBasePath = javaMainSrc;
         for (String packagePath : packagePaths) {
@@ -468,8 +468,8 @@ public class ViewModelUtil {
                 getPrimaryKey(formBean).ifPresent(id -> htmlElem.addChild(ElementBuilder.newInstance("f:metadata")
                         .addChild(ElementBuilder.newInstance(
                                 "f:viewParam").addAttribute(
-                                "name", "id").addAttribute(
-                                "value", String.format(
+                                "name", ID).addAttribute(
+                                VALUE, String.format(
                                         "#{%sView.%s.%s}",
                                         pathName,
                                         formBeanName, id)))
@@ -493,7 +493,7 @@ public class ViewModelUtil {
                 hForm.addChild(DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
                         .addAttribute("outcome", "/customerForm")
                         .addAttribute("icon", "pi pi-plus-circle")
-                        .addAttribute("value", "#{messages['list.new_record']}")).addChild(
+                        .addAttribute(VALUE, "#{messages['list.new_record']}")).addChild(
                         createList(pathName, formBeanName, formBean,
                                 entry.getValue().asJsonObject().getString("editForm")));
             } else {
@@ -513,14 +513,14 @@ public class ViewModelUtil {
     private ElementBuilder createForm(String formBeanName,
                                       JsonObject formBean) {
         var panel = DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup").addAttribute("layout", "block")
-                .addAttribute("id", "formPanel").addAttribute("styleClass", "card");
+                .addAttribute(ID, "formPanel").addAttribute("styleClass", "card");
         var $formBeanName = name2ClassName(formBeanName);
         formBean.forEach((fieldName, type) -> {
             ElementBuilder fieldPanelGroup;
             panel.addChild(fieldPanelGroup = DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
                     .addAttribute("layout", "block").addAttribute("styleClass", "field col-12 md:col-6").addChild(
                             DocumentXmlUtil.ElementBuilder.newInstance("p:outputLabel").addAttribute("for", fieldName)
-                                    .addAttribute("value",
+                                    .addAttribute(VALUE,
                                             String.format("#{messages.%s_%s}", $formBeanName, fieldName))));
             log.debug("----" + fieldName + ":" + type);
             var fieldType = getFileType(type);
@@ -537,8 +537,8 @@ public class ViewModelUtil {
                     break;
             }
             if (child != null) {
-                child.addAttribute("id", fieldName).addAttribute("styleClass", "w-full")
-                        .addAttribute("value", String.format("#{%1$sFormView.%1$s.%2$s}", formBeanName, fieldName));
+                child.addAttribute(ID, fieldName).addAttribute("styleClass", "w-full")
+                        .addAttribute(VALUE, String.format("#{%1$sFormView.%1$s.%2$s}", formBeanName, fieldName));
                 if (type.getValueType() == JsonValue.ValueType.OBJECT) {
                     var typeObject = type.asJsonObject();
                     if (typeObject.containsKey("size")) {
@@ -562,19 +562,19 @@ public class ViewModelUtil {
                                       JsonObject formBean,
                                       String editForm) {
         var pDataTable = DocumentXmlUtil.ElementBuilder.newInstance("p:dataTable")
-                .addAttribute("value", String.format("#{%1$sView.%1$sList}", variableName)).addAttribute("var", "item");
+                .addAttribute(VALUE, String.format("#{%1$sView.%1$sList}", variableName)).addAttribute("var", "item");
         var $formBeanName = name2ClassName(formBeanName);
         formBean.forEach((fieldName, type) -> pDataTable.addChild(ElementBuilder.newInstance("p:column")
                 .addAttribute("headerText", String.format(
                         "#{messages.%s_%s}", $formBeanName,
                         fieldName)).addChild(
                         ElementBuilder.newInstance("h:outputText")
-                                .addAttribute("value", String.format("#{item.%s}", fieldName)))));
+                                .addAttribute(VALUE, String.format("#{item.%s}", fieldName)))));
         getPrimaryKey(formBean).ifPresent(field -> pDataTable.addChild(ElementBuilder.newInstance("p:column").addChild(
                 ElementBuilder.newInstance("p:linkButton").addAttribute("outcome", editForm)
                         .addAttribute("icon", "pi pi-pencil").addChild(
-                                ElementBuilder.newInstance("f:param").addAttribute("name", "id")
-                                        .addAttribute("value", String.format("#{item.%s}", field))))));
+                                ElementBuilder.newInstance("f:param").addAttribute("name", ID)
+                                        .addAttribute(VALUE, String.format("#{item.%s}", field))))));
         return pDataTable;
 
     }
@@ -621,11 +621,11 @@ public class ViewModelUtil {
         return DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup").addAttribute("layout", "block")
                 .addAttribute("styleClass", "card").addChild(
                         DocumentXmlUtil.ElementBuilder.newInstance("p:commandButton")
-                                .addAttribute("value", "#{messages['form.save']}").addAttribute("styleClass", "mr-3")
+                                .addAttribute(VALUE, "#{messages['form.save']}").addAttribute("styleClass", "mr-3")
                                 .addAttribute("update", "formPanel")
                                 .addAttribute("action", String.format("#{%sFormView.save()}", formBeanName))).addChild(
                         DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
-                                .addAttribute("value", "#{messages['form.cancel']}")
+                                .addAttribute(VALUE, "#{messages['form.cancel']}")
                                 .addAttribute("styleClass", "ui-button-secondary mr-3")
                                 .addAttribute("outcome", listLink));
     }

@@ -25,13 +25,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class PersistenceXmlUtil {
 
     public static Document openPersistenceXml(File basedir) throws IOException {
-        Path xmlPath = Paths.get(basedir.toString(), "src", "main", "resources", "META-INF", "persistence.xml")
+        Path xmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, RESOURCES, META_INF, "persistence.xml")
                 .normalize();
         Files.createDirectories(xmlPath.getParent());
         return DocumentXmlUtil.openDocument(xmlPath).orElseGet(() -> {
@@ -54,7 +56,7 @@ public class PersistenceXmlUtil {
     }
 
     public static void saveWebXml(File basedir, Document document) {
-        Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "resources", "META-INF", "persistence.xml")
+        Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, RESOURCES, META_INF, "persistence.xml")
                 .normalize();
         DocumentXmlUtil.saveDocument(webXmlPath, document);
 

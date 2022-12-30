@@ -15,21 +15,22 @@
  */
 package com.apuntesdejava.lemon.jakarta.model.types;
 
+import com.apuntesdejava.lemon.plugin.util.Constants;
+import static com.apuntesdejava.lemon.plugin.util.Constants.WEBXML;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public enum DatasourceDefinitionStyleType {
     /**
      * Type by create datasource in web.xml file
      */
-    WEB("web.xml"),
+    WEB(WEBXML),
     /**
      * Type by create datasource for Open Liberty
      */
-    OPENLIBERTY("openliberty"),
+    OPENLIBERTY(Constants.OPENLIBERTY),
     /**
      * Type by create datasource for Payara Server
      */

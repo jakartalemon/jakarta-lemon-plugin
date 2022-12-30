@@ -28,6 +28,11 @@ public class Constants {
     public final static String DEPENDENCY_GROUP_ID = "groupId";
     public final static String DEPENDENCY_ARTIFACT_ID = "artifactId";
     public final static String DEPENDENCY_VERSION = "version";
+    public final static String DEPENDENCY_TYPE = "type";
+    public final static String RUNTIME_ARTIFACT = "runtimeArtifact";
+    public final static String OPENLIBERTY = "openliberty";
+    public final static String CONFIGURATION = "configuration";
+    public final static String ENABLED = "enabled";
 
     public final static String DATASOURCE = "datasource";
     public final static String URL = "url";
@@ -80,6 +85,58 @@ public class Constants {
     public static final String LIBERTY_VAR_SYSTEM_HTTP_PORT = "liberty.var.system.http.port";
     public static final String LIBERTY_VAR_DEFAULT_HTTP_PORT = "liberty.var.default.http.port";
     public static final String LIBERTY_VAR_DEFAULT_HTTPS_PORT = "liberty.var.default.https.port";
+    public static final String LIBERTY_VAR_APP_CONTEXT_ROOT = "liberty.var.app.context.root";
+    public static final String PLUGIN = "plugin";
+    public static final String SERVER_NAME = "serverName";
+    public static final String COMPONENTS = "components";
+    public static final String SCHEMAS = "schemas";
+    public static final String SCHEMA = "schema";
+    public static final String OBJECT = "object";
+    public static final String CONTENT = "content";
+    public static final String PATH = "path";
+    public static final String PATHS = "paths";
+    public static final String RESOURCES = "resources";
+    public static final String DEFAULT = "default";
+    public static final String IN = "in";
+    public static final String ITEMS = "items";
+    public static final String ARRAY = "array";
+    public static final String REF = "$ref";
+    public static final String RESPONSES = "responses";
+    public static final String RESPONSE = "response";
+    public static final String DOCS = "docs";
+    public static final String G_KEY = "g";
+    public static final String A_KEY = "a";
+    public static final String LATEST_VERSION = "latestVersion";
+    public static final String REQUEST_BODY = "requestBody";
+
+    public static final String PRIMEFACES_GROUP_ID = "org.primefaces";
+    public static final String PRIMEFACES_ARTIFACT_ID = "primefaces";
+    public static final String PRIMEFLEX_GROUP_ID = "org.webjars.npm";
+    public static final String PRIMEFLEX_ARTIFACT_ID = "primeflex";
+    public static final String SRC_PATH = "src";
+    public static final String MAIN_PATH = "main";
+    public static final String JAVA_PATH = "java";
+
+    public static final String SYSTEM_PROPERTY_VARIABLES = "systemPropertyVariables";
+
+    public static final String META_INF = "META-INF";
+
+    public static final String DEPENDENCY = "dependency";
+
+    public static final String JDBC_LIB = "jdbcLib";
+    public static final String JDBC = "jdbc";
+    public static final String ID = "id";
+
+    public static final String JNDI_NAME = "jndiName";
+
+    public static final String KEY = "key";
+
+    public static final String TARGET_LIB = "target/lib";
+    public static final String COPY = "copy";
+    public static final String COPY_JDBC = "copy-jdbc";
+    public static final String WEBAPP = "webapp";
+    public static final String WEBXML = "web.xml";
+    public static final String WEB_INF_PATH = "WEB-INF";
 
     private Constants() {
     }
