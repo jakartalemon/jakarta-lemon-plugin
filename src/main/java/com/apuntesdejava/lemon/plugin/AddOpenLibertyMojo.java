@@ -92,35 +92,35 @@ public class AddOpenLibertyMojo extends AbstractMojo {
             getLog().debug("Add OpenLiberty Plugin");
             var appName = mavenProject.getName();
             Model model = ProjectModelUtil.getModel(mavenProject);
-            Profile profile = ProjectModelUtil.getProfile(model, "openliberty");
+            Profile profile = ProjectModelUtil.getProfile(model, OPENLIBERTY);
             Properties props = ProjectModelUtil.getProperties(profile);
             props.setProperty(LIBERTY_VAR_SYSTEM_HTTP_PORT, systemHttpPort);
             props.setProperty(LIBERTY_VAR_DEFAULT_HTTP_PORT, defaultHttpPort);
             props.setProperty(LIBERTY_VAR_DEFAULT_HTTPS_PORT, defaultHttpsPort);
-            props.setProperty("liberty.var.app.context.root", appName);
+            props.setProperty(LIBERTY_VAR_APP_CONTEXT_ROOT, appName);
             var build = ProjectModelUtil.getBuild(profile);
             var pm = ProjectModelUtil.getPluginManagement(build);
             try {
                 var config = HttpClientUtil.getJson(getLog(), LEMON_CONFIG_URL, JsonReader::readObject);
-                var pluginInfo = config.getJsonObject("openliberty")
-                    .getJsonObject("plugin");
-                Map<String, Object> configOptions = new LinkedHashMap<>(Map.of("serverName", appName));
-                if (pluginInfo.getJsonObject("configuration").getJsonObject("runtimeArtifact").getBoolean("enabled")) {
-                    var runtimeArtifact = pluginInfo.getJsonObject("configuration").getJsonObject("runtimeArtifact");
-                    configOptions.put("runtimeArtifact", Map.of(
-                        "groupId", runtimeArtifact.getString("groupId"),
-                        "artifactId", runtimeArtifact.getString("artifactId"),
-                        "version", runtimeArtifact.getString("version"),
-                        "type", runtimeArtifact.getString("type")
+                var pluginInfo = config.getJsonObject(OPENLIBERTY)
+                    .getJsonObject(PLUGIN);
+                Map<String, Object> configOptions = new LinkedHashMap<>(Map.of(SERVER_NAME, appName));
+                if (pluginInfo.getJsonObject(CONFIGURATION).getJsonObject(RUNTIME_ARTIFACT).getBoolean(ENABLED)) {
+                    var runtimeArtifact = pluginInfo.getJsonObject(CONFIGURATION).getJsonObject(RUNTIME_ARTIFACT);
+                    configOptions.put(RUNTIME_ARTIFACT, Map.of(
+                        DEPENDENCY_GROUP_ID, runtimeArtifact.getString(DEPENDENCY_GROUP_ID),
+                        DEPENDENCY_ARTIFACT_ID, runtimeArtifact.getString(DEPENDENCY_ARTIFACT_ID),
+                        DEPENDENCY_VERSION, runtimeArtifact.getString(DEPENDENCY_VERSION),
+                        DEPENDENCY_TYPE, runtimeArtifact.getString(DEPENDENCY_TYPE)
                     ));
                 }
-                ProjectModelUtil.addPlugin(pm, "io.openliberty.tools", "liberty-maven-plugin", pluginInfo.getString("version"), configOptions);
+                ProjectModelUtil.addPlugin(pm, "io.openliberty.tools", "liberty-maven-plugin", pluginInfo.getString(DEPENDENCY_VERSION), configOptions);
             } catch (InterruptedException | URISyntaxException ex) {
                 getLog().error(ex.getMessage(), ex);
             }
-            ProjectModelUtil.addPlugin(pm, "org.apache.maven.plugins", "maven-war-plugin", "3.3.2");
-            ProjectModelUtil.addPlugin(build, "org.apache.maven.plugins", "maven-failsafe-plugin", "2.22.2",
-                Map.of("systemPropertyVariables",
+            ProjectModelUtil.addPlugin(pm, MAVEN_PLUGIN_GROUP_ID, "maven-war-plugin", "3.3.2");
+            ProjectModelUtil.addPlugin(build, MAVEN_PLUGIN_GROUP_ID, "maven-failsafe-plugin", "2.22.2",
+                Map.of(SYSTEM_PROPERTY_VARIABLES,
                     Map.of("http.port", String.format("${%s}", LIBERTY_VAR_DEFAULT_HTTP_PORT))
                 ));
             ProjectModelUtil.saveModel(mavenProject, model);

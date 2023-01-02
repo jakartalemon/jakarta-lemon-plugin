@@ -46,11 +46,11 @@ public class AddPayaraMicroMojo extends AbstractMojo {
 
     private static final List<Map<String, String>> OPTIONS_LIST
             = List.of(
-                    Map.of("key", "--autoBindHttp"),
-                    Map.of("key", "--deploy", "value", "${project.build.directory}/${project.build.finalName}"),
-                    Map.of("key", "--postbootcommandfile", "value", "post-boot-commands.txt"),
-                    Map.of("key", "--contextroot", "value", "/"),
-                    Map.of("key", "--addlibs", "value", "target/lib")
+                    Map.of(KEY, "--autoBindHttp"),
+                    Map.of(KEY, "--deploy", VALUE, "${project.build.directory}/${project.build.finalName}"),
+                    Map.of(KEY, "--postbootcommandfile", VALUE, "post-boot-commands.txt"),
+                    Map.of(KEY, "--contextroot", VALUE, "/"),
+                    Map.of(KEY, "--addlibs", VALUE, TARGET_LIB)
             );
 
     @Parameter(
@@ -90,12 +90,12 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                 commandLineOptionsList.addAll(
                         List.of(
                                 Map.of(
-                                        "key", "--postbootcommandfile",
-                                        "value", "post-boot-commands.txt"
+                                        KEY, "--postbootcommandfile",
+                                        VALUE, "post-boot-commands.txt"
                                 ),
                                 Map.of(
-                                        "key", "--addLibs",
-                                        "value", "target/lib"
+                                        KEY, "--addLibs",
+                                        VALUE, TARGET_LIB
                                 )
                         )
                 );
@@ -106,24 +106,24 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                             "deployWar", "false",
                             "commandLineOptions", commandLineOptionsList));
 
-            ProjectModelUtil.addPlugin(build, "org.apache.maven.plugins", "maven-dependency-plugin")
+            ProjectModelUtil.addPlugin(build, MAVEN_PLUGIN_GROUP_ID, "maven-dependency-plugin")
                     .ifPresent(plugin -> {
                         PluginExecution execution = plugin.getExecutions()
                                 .stream()
-                                .filter(exec -> exec.getId().equals("copy-jdbc"))
+                                .filter(exec -> exec.getId().equals(COPY_JDBC))
                                 .findFirst()
                                 .orElseGet(() -> {
                                     PluginExecution pe = new PluginExecution();
                                     plugin.addExecution(pe);
-                                    pe.setId("copy-jdbc");
+                                    pe.setId(COPY_JDBC);
                                     return pe;
                                 });
-                        execution.getGoals().stream().filter(goal -> goal.equals("copy")).findFirst().orElseGet(() -> {
-                            execution.addGoal("copy");
-                            return "copy";
+                        execution.getGoals().stream().filter(goal -> goal.equals(COPY)).findFirst().orElseGet(() -> {
+                            execution.addGoal(COPY);
+                            return COPY;
                         });
                         DependenciesUtil.getByDatabase(getLog(), datasource.getString(DB)).ifPresent(dependen -> ProjectModelUtil.setConfigurationOptions(execution, Map.of(
-                                "outputDirectory", "target/lib",
+                                "outputDirectory", TARGET_LIB,
                                 "stripVersion", "true",
                                 "artifactItems", Map.of(
                                         "artifactItem", Map.of(

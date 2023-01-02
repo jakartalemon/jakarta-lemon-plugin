@@ -25,25 +25,27 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class WebXmlUtil {
 
     public static Document openWebXml(File basedir) throws IOException {
-        Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
+        Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, WEBAPP, WEB_INF_PATH, WEBXML).normalize();
         Files.createDirectories(webXmlPath.getParent());
         return DocumentXmlUtil.openDocument(webXmlPath).orElseGet(() -> {
             try {
-                var document = DocumentXmlUtil.newDocument("web-app");
-                DocumentXmlUtil.findElementsByFilter(document, "/web-app")
+                var document = DocumentXmlUtil.newDocument(WEB_APP);
+                DocumentXmlUtil.findElementsByFilter(document, "/"+WEB_APP)
                         .stream()
                         .findFirst()
                         .ifPresent(webappElement -> {
-                            webappElement.setAttribute("xmlns", "https://jakarta.ee/xml/ns/jakartaee");
-                            webappElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+                            webappElement.setAttribute(XMLNS, "https://jakarta.ee/xml/ns/jakartaee");
+                            webappElement.setAttribute(XMLNS_XSI, XMLNS_XSI_INSTANCE);
                             webappElement.setAttribute("xsi:schemaLocation", "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
-                            webappElement.setAttribute("version", "5.0");
+                            webappElement.setAttribute(VERSION, "5.0");
                             DocumentXmlUtil.createElement(document, webappElement, "session-config")
                                     .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem, "session-timeout", "30"));
                         });
@@ -57,7 +59,7 @@ public class WebXmlUtil {
     }
 
     public static void saveWebXml(File basedir, Document document) {
-        Path webXmlPath = Paths.get(basedir.toString(), "src", "main", "webapp", "WEB-INF", "web.xml").normalize();
+        Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, WEBAPP, WEB_INF_PATH, WEBXML).normalize();
         DocumentXmlUtil.saveDocument(webXmlPath, document);
 
     }

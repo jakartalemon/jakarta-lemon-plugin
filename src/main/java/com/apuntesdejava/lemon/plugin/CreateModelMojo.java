@@ -39,24 +39,22 @@ import static com.apuntesdejava.lemon.plugin.util.JsonValuesUtil.*;
 @Mojo(name = "create-model")
 public class CreateModelMojo extends AbstractMojo {
 
-    private static void removeLastComma(List<String> list) {
-        list.set(list.size() - 1, StringUtils.removeEnd(list.get(list.size() - 1), ","));
-    }
-
     @Parameter(
         property = "model",
         defaultValue = "model.json"
     )
     private String modelProjectFile;
     private JsonObject projectModel;
-
     @Parameter(
         defaultValue = "${project}",
         readonly = true
     )
     private MavenProject mavenProject;
-
     private DatasourceDefinitionStyleType style;
+
+    private static void removeLastComma(List<String> list) {
+        list.set(list.size() - 1, StringUtils.removeEnd(list.get(list.size() - 1), ","));
+    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -69,8 +67,7 @@ public class CreateModelMojo extends AbstractMojo {
                 .add(PACKAGE_NAME, Json.createValue(packageName))
                 .add(PROJECT_NAME, Json.createValue(mavenProject.getId()))
                 .build();
-            getLog().debug("groupId:" + groupId);
-            getLog().debug("packageName:" + packageName);
+            getLog().debug(String.format("groupId:%s  packageName: %s", groupId, packageName));
             buildModel(packageName);
             addDatasource();
             addDependencies();
@@ -84,9 +81,9 @@ public class CreateModelMojo extends AbstractMojo {
             Path baseDirPath = mavenProject.getBasedir().toPath();
             getLog().debug("baseDir:" + baseDirPath);
 
-            Path javaMainSrc = baseDirPath.resolve("src").resolve("main").resolve("java");
-            Path resourcesMainSrc = baseDirPath.resolve("src").resolve("main").resolve("resources");
-            Path javaTestSrc = baseDirPath.resolve("src").resolve("test").resolve("java");
+            Path javaMainSrc = baseDirPath.resolve(SRC_PATH).resolve(MAIN_PATH).resolve(JAVA_PATH);
+            Path resourcesMainSrc = baseDirPath.resolve(SRC_PATH).resolve(MAIN_PATH).resolve(RESOURCES);
+            Path javaTestSrc = baseDirPath.resolve(SRC_PATH).resolve("test").resolve(JAVA_PATH);
             Path packageBasePath = javaMainSrc;
             String[] packagePaths = packageName.split("\\.");
             for (String packagePath : packagePaths) {

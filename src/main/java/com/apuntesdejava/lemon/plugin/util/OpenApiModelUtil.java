@@ -31,6 +31,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
@@ -56,9 +58,9 @@ public class OpenApiModelUtil {
             String[] paths = packageName.split("\\.");
             Path packageFile = Paths.get(mavenProject.getBasedir()
                     .toPath()
-                    .resolve("src")
-                    .resolve("main")
-                    .resolve("java")
+                    .resolve(SRC_PATH)
+                    .resolve(MAIN_PATH)
+                    .resolve(JAVA_PATH)
                     .toString(), paths);
             Files.createDirectories(packageFile);
 
@@ -68,7 +70,7 @@ public class OpenApiModelUtil {
             content.add("@lombok.Data");
             content.add("public class " + schemaName + " {\n");
             properties.forEach((fieldName, value) -> {
-                String type = getJavaType(value.asJsonObject().getString("type"));
+                String type = getJavaType(value.asJsonObject().getString(TYPE));
                 content.add(StringUtils.repeat(StringUtils.SPACE, 4) + "private " + type + " " + fieldName + ";");
             });
             content.add("}");
