@@ -55,7 +55,7 @@ public class ProjectModelUtil {
 
     public static Xpp3Dom getConfiguration(ConfigurationContainer plugin) {
         return Optional.ofNullable((Xpp3Dom) plugin.getConfiguration()).orElseGet(() -> {
-            Xpp3Dom xpp3Dom = new Xpp3Dom("configuration");
+            Xpp3Dom xpp3Dom = new Xpp3Dom(CONFIGURATION);
             plugin.setConfiguration(xpp3Dom);
             return xpp3Dom;
         });
@@ -101,75 +101,65 @@ public class ProjectModelUtil {
     public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId, String version, Map<String, ?> configurationOptions) {
         List<Plugin> plugins = pluginContainer.getPlugins();
         return plugins.stream()
-                .filter(item -> item.getGroupId().equals(groupId) && item.getArtifactId().equals(artifactId))
-                .findFirst()
-                .or(() -> {
-                    Plugin plugin = new Plugin();
-                    plugin.setGroupId(groupId);
-                    plugin.setArtifactId(artifactId);
-                    if (StringUtils.isNotBlank(version)) {
-                        plugin.setVersion(version);
-                    }
-                    setConfigurationOptions(plugin, configurationOptions);
+            .filter(item -> item.getGroupId().equals(groupId) && item.getArtifactId().equals(artifactId))
+            .findFirst()
+            .or(() -> {
+                Plugin plugin = new Plugin();
+                plugin.setGroupId(groupId);
+                plugin.setArtifactId(artifactId);
+                if (StringUtils.isNotBlank(version)) {
+                    plugin.setVersion(version);
+                }
+                setConfigurationOptions(plugin, configurationOptions);
 
-                    pluginContainer.addPlugin(plugin);
-                    return Optional.of(plugin);
-                });
+                pluginContainer.addPlugin(plugin);
+                return Optional.of(plugin);
+            });
 
     }
 
     public static void setConfigurationOptions(ConfigurationContainer plugin, Map<String, ?> configurationOptions) {
         Optional.ofNullable(configurationOptions)
-                .ifPresent(conf -> {
-                    if (!conf.isEmpty()) {
-                        var xpp3DomConf = getConfiguration(plugin);
+            .ifPresent(conf -> {
+                if (!conf.isEmpty()) {
+                    var xpp3DomConf = getConfiguration(plugin);
 
-                        conf.forEach((name, value) -> {
-                            if (value instanceof String) {
-                                addChildren(xpp3DomConf, name, true)
-                                        .setValue(value.toString());
-                            } else if (value instanceof List) {
-                                addConfiguration(xpp3DomConf, name, (List<?>) value);
-                            } else if (value instanceof Map) {
-                                addConfiguration(xpp3DomConf, name, (Map<String, ?>) value);
-                            }
-                        });
-                        plugin.setConfiguration(xpp3DomConf);
-                    }
-                });
+                    conf.forEach((name, value) -> {
+                        if (value instanceof String) {
+                            addChildren(xpp3DomConf, name, true)
+                                .setValue(value.toString());
+                        } else if (value instanceof List) {
+                            addConfiguration(xpp3DomConf, name, (List<?>) value);
+                        } else if (value instanceof Map) {
+                            addConfiguration(xpp3DomConf, name, (Map<String, ?>) value);
+                        }
+                    });
+                    plugin.setConfiguration(xpp3DomConf);
+                }
+            });
     }
 
     private static void addConfiguration(Xpp3Dom parent, String elementName, Map<String, ?> configuration) {
         Xpp3Dom newChildDom = addChildren(parent, elementName, true);
-        configuration.forEach((name, value) -> {
-            if (value instanceof String) {
-                addChildren(newChildDom, name, true)
-                        .setValue((String) value);
-
-            } else if (value instanceof Map) {
-                addConfiguration(newChildDom, name, (Map<String, ?>) value);
-            } else if (value instanceof List) {
-                addConfiguration(newChildDom, name, (List<?>) value);
-
-            }
-        });
+        configuration.forEach((name, value) -> addConfigurationIteration(newChildDom, elementName, name, value));
     }
 
-    private static void addConfiguration(Xpp3Dom parent, String elementName, List< ?> configuration) {
+    private static void addConfiguration(Xpp3Dom parent, String elementName, List<?> configuration) {
         Xpp3Dom newChildDom = addChildren(parent, elementName, true);
-        configuration.forEach(value -> {
+        configuration.forEach(value -> addConfigurationIteration(newChildDom, elementName, OPTION, value));
+    }
 
-            if (value instanceof String) {
-                addChildren(newChildDom, elementName, true)
-                        .setValue((String) value);
+    private static void addConfigurationIteration(Xpp3Dom newChildDom, String elementName, String name, Object value) {
+        if (value instanceof String) {
+            addChildren(newChildDom, elementName, true)
+                .setValue((String) value);
 
-            } else if (value instanceof Map) {
-                addConfiguration(newChildDom, "option", (Map<String, ?>) value);
-            } else if (value instanceof List) {
-                addConfiguration(newChildDom, "option", (List<?>) value);
+        } else if (value instanceof Map) {
+            addConfiguration(newChildDom, name, (Map<String, ?>) value);
+        } else if (value instanceof List) {
+            addConfiguration(newChildDom, name, (List<?>) value);
 
-            }
-        });
+        }
     }
 
     public static BuildBase getBuild(Profile profile) {
@@ -198,9 +188,9 @@ public class ProjectModelUtil {
 
     public static Xpp3Dom addChildren(Xpp3Dom parent, String name, boolean ignoreDuplicate) {
         return ignoreDuplicate ? createChildren(parent, name) : Arrays.stream(parent.getChildren())
-                .filter(item -> item.getName().equals(name))
-                .findFirst()
-                .orElseGet(() -> createChildren(parent, name));
+            .filter(item -> item.getName().equals(name))
+            .findFirst()
+            .orElseGet(() -> createChildren(parent, name));
     }
 
     private static Xpp3Dom createChildren(Xpp3Dom parent, String name) {
@@ -214,11 +204,11 @@ public class ProjectModelUtil {
         DependenciesUtil.getByDatabase(log, database).ifPresent(dependen -> {
 
             addChildren(dependency, DEPENDENCY_GROUP_ID)
-                    .setValue(dependen.getString(DEPENDENCY_GROUP_ID));
+                .setValue(dependen.getString(DEPENDENCY_GROUP_ID));
             addChildren(dependency, DEPENDENCY_ARTIFACT_ID)
-                    .setValue(dependen.getString(DEPENDENCY_ARTIFACT_ID));
+                .setValue(dependen.getString(DEPENDENCY_ARTIFACT_ID));
             addChildren(dependency, DEPENDENCY_VERSION)
-                    .setValue(dependen.getString(DEPENDENCY_VERSION));
+                .setValue(dependen.getString(DEPENDENCY_VERSION));
         });
 
     }
@@ -231,24 +221,24 @@ public class ProjectModelUtil {
 
     private static Dependency addDependency(JsonObject dependencyJson, List<Dependency> dependencies, Map<String, String> props) {
         return dependencies.stream()
-                .filter(item -> item.getGroupId()
+            .filter(item -> item.getGroupId()
                 .equals(dependencyJson.getString(DEPENDENCY_GROUP_ID)) && item.getArtifactId()
                 .equals(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID)))
-                .findFirst()
-                .orElseGet(() -> {
-                    Dependency dependency = new Dependency();
-                    dependency.setGroupId(dependencyJson.getString(DEPENDENCY_GROUP_ID));
-                    dependency.setArtifactId(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID));
-                    dependency.setVersion(dependencyJson.getString(DEPENDENCY_VERSION));
-                    if (props.containsKey("classifier")) {
-                        dependency.setClassifier(props.get("classifier"));
-                    }
-                    if (props.containsKey("scope")) {
-                        dependency.setScope(props.get("scope"));
-                    }
-                    dependencies.add(dependency);
-                    return dependency;
-                });
+            .findFirst()
+            .orElseGet(() -> {
+                Dependency dependency = new Dependency();
+                dependency.setGroupId(dependencyJson.getString(DEPENDENCY_GROUP_ID));
+                dependency.setArtifactId(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID));
+                dependency.setVersion(dependencyJson.getString(DEPENDENCY_VERSION));
+                if (props.containsKey(CLASSIFIER)) {
+                    dependency.setClassifier(props.get(CLASSIFIER));
+                }
+                if (props.containsKey(SCOPE)) {
+                    dependency.setScope(props.get(SCOPE));
+                }
+                dependencies.add(dependency);
+                return dependency;
+            });
     }
 
     public static Dependency addDependency(Log log, List<Dependency> dependencies, String groupId, String artefactId) {
@@ -257,7 +247,7 @@ public class ProjectModelUtil {
 
     public static Dependency addDependency(Log log, List<Dependency> dependencies, String groupId, String artefactId, Map<String, String> props) {
         return addDependency(DependenciesUtil.getLastVersionDependency(log, String.format("g:%s+AND+a:%s", groupId, artefactId))
-                .orElse(null), dependencies, props);
+            .orElse(null), dependencies, props);
     }
 
     public static String getDriver(Log log, String dbName) throws IOException, InterruptedException, URISyntaxException {

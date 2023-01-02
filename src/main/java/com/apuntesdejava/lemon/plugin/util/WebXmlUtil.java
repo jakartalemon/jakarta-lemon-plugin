@@ -37,15 +37,15 @@ public class WebXmlUtil {
         Files.createDirectories(webXmlPath.getParent());
         return DocumentXmlUtil.openDocument(webXmlPath).orElseGet(() -> {
             try {
-                var document = DocumentXmlUtil.newDocument("web-app");
-                DocumentXmlUtil.findElementsByFilter(document, "/web-app")
+                var document = DocumentXmlUtil.newDocument(WEB_APP);
+                DocumentXmlUtil.findElementsByFilter(document, "/"+WEB_APP)
                         .stream()
                         .findFirst()
                         .ifPresent(webappElement -> {
-                            webappElement.setAttribute("xmlns", "https://jakarta.ee/xml/ns/jakartaee");
-                            webappElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+                            webappElement.setAttribute(XMLNS, "https://jakarta.ee/xml/ns/jakartaee");
+                            webappElement.setAttribute(XMLNS_XSI, XMLNS_XSI_INSTANCE);
                             webappElement.setAttribute("xsi:schemaLocation", "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
-                            webappElement.setAttribute("version", "5.0");
+                            webappElement.setAttribute(VERSION, "5.0");
                             DocumentXmlUtil.createElement(document, webappElement, "session-config")
                                     .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem, "session-timeout", "30"));
                         });

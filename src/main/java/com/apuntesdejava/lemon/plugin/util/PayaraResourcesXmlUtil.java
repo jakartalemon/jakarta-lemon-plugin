@@ -43,7 +43,7 @@ public class PayaraResourcesXmlUtil {
         return DocumentXmlUtil.openDocument(xmlPath).orElseGet(() -> {
             try {
                 var document = DocumentXmlUtil.newDocument(RESOURCES);
-                DocumentXmlUtil.findElementsByFilter(document, "/resources")
+                DocumentXmlUtil.findElementsByFilter(document, "/"+RESOURCES)
                     .stream()
                     .findFirst()
                     .ifPresent(webappElement -> {

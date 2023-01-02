@@ -62,7 +62,7 @@ public class OpenLibertyUtil {
                 .ifPresent(serverModel -> {
                     try {
 
-                        DocumentXmlUtil.createElement(serverModel, "/server", "library")
+                        DocumentXmlUtil.createElement(serverModel, "/"+SERVER, "library")
                             .ifPresent(libraryElement -> {
                                 libraryElement.setAttribute(ID, JDBC_LIB);
                                 DocumentXmlUtil.createElement(serverModel, libraryElement, "fileset")
@@ -72,10 +72,10 @@ public class OpenLibertyUtil {
                                     });
                             });
 
-                        String jndiName = "jdbc/" + mavenProject.getArtifactId();
+                        String jndiName = JDBC+"/" + mavenProject.getArtifactId();
                         var datasourceModel = projectModel.getJsonObject(DATASOURCE);
 
-                        DocumentXmlUtil.createElement(serverModel, "server", "dataSource")
+                        DocumentXmlUtil.createElement(serverModel, SERVER, "dataSource")
                             .ifPresent(dataSourceElement -> {
                                 dataSourceElement.setAttribute(JNDI_NAME, jndiName);
                                 DocumentXmlUtil.createElement(serverModel, dataSourceElement, "jdbcDriver")
@@ -136,9 +136,9 @@ public class OpenLibertyUtil {
         if (Files.exists(serverXmlPath)) {
             return DocumentXmlUtil.openDocument(serverXmlPath);
         }
-        var document = DocumentXmlUtil.newDocument("server");
+        var document = DocumentXmlUtil.newDocument(SERVER);
         try {
-            DocumentXmlUtil.findElementsByFilter(document, "/server")
+            DocumentXmlUtil.findElementsByFilter(document, "/"+SERVER)
                 .stream()
                 .findFirst()
                 .ifPresent(serverElement -> {
@@ -147,15 +147,15 @@ public class OpenLibertyUtil {
                         serverElement.setAttribute("description", projectName);
                         var config = HttpClientUtil.getJson(log, LEMON_CONFIG_URL, JsonReader::readObject);
                         var features = config.getJsonObject(OPENLIBERTY)
-                            .getJsonObject("server")
-                            .getJsonObject("featureManager")
-                            .getJsonArray("feature");
+                            .getJsonObject(SERVER)
+                            .getJsonObject(FEATURE_MANAGER)
+                            .getJsonArray(FEATURE);
 
-                        DocumentXmlUtil.createElement(document, serverElement, "featureManager")
+                        DocumentXmlUtil.createElement(document, serverElement, FEATURE_MANAGER)
                             .ifPresent(featureManagerElement -> features.stream()
                                 .map(item -> ((JsonString) item).getString())
                                 .forEach(featureItem -> DocumentXmlUtil.createElement(document, featureManagerElement,
-                                    "feature", featureItem)));
+                                    FEATURE, featureItem)));
 
                         DocumentXmlUtil.createElement(document, serverElement, "applicationManager")
                             .ifPresent(applicationManagerElement -> applicationManagerElement.setAttribute("autoExpand", "true"));

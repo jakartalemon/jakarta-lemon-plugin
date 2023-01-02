@@ -48,7 +48,7 @@ public class PayaraUtil {
 
             String driverDataSource = ProjectModelUtil.getDriver(log, datasource.getString(DB));
             var payaraResourcesXml = PayaraResourcesXmlUtil.openPayaraXml(mavenProject.getBasedir());
-            DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, "/resources")
+            DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, "/"+RESOURCES)
                 .stream()
                 .findFirst()
                 .ifPresent(resourcesElement -> {

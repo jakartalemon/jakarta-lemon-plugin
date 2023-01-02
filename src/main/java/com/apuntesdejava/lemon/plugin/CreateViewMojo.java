@@ -82,7 +82,7 @@ public class CreateViewMojo extends AbstractMojo {
                 model.getDependencies(),
                 PRIMEFACES_GROUP_ID,
                 PRIMEFACES_ARTIFACT_ID,
-                Map.of("classifier", "jakarta")
+                Map.of(CLASSIFIER, "jakarta")
             );
             this.primeflexDependency = ProjectModelUtil.addDependency(
                 getLog(), model.getDependencies(), PRIMEFLEX_GROUP_ID, PRIMEFLEX_ARTIFACT_ID

@@ -32,21 +32,23 @@ import static com.apuntesdejava.lemon.plugin.util.Constants.*;
  */
 public class PersistenceXmlUtil {
 
+    private static final String PERSISTENCE_FILE_NAME = "persistence.xml";
+
     public static Document openPersistenceXml(File basedir) throws IOException {
-        Path xmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, RESOURCES, META_INF, "persistence.xml")
-                .normalize();
+        Path xmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, RESOURCES, META_INF, PERSISTENCE_FILE_NAME)
+            .normalize();
         Files.createDirectories(xmlPath.getParent());
         return DocumentXmlUtil.openDocument(xmlPath).orElseGet(() -> {
             try {
-                var document = DocumentXmlUtil.newDocument("persistence");
-                DocumentXmlUtil.findElementsByFilter(document, "/persistence")
-                        .stream()
-                        .findFirst()
-                        .ifPresent(persistenceElement -> {
-                            persistenceElement.setAttribute("xmlns", "https://jakarta.ee/xml/ns/persistence");
-                            persistenceElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-                            persistenceElement.setAttribute("version", "3.0");
-                        });
+                var document = DocumentXmlUtil.newDocument(PERSISTENCE);
+                DocumentXmlUtil.findElementsByFilter(document, "/" + PERSISTENCE)
+                    .stream()
+                    .findFirst()
+                    .ifPresent(persistenceElement -> {
+                        persistenceElement.setAttribute(XMLNS, "https://jakarta.ee/xml/ns/persistence");
+                        persistenceElement.setAttribute(XMLNS_XSI, XMLNS_XSI_INSTANCE);
+                        persistenceElement.setAttribute(VERSION, "3.0");
+                    });
                 return document;
             } catch (ParserConfigurationException | XPathExpressionException ex) {
                 throw new RuntimeException(ex);
@@ -56,8 +58,8 @@ public class PersistenceXmlUtil {
     }
 
     public static void saveWebXml(File basedir, Document document) {
-        Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, RESOURCES, META_INF, "persistence.xml")
-                .normalize();
+        Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, RESOURCES, META_INF, PERSISTENCE_FILE_NAME)
+            .normalize();
         DocumentXmlUtil.saveDocument(webXmlPath, document);
 
     }

@@ -106,7 +106,7 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                             "deployWar", "false",
                             "commandLineOptions", commandLineOptionsList));
 
-            ProjectModelUtil.addPlugin(build, "org.apache.maven.plugins", "maven-dependency-plugin")
+            ProjectModelUtil.addPlugin(build, MAVEN_PLUGIN_GROUP_ID, "maven-dependency-plugin")
                     .ifPresent(plugin -> {
                         PluginExecution execution = plugin.getExecutions()
                                 .stream()

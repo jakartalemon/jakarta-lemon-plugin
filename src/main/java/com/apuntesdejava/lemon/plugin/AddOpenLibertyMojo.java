@@ -118,8 +118,8 @@ public class AddOpenLibertyMojo extends AbstractMojo {
             } catch (InterruptedException | URISyntaxException ex) {
                 getLog().error(ex.getMessage(), ex);
             }
-            ProjectModelUtil.addPlugin(pm, "org.apache.maven.plugins", "maven-war-plugin", "3.3.2");
-            ProjectModelUtil.addPlugin(build, "org.apache.maven.plugins", "maven-failsafe-plugin", "2.22.2",
+            ProjectModelUtil.addPlugin(pm, MAVEN_PLUGIN_GROUP_ID, "maven-war-plugin", "3.3.2");
+            ProjectModelUtil.addPlugin(build, MAVEN_PLUGIN_GROUP_ID, "maven-failsafe-plugin", "2.22.2",
                 Map.of(SYSTEM_PROPERTY_VARIABLES,
                     Map.of("http.port", String.format("${%s}", LIBERTY_VAR_DEFAULT_HTTP_PORT))
                 ));

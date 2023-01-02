@@ -453,7 +453,7 @@ public class ViewModelUtil {
             ElementBuilder hForm;
 
             var htmlElem = DocumentXmlUtil.ElementBuilder.newInstance("html")
-                    .addAttribute("xmlns", "http://www.w3.org/1999/xhtml")
+                    .addAttribute(XMLNS, "http://www.w3.org/1999/xhtml")
                     .addAttribute("xmlns:h", "http://xmlns.jcp.org/jsf/html")
                     .addAttribute("xmlns:ui", "http://xmlns.jcp.org/jsf/facelets")
                     .addAttribute("xmlns:p", "http://primefaces.org/ui")
