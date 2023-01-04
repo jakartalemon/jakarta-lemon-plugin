@@ -65,7 +65,9 @@ public class AddPayaraMicroMojo extends AbstractMojo {
             readonly = true
     )
     private MavenProject mavenProject;
-
+/**
+ * Main method that runs the Plugin
+ */
     @Override
     public void execute() {
         ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile).ifPresent(pm -> {

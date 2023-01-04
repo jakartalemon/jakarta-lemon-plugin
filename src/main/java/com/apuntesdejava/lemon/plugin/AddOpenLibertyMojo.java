@@ -77,6 +77,12 @@ public class AddOpenLibertyMojo extends AbstractMojo {
 
     private JsonObject projectModel;
 
+    /**
+     * Main method that runs the Plugin
+     *
+     * @throws MojoExecutionException If Mojo Exception
+     * @throws MojoFailureException   If Mojo Failure Exception
+     */
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile).ifPresent(pm -> {

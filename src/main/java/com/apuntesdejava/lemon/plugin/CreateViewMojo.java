@@ -52,7 +52,11 @@ public class CreateViewMojo extends AbstractMojo {
     private String viewProjectFile;
     private JsonObject viewModel;
     private Dependency primeflexDependency;
-
+/**
+ * Main method that runs the Plugin
+ * @throws MojoExecutionException if Mojo Execution Exception
+ * @throws MojoFailureException if Mojo Failure Exception 
+ */
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         try {
