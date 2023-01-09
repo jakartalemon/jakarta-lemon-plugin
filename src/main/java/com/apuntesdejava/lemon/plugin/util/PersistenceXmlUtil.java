@@ -41,7 +41,7 @@ public class PersistenceXmlUtil {
         return DocumentXmlUtil.openDocument(xmlPath).orElseGet(() -> {
             try {
                 var document = DocumentXmlUtil.newDocument(PERSISTENCE);
-                DocumentXmlUtil.findElementsByFilter(document, "/" + PERSISTENCE)
+                DocumentXmlUtil.listElementsByFilter(document, SLASH + PERSISTENCE)
                     .stream()
                     .findFirst()
                     .ifPresent(persistenceElement -> {

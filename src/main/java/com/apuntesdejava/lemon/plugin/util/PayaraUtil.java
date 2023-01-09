@@ -48,13 +48,13 @@ public class PayaraUtil {
 
             String driverDataSource = ProjectModelUtil.getDriver(log, datasource.getString(DB));
             var payaraResourcesXml = PayaraResourcesXmlUtil.openPayaraXml(mavenProject.getBasedir());
-            DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, "/"+RESOURCES)
+            DocumentXmlUtil.listElementsByFilter(payaraResourcesXml, SLASH+RESOURCES)
                 .stream()
                 .findFirst()
                 .ifPresent(resourcesElement -> {
                     try {
                         try {
-                            if (DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-resource[@jndi-name=\"%s\"]", dataSourceName))
+                            if (DocumentXmlUtil.listElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-resource[@jndi-name=\"%s\"]", dataSourceName))
                                 .isEmpty()) {
                                 DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-resource")
                                     .ifPresent(jdbcResourceElement -> {
@@ -65,7 +65,7 @@ public class PayaraUtil {
                         } catch (XPathExpressionException ex) {
                             log.error(ex.getMessage(), ex);
                         }
-                        if (DocumentXmlUtil.findElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-connection-pool[@name=\"%s\"]", poolName))
+                        if (DocumentXmlUtil.listElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-connection-pool[@name=\"%s\"]", poolName))
                             .isEmpty()) {
                             DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-connection-pool")
                                 .ifPresent(jdbcConnectionPoolElement -> {

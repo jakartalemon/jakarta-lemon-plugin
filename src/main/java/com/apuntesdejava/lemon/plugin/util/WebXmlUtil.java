@@ -31,24 +31,30 @@ import static com.apuntesdejava.lemon.plugin.util.Constants.*;
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class WebXmlUtil {
-
+    /**
+     * Open or create the web.xml file for the project being worked on. It receives as a parameter the path of the current project.
+     *
+     * @param basedir Project folder being worked on.
+     * @return XML object {@link Document} from the <code>web.xml</code> file to be manipulated. 
+     * @throws IOException if IO Exception
+     */
     public static Document openWebXml(File basedir) throws IOException {
         Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, WEBAPP, WEB_INF_PATH, WEBXML).normalize();
         Files.createDirectories(webXmlPath.getParent());
         return DocumentXmlUtil.openDocument(webXmlPath).orElseGet(() -> {
             try {
                 var document = DocumentXmlUtil.newDocument(WEB_APP);
-                DocumentXmlUtil.findElementsByFilter(document, "/"+WEB_APP)
-                        .stream()
-                        .findFirst()
-                        .ifPresent(webappElement -> {
-                            webappElement.setAttribute(XMLNS, "https://jakarta.ee/xml/ns/jakartaee");
-                            webappElement.setAttribute(XMLNS_XSI, XMLNS_XSI_INSTANCE);
-                            webappElement.setAttribute("xsi:schemaLocation", "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
-                            webappElement.setAttribute(VERSION, "5.0");
-                            DocumentXmlUtil.createElement(document, webappElement, "session-config")
-                                    .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem, "session-timeout", "30"));
-                        });
+                DocumentXmlUtil.listElementsByFilter(document, SLASH + WEB_APP)
+                    .stream()
+                    .findFirst()
+                    .ifPresent(webappElement -> {
+                        webappElement.setAttribute(XMLNS, "https://jakarta.ee/xml/ns/jakartaee");
+                        webappElement.setAttribute(XMLNS_XSI, XMLNS_XSI_INSTANCE);
+                        webappElement.setAttribute("xsi:schemaLocation", "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
+                        webappElement.setAttribute(VERSION, "5.0");
+                        DocumentXmlUtil.createElement(document, webappElement, "session-config")
+                            .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem, "session-timeout", "30"));
+                    });
 
 
                 return document;
@@ -57,6 +63,12 @@ public class WebXmlUtil {
             }
         });
     }
+    
+    /**
+     * Saves the <code>web.xml</code> XML object to the appropriate location, based on the location of the project
+     * @param basedir Project folder being worked on.
+     * @param document XML object {@link Document} from the <code>web.xml</code> file to save.
+     */
 
     public static void saveWebXml(File basedir, Document document) {
         Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, WEBAPP, WEB_INF_PATH, WEBXML).normalize();

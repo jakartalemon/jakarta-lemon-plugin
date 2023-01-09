@@ -45,29 +45,30 @@ import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 public class AddPayaraMicroMojo extends AbstractMojo {
 
     private static final List<Map<String, String>> OPTIONS_LIST
-            = List.of(
-                    Map.of(KEY, "--autoBindHttp"),
-                    Map.of(KEY, "--deploy", VALUE, "${project.build.directory}/${project.build.finalName}"),
-                    Map.of(KEY, "--postbootcommandfile", VALUE, "post-boot-commands.txt"),
-                    Map.of(KEY, "--contextroot", VALUE, "/"),
-                    Map.of(KEY, "--addlibs", VALUE, TARGET_LIB)
-            );
+        = List.of(
+            Map.of(KEY, "--autoBindHttp"),
+            Map.of(KEY, "--deploy", VALUE, "${project.build.directory}/${project.build.finalName}"),
+            Map.of(KEY, "--postbootcommandfile", VALUE, "post-boot-commands.txt"),
+            Map.of(KEY, "--contextroot", VALUE, String.valueOf(SLASH)),
+            Map.of(KEY, "--addlibs", VALUE, TARGET_LIB)
+        );
 
     @Parameter(
-            property = "model",
-            defaultValue = "model.json"
+        property = "model",
+        defaultValue = "model.json"
     )
     private String _modelProjectFile;
     private JsonObject projectModel;
 
     @Parameter(
-            defaultValue = "${project}",
-            readonly = true
+        defaultValue = "${project}",
+        readonly = true
     )
     private MavenProject mavenProject;
-/**
- * Main method that runs the Plugin
- */
+
+    /**
+     * Main method that runs the Plugin
+     */
     @Override
     public void execute() {
         ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile).ifPresent(pm -> {
@@ -83,66 +84,65 @@ public class AddPayaraMicroMojo extends AbstractMojo {
             Profile profile = ProjectModelUtil.getProfile(model, "payara-micro");
             Properties props = ProjectModelUtil.getProperties(profile);
             DependenciesUtil.getLastVersionDependency(getLog(), "g:fish.payara.extras+AND+a:payara-micro")
-                    .ifPresent(dependencyModel -> props.setProperty("version.payara", dependencyModel.getString(DEPENDENCY_VERSION)));
+                .ifPresent(dependencyModel -> props.setProperty("version.payara", dependencyModel.getString(DEPENDENCY_VERSION)));
             var datasource = projectModel.getJsonObject(DATASOURCE);
             BuildBase build = ProjectModelUtil.getBuild(profile);
             List<Map<String, String>> commandLineOptionsList = new ArrayList<>(OPTIONS_LIST);
             DatasourceDefinitionStyleType style = DatasourceDefinitionStyleType.findByValue(datasource.getString(STYLE));
             if (style == DatasourceDefinitionStyleType.PAYARA_RESOURCES) {
                 commandLineOptionsList.addAll(
-                        List.of(
-                                Map.of(
-                                        KEY, "--postbootcommandfile",
-                                        VALUE, "post-boot-commands.txt"
-                                ),
-                                Map.of(
-                                        KEY, "--addLibs",
-                                        VALUE, TARGET_LIB
-                                )
+                    List.of(
+                        Map.of(
+                            KEY, "--postbootcommandfile",
+                            VALUE, "post-boot-commands.txt"
+                        ),
+                        Map.of(
+                            KEY, "--addLibs",
+                            VALUE, TARGET_LIB
                         )
+                    )
                 );
                 PayaraUtil.createPayaraMicroDataSourcePostBootFile(getLog(), "post-boot-commands.txt", projectModel, mavenProject);
             }
             ProjectModelUtil.addPlugin(build, "fish.payara.maven.plugins", "payara-micro-maven-plugin", "1.4.0",
-                    Map.of("payaraVersion", "${version.payara}",
-                            "deployWar", "false",
-                            "commandLineOptions", commandLineOptionsList));
+                Map.of("payaraVersion", "${version.payara}",
+                    "deployWar", "false",
+                    "commandLineOptions", commandLineOptionsList));
 
             ProjectModelUtil.addPlugin(build, MAVEN_PLUGIN_GROUP_ID, "maven-dependency-plugin")
-                    .ifPresent(plugin -> {
-                        PluginExecution execution = plugin.getExecutions()
-                                .stream()
-                                .filter(exec -> exec.getId().equals(COPY_JDBC))
-                                .findFirst()
-                                .orElseGet(() -> {
-                                    PluginExecution pe = new PluginExecution();
-                                    plugin.addExecution(pe);
-                                    pe.setId(COPY_JDBC);
-                                    return pe;
-                                });
-                        execution.getGoals().stream().filter(goal -> goal.equals(COPY)).findFirst().orElseGet(() -> {
-                            execution.addGoal(COPY);
-                            return COPY;
+                .ifPresent(plugin -> {
+                    PluginExecution execution = plugin.getExecutions()
+                        .stream()
+                        .filter(exec -> exec.getId().equals(COPY_JDBC))
+                        .findFirst()
+                        .orElseGet(() -> {
+                            PluginExecution pe = new PluginExecution();
+                            plugin.addExecution(pe);
+                            pe.setId(COPY_JDBC);
+                            return pe;
                         });
-                        DependenciesUtil.getByDatabase(getLog(), datasource.getString(DB)).ifPresent(dependen -> ProjectModelUtil.setConfigurationOptions(execution, Map.of(
-                                "outputDirectory", TARGET_LIB,
-                                "stripVersion", "true",
-                                "artifactItems", Map.of(
-                                        "artifactItem", Map.of(
-                                                DEPENDENCY_GROUP_ID, dependen.getString(DEPENDENCY_GROUP_ID),
-                                                DEPENDENCY_ARTIFACT_ID, dependen.getString(DEPENDENCY_ARTIFACT_ID),
-                                                DEPENDENCY_VERSION, dependen.getString(DEPENDENCY_VERSION)
-                                        )
-                                )
-                        )));
-
+                    execution.getGoals().stream().filter(goal -> goal.equals(COPY)).findFirst().orElseGet(() -> {
+                        execution.addGoal(COPY);
+                        return COPY;
                     });
+                    DependenciesUtil.getByDatabase(getLog(), datasource.getString(DB)).ifPresent(dependen -> ProjectModelUtil.setConfigurationOptions(execution, Map.of(
+                        "outputDirectory", TARGET_LIB,
+                        "stripVersion", "true",
+                        "artifactItems", Map.of(
+                            "artifactItem", Map.of(
+                                DEPENDENCY_GROUP_ID, dependen.getString(DEPENDENCY_GROUP_ID),
+                                DEPENDENCY_ARTIFACT_ID, dependen.getString(DEPENDENCY_ARTIFACT_ID),
+                                DEPENDENCY_VERSION, dependen.getString(DEPENDENCY_VERSION)
+                            )
+                        )
+                    )));
+
+                });
 
             ProjectModelUtil.saveModel(mavenProject, model);
         } catch (XmlPullParserException | IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
     }
-
 
 }

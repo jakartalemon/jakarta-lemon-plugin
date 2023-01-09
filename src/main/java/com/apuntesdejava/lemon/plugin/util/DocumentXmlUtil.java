@@ -45,6 +45,8 @@ import static org.apache.commons.lang3.BooleanUtils.NO;
 import static org.apache.commons.lang3.BooleanUtils.YES;
 
 /**
+ * Utility class for manipulating XML documents
+ *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class DocumentXmlUtil {
@@ -52,6 +54,13 @@ public class DocumentXmlUtil {
     private static final Logger LOGGER = Logger.getLogger(DocumentXmlUtil.class.getName());
     private static final String STRIP_XSL_FILE_NAME = "/xml/strip.xsl";
 
+    /**
+     * Creates a new XML object, with a root element given as a parameter.
+     *
+     * @param rootElementName Root element name
+     * @return XML document created
+     * @throws ParserConfigurationException ParserConfigurationException
+     */
     public static Document newDocument(String rootElementName) throws ParserConfigurationException {
         var documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setFeature(FEATURE_SECURE_PROCESSING, true);
@@ -63,6 +72,12 @@ public class DocumentXmlUtil {
 
     }
 
+    /**
+     * Opens an XML document given by parameter, or {@link Optional#empty()}  empty if it failed to open the document.
+     *
+     * @param path XML document path
+     * @return XML object, or empty if it failed to open.
+     */
     public static Optional<Document> openDocument(Path path) {
 
         var documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -78,7 +93,15 @@ public class DocumentXmlUtil {
         return Optional.empty();
     }
 
-    public static List<Element> findElementsByFilter(Document document, String expression) throws XPathExpressionException {
+    /**
+     * Gets one of the elements of a document, based on an XPath search given by parameter.
+     *
+     * @param document   xml document
+     * @param expression XPath search expression
+     * @return List of DOM elements found, based on the search criteria
+     * @throws XPathExpressionException XPathExpressionException
+     */
+    public static List<Element> listElementsByFilter(Document document, String expression) throws XPathExpressionException {
         var xPath = XPathFactory.newInstance().newXPath();
         var nodeList = (NodeList) xPath.compile(expression).evaluate(document, XPathConstants.NODESET);
         List<Element> elementList = new ArrayList<>();
@@ -88,8 +111,17 @@ public class DocumentXmlUtil {
         return elementList;
     }
 
+    /**
+     * Creates an element within a specified path in the XML document. Returns the created element.
+     *
+     * @param document    xml document
+     * @param inPath      Path where the element will be created
+     * @param elementName Name of the element to be created
+     * @return Element created, or {@link Optional#empty()} if not created, for example if the path was not found.
+     * @throws XPathExpressionException * @throws XPathExpressionException
+     */
     public static Optional<Element> createElement(Document document, String inPath, String elementName) throws XPathExpressionException {
-        var elements = findElementsByFilter(document, inPath);
+        var elements = listElementsByFilter(document, inPath);
         if (!elements.isEmpty()) {
             Element element = document.createElement(elementName);
             elements.stream().findFirst().ifPresent(elem -> elem.appendChild(element));
@@ -98,6 +130,15 @@ public class DocumentXmlUtil {
         return Optional.empty();
     }
 
+    /**
+     * Creates an element as a child of an element given by parameter. In addition, the content text that the element will have is established.
+     *
+     * @param document      xml document
+     * @param parentElement parent element
+     * @param elementName   Name of the element to be created
+     * @param textContent   Text content
+     * @return Element created
+     */
     public static Optional<Element> createElement(Document document, Element parentElement, String elementName, String textContent) {
         var element = document.createElement(elementName);
         if (StringUtils.isNotBlank(textContent)) {
@@ -107,16 +148,37 @@ public class DocumentXmlUtil {
         return Optional.of(element);
     }
 
+    /**
+     * Creates an element as a child of an element given by parameter.
+     *
+     * @param document      xml document
+     * @param parentElement parent element
+     * @param elementName   Name of the element to be created
+     * @return Element created
+     */
     public static Optional<Element> createElement(Document document, Element parentElement, String elementName) {
         return createElement(document, parentElement, elementName, null);
     }
 
+    /**
+     * Saves an XML document object at the specified path
+     *
+     * @param path     Path where the xml document will be saved
+     * @param document XML document to save
+     */
     public static void saveDocument(Path path, Document document) {
         saveDocument(path, document, emptyMap());
     }
 
+    /**
+     * Saves an XML document object at the specified path. Additionally, properties will be specified in the file save transformation.
+     *
+     * @param path             Path where the xml document will be saved
+     * @param document         XML document to save
+     * @param outputProperties transformation properties. See {@link OutputKeys}
+     */
     public static void saveDocument(Path path, Document document, Map<String, String> outputProperties) {
-        try ( var fos = new FileOutputStream(path.toFile());  var xlsIs = DocumentXmlUtil.class.getResourceAsStream(STRIP_XSL_FILE_NAME)) {
+        try (var fos = new FileOutputStream(path.toFile()); var xlsIs = DocumentXmlUtil.class.getResourceAsStream(STRIP_XSL_FILE_NAME)) {
             Source xslt = new StreamSource(xlsIs);
             var transformerFactory = TransformerFactory.newInstance();
             var transformer = transformerFactory.newTransformer(xslt);
@@ -133,6 +195,9 @@ public class DocumentXmlUtil {
         }
     }
 
+    /**
+     * Constructor class that helps create elements with attributes and children
+     */
     public static class ElementBuilder {
 
         private final String tagName;
@@ -145,20 +210,45 @@ public class DocumentXmlUtil {
             children = new LinkedHashSet<>();
         }
 
+        /**
+         * Creates a new element instance, with a specific name.
+         *
+         * @param tagName Element Tag name
+         * @return Element Builder itself
+         */
         public static ElementBuilder newInstance(String tagName) {
             return new ElementBuilder(tagName);
         }
 
+        /**
+         * Add an attribute to the attribute's constructor, in addition to the attribute's value
+         *
+         * @param name  attribute name
+         * @param value attribute value
+         * @return Element Builder itself
+         */
         public ElementBuilder addAttribute(String name, String value) {
             attributes.add(new String[]{name, value});
             return this;
         }
 
+        /**
+         * Add a child element.
+         *
+         * @param elementBuilder element builder child
+         * @return Element Builder itself
+         */
         public ElementBuilder addChild(ElementBuilder elementBuilder) {
             children.add(elementBuilder);
             return this;
         }
 
+        /**
+         * Constructs a DOM element based on all the values set in the constructor.
+         *
+         * @param document xml document
+         * @return Element created
+         */
         public Element build(Document document) {
             Element element = document.createElement(tagName);
             attributes.forEach(attr -> element.setAttribute(attr[0], attr[1]));

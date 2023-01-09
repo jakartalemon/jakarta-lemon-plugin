@@ -443,7 +443,7 @@ public class CreateModelMojo extends AbstractMojo {
             getLog().debug("baseDir:" + baseDir);
             var persistenceXml = PersistenceXmlUtil.openPersistenceXml(baseDir);
             var persistenceName = projectModel.getString(PROJECT_NAME) + "PU";
-            if (DocumentXmlUtil.findElementsByFilter(persistenceXml, String.format("/persistence/persistence-unit[@name=\"%s\"]", persistenceName))
+            if (DocumentXmlUtil.listElementsByFilter(persistenceXml, String.format("/persistence/persistence-unit[@name=\"%s\"]", persistenceName))
                 .isEmpty()) {
                 try {
 
@@ -481,7 +481,7 @@ public class CreateModelMojo extends AbstractMojo {
 
             String dataSourceName = "java:app/jdbc/" + mavenProject.getArtifactId();
 
-            boolean createDataSource = DocumentXmlUtil.findElementsByFilter(webXmlDocument, "/web-app/data-source")
+            boolean createDataSource = DocumentXmlUtil.listElementsByFilter(webXmlDocument, "/web-app/data-source")
                 .isEmpty();
             if (createDataSource) {
                 var datasource = projectModel.getJsonObject(DATASOURCE);

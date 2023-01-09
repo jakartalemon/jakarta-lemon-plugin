@@ -85,6 +85,13 @@ public class ViewModelUtil {
                                                  MavenProject mavenProject) {
         INSTANCE = new ViewModelUtil(log, mavenProject);
     }
+    
+    /**
+     * Gets an instance of ViewModelUtil to be able to manipulate
+     * @param log The maven log
+     * @param mavenProject Maven Project
+     * @return ViewModelUtil Instance
+     */
 
     public static ViewModelUtil getInstance(Log log,
                                             MavenProject mavenProject) {
@@ -197,6 +204,11 @@ public class ViewModelUtil {
         });
 
     }
+    
+    /**
+     * Create the Servlet for Jakarta Faces
+     * @throws IOException If IO Exception
+     */
 
     public void createServletJsf() throws IOException {
         log.info("Creating Jakarta Server Faces views");
@@ -205,7 +217,7 @@ public class ViewModelUtil {
         Optional.of(WebXmlUtil.openWebXml(baseDir)).ifPresent(webXmlDocument -> {
             try {
                 boolean saveXml = false;
-                if (DocumentXmlUtil.findElementsByFilter(webXmlDocument, String.format(
+                if (DocumentXmlUtil.listElementsByFilter(webXmlDocument, String.format(
                         "/web-app/servlet/servlet-class[text()='%s']", FACES_SERVLET)).isEmpty()) {
                     DocumentXmlUtil.createElement(webXmlDocument, "/web-app", SERVLET).ifPresent(servletElem -> {
                         DocumentXmlUtil.createElement(webXmlDocument, servletElem, SERVLET_NAME,
@@ -215,7 +227,7 @@ public class ViewModelUtil {
                     saveXml = true;
 
                 }
-                if (DocumentXmlUtil.findElementsByFilter(webXmlDocument, String.format(
+                if (DocumentXmlUtil.listElementsByFilter(webXmlDocument, String.format(
                         "/web-app/servlet-mapping/servlet-name[text()='%s']", FACES_SERVLET_NAME)).isEmpty()) {
                     DocumentXmlUtil.createElement(webXmlDocument, "/web-app", "servlet-mapping")
                             .ifPresent(servletElem -> {
@@ -234,6 +246,13 @@ public class ViewModelUtil {
         });
 
     }
+    
+    /**
+     * Opens the views settings for the project.
+     * @param viewProjectFile The name of the views configuration file.
+     * @return JSON object with the configuration of the views
+     * @throws IOException if IO exception
+     */
 
     public Optional<JsonObject> getViewModel(String viewProjectFile) throws IOException {
         log.debug("Reading view configuration:" + viewProjectFile);
@@ -242,20 +261,20 @@ public class ViewModelUtil {
         }
     }
 
-    public void createPaths(Set<Map.Entry<String, JsonValue>> entrySet,
+    private void createPaths(Set<Map.Entry<String, JsonValue>> pathEntries,
                             Set<Map.Entry<String, JsonValue>> formBeans,
                             String primeflexVersion) {
         try {
 
             final Path packageViewPath = packageBasePath.resolve("view");
             Files.createDirectories(packageViewPath);
-            entrySet.forEach(item -> {
+            pathEntries.forEach(pathEntry -> {
                 try {
-                    var currentEntry = item.getValue().asJsonObject();
-                    createManagedBean(packageViewPath, item);
+                    var currentEntry = pathEntry.getValue().asJsonObject();
+                    createManagedBean(packageViewPath, pathEntry);
                     String formBeanName = currentEntry.getString("formBean");
                     var formBean = formBeans.stream().filter(entry -> entry.getKey().equals(formBeanName)).findFirst();
-                    formBean.ifPresent(stringJsonValueEntry -> createView(item, formBeanName,
+                    formBean.ifPresent(stringJsonValueEntry -> createView(pathEntry, formBeanName,
                             stringJsonValueEntry.getValue()
                                     .asJsonObject(), primeflexVersion));
                 } catch (IOException ex) {
@@ -268,16 +287,16 @@ public class ViewModelUtil {
     }
 
     private void createManagedBean(Path packageViewPath,
-                                   Map.Entry<String, JsonValue> entry) throws IOException {
+                                   Map.Entry<String, JsonValue> pathEntry) throws IOException {
         Set<String> imports = new TreeSet<>();
 
-        var pathName = entry.getKey();
+        var pathName = pathEntry.getKey();
         log.info("Creating Managed Bean:" + pathName);
-        var pathJson = entry.getValue().asJsonObject();
+        var pathJson = pathEntry.getValue().asJsonObject();
         var isList = pathJson.getString("type").equals("list");
         String scoped = isList ? "SessionScoped" : "RequestScoped";
         var $temp = getNameFromPath(pathName) + "View";
-        var hasListView = entry.getValue().asJsonObject().containsKey("listView");
+        var hasListView = pathEntry.getValue().asJsonObject().containsKey("listView");
 
         String className = name2ClassName($temp);
         String classFileName = className + ".java";
@@ -303,7 +322,7 @@ public class ViewModelUtil {
         if (hasListView) {
             lines.add(EMPTY);
             lines.add(String.format("%s@Inject", StringUtils.repeat(SPACE, TAB)));
-            var variableName = getNameFromPath(entry.getValue().asJsonObject().getString("listView"));
+            var variableName = getNameFromPath(pathEntry.getValue().asJsonObject().getString("listView"));
             var variableNameView = variableName + "View";
             var classNameListView = name2ClassName(variableNameView);
             var variableListView = name2Variable(variableNameView);
@@ -347,7 +366,7 @@ public class ViewModelUtil {
                     variablesMap.get("variableName"), name2ClassName(variablesMap.get("variableName")),
                     fieldName));
             lines.add(String.format("%sreturn \"%s?faces-redirect=true\";", StringUtils.repeat(SPACE, TAB * 2),
-                    entry.getValue().asJsonObject().getString("listView", "/index")));
+                    pathEntry.getValue().asJsonObject().getString("listView", "/index")));
             lines.add(String.format("%s}", StringUtils.repeat(SPACE, TAB)));
             lines.add(EMPTY);
             lines.add(String.format("%spublic void onload() {", StringUtils.repeat(SPACE, TAB)));
@@ -361,7 +380,7 @@ public class ViewModelUtil {
 
     }
 
-    public void createFormBeans(Set<Map.Entry<String, JsonValue>> entrySet) {
+    private void createFormBeans(Set<Map.Entry<String, JsonValue>> entrySet) {
         try {
             final Path packageFormBean = packageBasePath.resolve("formbean");
             Files.createDirectories(packageFormBean);
@@ -609,10 +628,15 @@ public class ViewModelUtil {
         }
     }
 
+    /**
+     * Create the views for the project, based on the configuration file
+     * @param viewModel Configuration of the views, taken from the configuration file.
+     * @param primeflexVersion PrimeFlex version
+     */
     public void createViews(JsonObject viewModel,
-                            String version) {
+                            String primeflexVersion) {
         Set<Map.Entry<String, JsonValue>> formBeans = viewModel.getJsonObject("formBeans").entrySet();
-        createPaths(viewModel.getJsonObject("paths").entrySet(), formBeans, version);
+        createPaths(viewModel.getJsonObject("paths").entrySet(), formBeans, primeflexVersion);
         createFormBeans(formBeans);
     }
 

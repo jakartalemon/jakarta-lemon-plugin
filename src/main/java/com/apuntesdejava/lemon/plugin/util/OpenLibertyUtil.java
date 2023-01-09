@@ -62,7 +62,7 @@ public class OpenLibertyUtil {
                 .ifPresent(serverModel -> {
                     try {
 
-                        DocumentXmlUtil.createElement(serverModel, "/"+SERVER, "library")
+                        DocumentXmlUtil.createElement(serverModel, SLASH+SERVER, "library")
                             .ifPresent(libraryElement -> {
                                 libraryElement.setAttribute(ID, JDBC_LIB);
                                 DocumentXmlUtil.createElement(serverModel, libraryElement, "fileset")
@@ -72,7 +72,7 @@ public class OpenLibertyUtil {
                                     });
                             });
 
-                        String jndiName = JDBC+"/" + mavenProject.getArtifactId();
+                        String jndiName = JDBC+SLASH + mavenProject.getArtifactId();
                         var datasourceModel = projectModel.getJsonObject(DATASOURCE);
 
                         DocumentXmlUtil.createElement(serverModel, SERVER, "dataSource")
@@ -138,7 +138,7 @@ public class OpenLibertyUtil {
         }
         var document = DocumentXmlUtil.newDocument(SERVER);
         try {
-            DocumentXmlUtil.findElementsByFilter(document, "/"+SERVER)
+            DocumentXmlUtil.listElementsByFilter(document, SLASH+SERVER)
                 .stream()
                 .findFirst()
                 .ifPresent(serverElement -> {
@@ -161,7 +161,7 @@ public class OpenLibertyUtil {
                             .ifPresent(applicationManagerElement -> applicationManagerElement.setAttribute("autoExpand", "true"));
                         DocumentXmlUtil.createElement(document, serverElement, "webApplication")
                             .ifPresent(webApplicationElement -> {
-                                webApplicationElement.setAttribute("contextRoot", "/" + projectName);
+                                webApplicationElement.setAttribute("contextRoot", SLASH + projectName);
                                 webApplicationElement.setAttribute("location", projectName + ".war");
                             });
                         if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTP_PORT) || options.containsKey(LIBERTY_VAR_DEFAULT_HTTPS_PORT)) {

@@ -141,7 +141,7 @@ public class CreateResourcesMojo extends AbstractMojo {
         try {
             getLog().debug("path:" + pathName + "\tpathModel:" + pathModel + "\tpackageBaseResources:" + packageBaseResources);
             getLog().info("Creating " + pathName);
-            String resourceName = StringUtils.substringBefore(pathName, "/");
+            String resourceName = StringUtils.substringBefore(pathName, SLASH);
             String resourceClassName = StringUtils.capitalize(resourceName) + "Resource";
             Path classPath = packageBaseResources.resolve(resourceClassName + ".java");
             List<String> lines;
@@ -178,7 +178,7 @@ public class CreateResourcesMojo extends AbstractMojo {
                 var $ref = items != null ? items.get(REF) : (String) schema.get(REF);
                 String onlyClassName = "";
                 if (StringUtils.isNotBlank($ref)) {
-                    String modelResponse = componentsMap.get(StringUtils.substringAfterLast($ref, "/"));
+                    String modelResponse = componentsMap.get(StringUtils.substringAfterLast($ref, SLASH));
                     String line = "import " + modelResponse + ";";
                     if (!lines.contains(line)) {
                         lines.add(2, line);
@@ -234,7 +234,7 @@ public class CreateResourcesMojo extends AbstractMojo {
                 if (schemaOpt.isPresent()) {
                     var schema = schemaOpt.get().asJsonObject().getJsonObject(SCHEMA);
 
-                    String modelRequest = componentsMap.get(StringUtils.substringAfterLast(schema.getString(REF), "/"));
+                    String modelRequest = componentsMap.get(StringUtils.substringAfterLast(schema.getString(REF), SLASH));
                     String line = "import " + modelRequest + ";";
                     if (!lines.contains(line)) {
                         lines.add(2, line);

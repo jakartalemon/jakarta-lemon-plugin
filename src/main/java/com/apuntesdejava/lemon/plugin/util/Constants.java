@@ -16,10 +16,14 @@
 package com.apuntesdejava.lemon.plugin.util;
 
 /**
+ * Class with constants of the expressions used for the plugin
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class Constants {
 
+    /**
+     * Value 4
+     */
     public static final int TAB = 4;
 
     public final static String DEPENDENCIES_URL = "https://jakartalemon.dev/dependencies.json";
@@ -119,40 +123,131 @@ public class Constants {
     public static final String REQUEST_BODY = "requestBody";
 
     public static final String PRIMEFACES_GROUP_ID = "org.primefaces";
+    
+    /**
+     * Value {@code primefaces}
+     */
     public static final String PRIMEFACES_ARTIFACT_ID = "primefaces";
+    
+    /**
+     * Value {@code org.webjars.npm}
+     */
     public static final String PRIMEFLEX_GROUP_ID = "org.webjars.npm";
+    
+    /**
+     * Value {@code primeflex}
+     */
     public static final String PRIMEFLEX_ARTIFACT_ID = "primeflex";
+    
+    /**
+     * Value {@code src}
+     */
     public static final String SRC_PATH = "src";
+    
+    /**
+     * Value {@code main}
+     */
     public static final String MAIN_PATH = "main";
+    
+    /**
+     * Value {@code  java}
+     */
     public static final String JAVA_PATH = "java";
 
+    /**
+     * Value {@code systemPropertyVariables}
+     */
     public static final String SYSTEM_PROPERTY_VARIABLES = "systemPropertyVariables";
 
+    /**
+     * Value {@code web-app}
+     */
     public static final String WEB_APP = "web-app";
 
+    /**
+     * Value {@code META-INF}
+     */
     public static final String META_INF = "META-INF";
 
+    /**
+     * Value {@code dependency}
+     */
     public static final String DEPENDENCY = "dependency";
 
+    /**
+     * Value {@code  jdbcLib}
+     */
     public static final String JDBC_LIB = "jdbcLib";
+    
+    /**
+     * Value {@code jdbc}
+     */
     public static final String JDBC = "jdbc";
+    
+    /**
+     * Value {@code jndiName}
+     */
     public static final String ID = "id";
 
+    /**
+     * Value {@code jndiName}
+     */
     public static final String JNDI_NAME = "jndiName";
 
+    /**
+     * Value {@code key}
+     */
     public static final String KEY = "key";
 
+    /**
+     * Value {@code target/lib}
+     */
     public static final String TARGET_LIB = "target/lib";
-    public static final String COPY = "copy";
-    public static final String COPY_JDBC = "copy-jdbc";
-    public static final String WEBAPP = "webapp";
-    public static final String WEBXML = "web.xml";
-    public static final String WEB_INF_PATH = "WEB-INF";
-    public static final String OPTION = "option";
-    public static final String SCOPE = "scope";
-    public static final String CLASSIFIER = "classifier";
 
-    public static final String MAVEN_PLUGIN_GROUP_ID="org.apache.maven.plugins";
+    /**
+     * Value {@code copy}
+     */
+    public static final String COPY = "copy";
+
+    /**
+     * Value {@code copy-jdbc}
+     */
+    public static final String COPY_JDBC = "copy-jdbc";
+
+    /**
+     * Value {@code webapp}
+     */
+    public static final String WEBAPP = "webapp";
+
+    /**
+     * Value {@code web.xml}
+     */
+    public static final String WEBXML = "web.xml";
+    /**
+     * Value {@code WEB-INF}
+     */
+    public static final String WEB_INF_PATH = "WEB-INF";
+    /**
+     * value {@code option}
+     */
+    public static final String OPTION = "option";
+    /**
+     * Value {@code scope}
+     */
+    public static final String SCOPE = "scope";
+    /**
+     * Value {@code classifier }
+     */
+    public static final String CLASSIFIER = "classifier";
+    /**
+     * Value {@code '/'}
+     */
+    public static final char SLASH = '/';
+
+    /**
+     * Value {@code  org.apache.maven.plugins }
+     */
+    public static final String MAVEN_PLUGIN_GROUP_ID = "org.apache.maven.plugins";
 
     private Constants() {
     }
