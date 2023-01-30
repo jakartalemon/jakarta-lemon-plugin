@@ -104,7 +104,7 @@ public class AddOpenLibertyMojo extends AbstractMojo {
             props.setProperty(LIBERTY_VAR_DEFAULT_HTTP_PORT, defaultHttpPort);
             props.setProperty(LIBERTY_VAR_DEFAULT_HTTPS_PORT, defaultHttpsPort);
             props.setProperty(LIBERTY_VAR_APP_CONTEXT_ROOT, appName);
-            var build = ProjectModelUtil.getBuild(profile);
+            var build = ProjectModelUtil.getBuildBase(profile);
             var pm = ProjectModelUtil.getPluginManagement(build);
             try {
                 var config = HttpClientUtil.getJson(getLog(), LEMON_CONFIG_URL, JsonReader::readObject);

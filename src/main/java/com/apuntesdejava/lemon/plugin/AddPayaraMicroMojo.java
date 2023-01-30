@@ -46,12 +46,12 @@ public class AddPayaraMicroMojo extends AbstractMojo {
 
     private static final List<Map<String, String>> OPTIONS_LIST
         = List.of(
-            Map.of(KEY, "--autoBindHttp"),
-            Map.of(KEY, "--deploy", VALUE, "${project.build.directory}/${project.build.finalName}"),
-            Map.of(KEY, "--postbootcommandfile", VALUE, "post-boot-commands.txt"),
-            Map.of(KEY, "--contextroot", VALUE, String.valueOf(SLASH)),
-            Map.of(KEY, "--addlibs", VALUE, TARGET_LIB)
-        );
+        Map.of(KEY, "--autoBindHttp"),
+        Map.of(KEY, "--deploy", VALUE, "${project.build.directory}/${project.build.finalName}"),
+        Map.of(KEY, "--postbootcommandfile", VALUE, "post-boot-commands.txt"),
+        Map.of(KEY, "--contextroot", VALUE, String.valueOf(SLASH)),
+        Map.of(KEY, "--addlibs", VALUE, TARGET_LIB)
+    );
 
     @Parameter(
         property = "model",
@@ -84,11 +84,13 @@ public class AddPayaraMicroMojo extends AbstractMojo {
             Profile profile = ProjectModelUtil.getProfile(model, "payara-micro");
             Properties props = ProjectModelUtil.getProperties(profile);
             DependenciesUtil.getLastVersionDependency(getLog(), "g:fish.payara.extras+AND+a:payara-micro")
-                .ifPresent(dependencyModel -> props.setProperty("version.payara", dependencyModel.getString(DEPENDENCY_VERSION)));
+                .ifPresent(dependencyModel -> props.setProperty("version.payara",
+                    dependencyModel.getString(DEPENDENCY_VERSION)));
             var datasource = projectModel.getJsonObject(DATASOURCE);
-            BuildBase build = ProjectModelUtil.getBuild(profile);
+            BuildBase build = ProjectModelUtil.getBuildBase(profile);
             List<Map<String, String>> commandLineOptionsList = new ArrayList<>(OPTIONS_LIST);
-            DatasourceDefinitionStyleType style = DatasourceDefinitionStyleType.findByValue(datasource.getString(STYLE));
+            DatasourceDefinitionStyleType style = DatasourceDefinitionStyleType.findByValue(
+                datasource.getString(STYLE));
             if (style == DatasourceDefinitionStyleType.PAYARA_RESOURCES) {
                 commandLineOptionsList.addAll(
                     List.of(
@@ -102,7 +104,8 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                         )
                     )
                 );
-                PayaraUtil.createPayaraMicroDataSourcePostBootFile(getLog(), "post-boot-commands.txt", projectModel, mavenProject);
+                PayaraUtil.createPayaraMicroDataSourcePostBootFile(getLog(), "post-boot-commands.txt", projectModel,
+                    mavenProject);
             }
             ProjectModelUtil.addPlugin(build, "fish.payara.maven.plugins", "payara-micro-maven-plugin", "1.4.0",
                 Map.of("payaraVersion", "${version.payara}",
@@ -125,17 +128,18 @@ public class AddPayaraMicroMojo extends AbstractMojo {
                         execution.addGoal(COPY);
                         return COPY;
                     });
-                    DependenciesUtil.getByDatabase(getLog(), datasource.getString(DB)).ifPresent(dependen -> ProjectModelUtil.setConfigurationOptions(execution, Map.of(
-                        "outputDirectory", TARGET_LIB,
-                        "stripVersion", "true",
-                        "artifactItems", Map.of(
-                            "artifactItem", Map.of(
-                                DEPENDENCY_GROUP_ID, dependen.getString(DEPENDENCY_GROUP_ID),
-                                DEPENDENCY_ARTIFACT_ID, dependen.getString(DEPENDENCY_ARTIFACT_ID),
-                                DEPENDENCY_VERSION, dependen.getString(DEPENDENCY_VERSION)
+                    DependenciesUtil.getByDatabase(getLog(), datasource.getString(DB))
+                        .ifPresent(dependen -> ProjectModelUtil.setConfigurationOptions(execution, Map.of(
+                            "outputDirectory", TARGET_LIB,
+                            "stripVersion", "true",
+                            "artifactItems", Map.of(
+                                "artifactItem", Map.of(
+                                    DEPENDENCY_GROUP_ID, dependen.getString(DEPENDENCY_GROUP_ID),
+                                    DEPENDENCY_ARTIFACT_ID, dependen.getString(DEPENDENCY_ARTIFACT_ID),
+                                    DEPENDENCY_VERSION, dependen.getString(DEPENDENCY_VERSION)
+                                )
                             )
-                        )
-                    )));
+                        )));
 
                 });
 
