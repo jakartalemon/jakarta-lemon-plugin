@@ -43,6 +43,8 @@ import java.util.Optional;
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 
 /**
+ * Utility class for handling the creation of OpenLiberty components
+ *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class OpenLibertyUtil {
@@ -53,6 +55,13 @@ public class OpenLibertyUtil {
 
     }
 
+    /**
+     * Create the Datasource for OpenLiberty
+     *
+     * @param log          Manager Log
+     * @param projectModel Object Project Model
+     * @param mavenProject Maven Project
+     */
     public static void createDataSource(Log log,
                                         JsonObject projectModel,
                                         MavenProject mavenProject) {
@@ -62,7 +71,7 @@ public class OpenLibertyUtil {
                 .ifPresent(serverModel -> {
                     try {
 
-                        DocumentXmlUtil.createElement(serverModel, "/"+SERVER, "library")
+                        DocumentXmlUtil.createElement(serverModel, SLASH + SERVER, "library")
                             .ifPresent(libraryElement -> {
                                 libraryElement.setAttribute(ID, JDBC_LIB);
                                 DocumentXmlUtil.createElement(serverModel, libraryElement, "fileset")
@@ -72,14 +81,15 @@ public class OpenLibertyUtil {
                                     });
                             });
 
-                        String jndiName = JDBC+"/" + mavenProject.getArtifactId();
+                        String jndiName = JDBC + SLASH + mavenProject.getArtifactId();
                         var datasourceModel = projectModel.getJsonObject(DATASOURCE);
 
                         DocumentXmlUtil.createElement(serverModel, SERVER, "dataSource")
                             .ifPresent(dataSourceElement -> {
                                 dataSourceElement.setAttribute(JNDI_NAME, jndiName);
                                 DocumentXmlUtil.createElement(serverModel, dataSourceElement, "jdbcDriver")
-                                    .ifPresent(jdbcDriverElement -> jdbcDriverElement.setAttribute("libraryRef", JDBC_LIB));
+                                    .ifPresent(
+                                        jdbcDriverElement -> jdbcDriverElement.setAttribute("libraryRef", JDBC_LIB));
                                 DocumentXmlUtil.createElement(serverModel, dataSourceElement, PROPERTIES)
                                     .ifPresent(propertiesElement -> {
                                         propertiesElement.setAttribute(URL, datasourceModel.getString(URL));
@@ -97,7 +107,7 @@ public class OpenLibertyUtil {
                         log.debug("Modifing pom.xml");
                         Model model = ProjectModelUtil.getModel(mavenProject);
                         Profile profile = ProjectModelUtil.getProfile(model, OPENLIBERTY);
-                        BuildBase build = ProjectModelUtil.getBuild(profile);
+                        BuildBase build = ProjectModelUtil.getBuildBase(profile);
                         Optional<Plugin> pluginOpt = ProjectModelUtil.addPlugin(build, "io.openliberty.tools",
                             "liberty-maven-plugin", "3.3.4");
                         if (pluginOpt.isPresent()) {
@@ -108,8 +118,8 @@ public class OpenLibertyUtil {
                             Xpp3Dom location = ProjectModelUtil.addChildren(dependencyGroup, "location");
                             location.setValue(JDBC);
 
-                            Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, DEPENDENCY);
-                            ProjectModelUtil.addDependenciesDatabase(log, dependency, datasourceModel.getString(DB));
+                            ProjectModelUtil.addDependenciesDatabase(log, dependencyGroup,
+                                datasourceModel.getString(DB));
 
                             ProjectModelUtil.saveModel(mavenProject, model);
                         }
@@ -124,9 +134,21 @@ public class OpenLibertyUtil {
         }
     }
 
+    /**
+     * Gets the current XML model of the OpenLiberty Server
+     *
+     * @param log          Maven Log
+     * @param mavenProject Maven Project
+     * @param options      Options
+     * @return Document XML
+     * @throws JAXBException                JAXBException
+     * @throws IOException                  IOException
+     * @throws ParserConfigurationException ParserConfigurationException
+     */
     public static Optional<Document> getServerModel(Log log,
                                                     MavenProject mavenProject,
-                                                    Map<String, String> options) throws JAXBException, IOException, ParserConfigurationException {
+                                                    Map<String, String> options) throws JAXBException, IOException,
+                                                                                        ParserConfigurationException {
         log.info("Creating server.xml file");
         Path baseDirPath = mavenProject.getBasedir().toPath();
         log.debug("baseDirPath:" + baseDirPath);
@@ -138,7 +160,7 @@ public class OpenLibertyUtil {
         }
         var document = DocumentXmlUtil.newDocument(SERVER);
         try {
-            DocumentXmlUtil.findElementsByFilter(document, "/"+SERVER)
+            DocumentXmlUtil.listElementsByFilter(document, SLASH + SERVER)
                 .stream()
                 .findFirst()
                 .ifPresent(serverElement -> {
@@ -158,21 +180,25 @@ public class OpenLibertyUtil {
                                     FEATURE, featureItem)));
 
                         DocumentXmlUtil.createElement(document, serverElement, "applicationManager")
-                            .ifPresent(applicationManagerElement -> applicationManagerElement.setAttribute("autoExpand", "true"));
+                            .ifPresent(applicationManagerElement -> applicationManagerElement.setAttribute("autoExpand",
+                                "true"));
                         DocumentXmlUtil.createElement(document, serverElement, "webApplication")
                             .ifPresent(webApplicationElement -> {
-                                webApplicationElement.setAttribute("contextRoot", "/" + projectName);
+                                webApplicationElement.setAttribute("contextRoot", SLASH + projectName);
                                 webApplicationElement.setAttribute("location", projectName + ".war");
                             });
-                        if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTP_PORT) || options.containsKey(LIBERTY_VAR_DEFAULT_HTTPS_PORT)) {
+                        if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTP_PORT) || options.containsKey(
+                            LIBERTY_VAR_DEFAULT_HTTPS_PORT)) {
                             DocumentXmlUtil.createElement(document, serverElement, "httpEndpoint")
                                 .ifPresent(httpEndpointElement -> {
                                     httpEndpointElement.setAttribute(ID, "defaultHttpEndpoint");
                                     if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTP_PORT)) {
-                                        httpEndpointElement.setAttribute("httpPort", options.get(LIBERTY_VAR_DEFAULT_HTTP_PORT));
+                                        httpEndpointElement.setAttribute("httpPort",
+                                            options.get(LIBERTY_VAR_DEFAULT_HTTP_PORT));
                                     }
                                     if (options.containsKey(LIBERTY_VAR_DEFAULT_HTTPS_PORT)) {
-                                        httpEndpointElement.setAttribute("httpsPort", options.get(LIBERTY_VAR_DEFAULT_HTTPS_PORT));
+                                        httpEndpointElement.setAttribute("httpsPort",
+                                            options.get(LIBERTY_VAR_DEFAULT_HTTPS_PORT));
                                     }
                                 });
                         }
@@ -188,6 +214,13 @@ public class OpenLibertyUtil {
 
     }
 
+    /**
+     * Saves the OpenLiberty server configuration XML
+     *
+     * @param mavenProject Maven Project
+     * @param serverModel  XML Server Model
+     * @throws JAXBException JAXBException
+     */
     public static void saveServerModel(MavenProject mavenProject,
                                        Document serverModel) throws JAXBException {
         Path baseDirPath = mavenProject.getBasedir().toPath();

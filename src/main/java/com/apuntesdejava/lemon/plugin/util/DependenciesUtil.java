@@ -35,6 +35,13 @@ public class DependenciesUtil {
 
     }
 
+    /**
+     * Gets the Maven dependency based on the database type
+     *
+     * @param log      Maven log
+     * @param database database type (mysql, postgresql, etc)
+     * @return JSON with the Maven definition of the database
+     */
     public static Optional<JsonObject> getByDatabase(Log log, String database) {
         try {
             var dependenciesDefinitions = HttpClientUtil.getJson(log, DEPENDENCIES_URL, JsonReader::readObject);
@@ -49,6 +56,13 @@ public class DependenciesUtil {
         return Optional.empty();
     }
 
+    /**
+     * Gets the latest version of a dependency given by the query string.
+     *
+     * @param log   Maven log
+     * @param query Query string that is sent to the Maven API
+     * @return JSON object with the dependency found, or {@link Optional#empty()} if not found.
+     */
     public static Optional<JsonObject> getLastVersionDependency(Log log, String query) {
         try {
             String uri = QUERY_MAVEN_URL + query;

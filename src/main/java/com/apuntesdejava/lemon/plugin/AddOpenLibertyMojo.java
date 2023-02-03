@@ -77,6 +77,12 @@ public class AddOpenLibertyMojo extends AbstractMojo {
 
     private JsonObject projectModel;
 
+    /**
+     * Main method that runs the Plugin
+     *
+     * @throws MojoExecutionException If Mojo Exception
+     * @throws MojoFailureException   If Mojo Failure Exception
+     */
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         ProjectModelUtil.getProjectModel(getLog(), _modelProjectFile).ifPresent(pm -> {
@@ -98,7 +104,7 @@ public class AddOpenLibertyMojo extends AbstractMojo {
             props.setProperty(LIBERTY_VAR_DEFAULT_HTTP_PORT, defaultHttpPort);
             props.setProperty(LIBERTY_VAR_DEFAULT_HTTPS_PORT, defaultHttpsPort);
             props.setProperty(LIBERTY_VAR_APP_CONTEXT_ROOT, appName);
-            var build = ProjectModelUtil.getBuild(profile);
+            var build = ProjectModelUtil.getBuildBase(profile);
             var pm = ProjectModelUtil.getPluginManagement(build);
             try {
                 var config = HttpClientUtil.getJson(getLog(), LEMON_CONFIG_URL, JsonReader::readObject);
@@ -114,7 +120,8 @@ public class AddOpenLibertyMojo extends AbstractMojo {
                         DEPENDENCY_TYPE, runtimeArtifact.getString(DEPENDENCY_TYPE)
                     ));
                 }
-                ProjectModelUtil.addPlugin(pm, "io.openliberty.tools", "liberty-maven-plugin", pluginInfo.getString(DEPENDENCY_VERSION), configOptions);
+                ProjectModelUtil.addPlugin(pm, "io.openliberty.tools", "liberty-maven-plugin",
+                    pluginInfo.getString(DEPENDENCY_VERSION), configOptions);
             } catch (InterruptedException | URISyntaxException ex) {
                 getLog().error(ex.getMessage(), ex);
             }

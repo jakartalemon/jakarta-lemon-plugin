@@ -29,11 +29,29 @@ import java.net.http.HttpResponse;
 import java.util.function.Function;
 
 /**
+ * Utility class for HTTP calls
+ *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class HttpClientUtil {
 
-    public static <T> T getJson(Log log, String uri, Function<JsonReader, T> read) throws IOException, InterruptedException, URISyntaxException {
+    /**
+     * It makes a GET HTTP call and the response processes it as JSON. The way it returns it is done through the read
+     * parameter.
+     *
+     * @param <T>  Data type to be returned after processing the response.
+     * @param log  Maven log
+     * @param uri  Request URI
+     * @param read Function that processes the request and returns a value based on the indicated type. This function
+     *             must have a parameter of type {@link JsonReader}, and can return any data type.
+     * @return Processed object of the request
+     * @throws IOException          IOException
+     * @throws InterruptedException InterruptedException
+     * @throws URISyntaxException   URISyntaxException
+     */
+    public static <T> T getJson(Log log, String uri, Function<JsonReader, T> read) throws IOException,
+                                                                                          InterruptedException,
+                                                                                          URISyntaxException {
         log.debug("getting uri:" + uri);
         var httpRequest = HttpRequest.newBuilder(new URI(uri)).GET().build();
         var httpResponse = HttpClient.newBuilder().build().send(httpRequest, HttpResponse.BodyHandlers.ofString());

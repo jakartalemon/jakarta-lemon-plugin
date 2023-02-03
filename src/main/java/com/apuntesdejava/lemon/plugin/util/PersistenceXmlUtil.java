@@ -28,12 +28,21 @@ import java.nio.file.Paths;
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 
 /**
+ * Utility class for handling the XML file of JPA persistence
+ *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class PersistenceXmlUtil {
 
     private static final String PERSISTENCE_FILE_NAME = "persistence.xml";
 
+    /**
+     * Open and get the persistence.xml file. If it doesn't exist, it creates it with the basic properties.
+     *
+     * @param basedir Project base directory
+     * @return Persistence XML
+     * @throws IOException IO Exception
+     */
     public static Document openPersistenceXml(File basedir) throws IOException {
         Path xmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, RESOURCES, META_INF, PERSISTENCE_FILE_NAME)
             .normalize();
@@ -41,7 +50,7 @@ public class PersistenceXmlUtil {
         return DocumentXmlUtil.openDocument(xmlPath).orElseGet(() -> {
             try {
                 var document = DocumentXmlUtil.newDocument(PERSISTENCE);
-                DocumentXmlUtil.findElementsByFilter(document, "/" + PERSISTENCE)
+                DocumentXmlUtil.listElementsByFilter(document, SLASH + PERSISTENCE)
                     .stream()
                     .findFirst()
                     .ifPresent(persistenceElement -> {
@@ -57,6 +66,12 @@ public class PersistenceXmlUtil {
 
     }
 
+    /**
+     * Save the persistence.xml file
+     *
+     * @param basedir  project base directory
+     * @param document persistence.xml
+     */
     public static void saveWebXml(File basedir, Document document) {
         Path webXmlPath = Paths.get(basedir.toString(), SRC_PATH, MAIN_PATH, RESOURCES, META_INF, PERSISTENCE_FILE_NAME)
             .normalize();

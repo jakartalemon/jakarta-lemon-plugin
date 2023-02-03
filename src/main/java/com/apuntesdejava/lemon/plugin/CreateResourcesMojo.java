@@ -59,6 +59,12 @@ public class CreateResourcesMojo extends AbstractMojo {
     private String packageName;
     private JsonObject openApiModel;
 
+    /**
+     * Main method that runs the Plugin
+     *
+     * @throws MojoExecutionException if Mojo Execution Exception
+     * @throws MojoFailureException   if Mojo Failure Exception
+     */
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         try {
@@ -66,7 +72,8 @@ public class CreateResourcesMojo extends AbstractMojo {
             getLog().debug("modelProjectFile:" + path);
             this.openApiModel = OpenApiModelUtil.getInstance().getModel(path);
             getLog().debug("openApiModel:" + openApiModel);
-            this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(), '-', '.');
+            this.packageName = StringUtils.replaceChars(mavenProject.getGroupId() + '.' + mavenProject.getArtifactId(),
+                '-', '.');
             createComponents();
             createResources();
         } catch (IOException ex) {
@@ -135,9 +142,10 @@ public class CreateResourcesMojo extends AbstractMojo {
 
     private void createResource(String pathName, JsonObject pathModel, Path packageBaseResources) {
         try {
-            getLog().debug("path:" + pathName + "\tpathModel:" + pathModel + "\tpackageBaseResources:" + packageBaseResources);
+            getLog().debug(
+                "path:" + pathName + "\tpathModel:" + pathModel + "\tpackageBaseResources:" + packageBaseResources);
             getLog().info("Creating " + pathName);
-            String resourceName = StringUtils.substringBefore(pathName, "/");
+            String resourceName = StringUtils.substringBefore(pathName, SLASH);
             String resourceClassName = StringUtils.capitalize(resourceName) + "Resource";
             Path classPath = packageBaseResources.resolve(resourceClassName + ".java");
             List<String> lines;
@@ -174,7 +182,7 @@ public class CreateResourcesMojo extends AbstractMojo {
                 var $ref = items != null ? items.get(REF) : (String) schema.get(REF);
                 String onlyClassName = "";
                 if (StringUtils.isNotBlank($ref)) {
-                    String modelResponse = componentsMap.get(StringUtils.substringAfterLast($ref, "/"));
+                    String modelResponse = componentsMap.get(StringUtils.substringAfterLast($ref, SLASH));
                     String line = "import " + modelResponse + ";";
                     if (!lines.contains(line)) {
                         lines.add(2, line);
@@ -184,12 +192,15 @@ public class CreateResourcesMojo extends AbstractMojo {
                 if (StringUtils.equalsAnyIgnoreCase(type, ARRAY)) {
                     lines.add(2, "import java.util.Collections;");
                     lines.add(2, "import java.util.List;");
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "List<" + onlyClassName + "> response = Collections.emptyList();");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE,
+                        Constants.TAB * 2) + "List<" + onlyClassName + "> response = Collections.emptyList();");
 
                 } else {
-                    lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + onlyClassName + " response = new " + onlyClassName + "();");
+                    lines.add(StringUtils.repeat(StringUtils.SPACE,
+                        Constants.TAB * 2) + onlyClassName + " response = new " + onlyClassName + "();");
                 }
-                lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return Response.ok(response).build();");
+                lines.add(
+                    StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return Response.ok(response).build();");
             } else {
                 lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return Response.ok().build();");
             }
@@ -203,14 +214,16 @@ public class CreateResourcesMojo extends AbstractMojo {
         }
     }
 
-    private void createOperation(List<String> lines, String method, JsonObject operationModel, String pathName, String resourceName) {
+    private void createOperation(List<String> lines, String method, JsonObject operationModel, String pathName,
+                                 String resourceName) {
         lines.add(StringUtils.EMPTY);
         boolean paramsIn = operationModel.containsKey(PARAMETERS) && operationModel.getJsonArray(PARAMETERS)
             .stream()
             .map(JsonValue::asJsonObject)
             .anyMatch(item -> item.containsKey(IN) && StringUtils.equals(item.getString(IN), PATH));
         if (paramsIn) {
-            String operationPath = StringUtils.substringBetween(StringUtils.substringAfter(pathName, resourceName), "{", "}");
+            String operationPath = StringUtils.substringBetween(StringUtils.substringAfter(pathName, resourceName), "{",
+                "}");
             lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "@Path(\"{" + operationPath + "}\")");
         }
         JsonObject response = operationModel.getJsonObject(RESPONSES).getJsonObject(DEFAULT);
@@ -230,7 +243,8 @@ public class CreateResourcesMojo extends AbstractMojo {
                 if (schemaOpt.isPresent()) {
                     var schema = schemaOpt.get().asJsonObject().getJsonObject(SCHEMA);
 
-                    String modelRequest = componentsMap.get(StringUtils.substringAfterLast(schema.getString(REF), "/"));
+                    String modelRequest = componentsMap.get(
+                        StringUtils.substringAfterLast(schema.getString(REF), SLASH));
                     String line = "import " + modelRequest + ";";
                     if (!lines.contains(line)) {
                         lines.add(2, line);
@@ -241,7 +255,8 @@ public class CreateResourcesMojo extends AbstractMojo {
             }
         }
         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + method);
-        String parameters = !operationModel.containsKey(PARAMETERS) ? StringUtils.EMPTY : operationModel.getJsonArray(PARAMETERS)
+        String parameters = !operationModel.containsKey(PARAMETERS) ? StringUtils.EMPTY : operationModel.getJsonArray(
+                PARAMETERS)
             .stream()
             .map(JsonValue::asJsonObject)
             .map(param -> {
@@ -255,7 +270,10 @@ public class CreateResourcesMojo extends AbstractMojo {
                 return result.toString();
             })
             .collect(joining(","));
-        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + StringUtils.replaceEach("public Response {operationId}({parameters}) {", new String[]{"{operationId}", "{parameters}"}, new String[]{operationModel.getString("operationId"), bodyParams.length() == 0 ? parameters : bodyParams.toString()}));
+        lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + StringUtils.replaceEach(
+            "public Response {operationId}({parameters}) {", new String[]{"{operationId}", "{parameters}"},
+            new String[]{operationModel.getString(
+                "operationId"), bodyParams.length() == 0 ? parameters : bodyParams.toString()}));
     }
 
 }
