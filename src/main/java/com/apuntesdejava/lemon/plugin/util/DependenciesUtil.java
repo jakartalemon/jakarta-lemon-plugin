@@ -15,63 +15,71 @@
  */
 package com.apuntesdejava.lemon.plugin.util;
 
-import com.apuntesdejava.lemon.jakarta.model.DependencyModel;
-import static com.apuntesdejava.lemon.plugin.util.Constants.DB_DEFINITIONS;
-import static com.apuntesdejava.lemon.plugin.util.Constants.SEARCH;
 import jakarta.json.Json;
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.Map;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 import org.apache.maven.plugin.logging.Log;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.Optional;
+
+import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+
 /**
- *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class DependenciesUtil {
-
-    private static final String HOST_MAVEN_SEARCH = "https://search.maven.org";
 
     private DependenciesUtil() {
 
     }
 
-    public static DependencyModel getByDatabase(Log log, String database) {
-        Map<String, Object> aDef = (Map<String, Object>) DB_DEFINITIONS.get(database);
-        return getLastVersionDependency(log, (String) aDef.get(SEARCH));
+    /**
+     * Gets the Maven dependency based on the database type
+     *
+     * @param log      Maven log
+     * @param database database type (mysql, postgresql, etc)
+     * @return JSON with the Maven definition of the database
+     */
+    public static Optional<JsonObject> getByDatabase(Log log, String database) {
+        try {
+            var dependenciesDefinitions = HttpClientUtil.getJson(log, DEPENDENCIES_URL, JsonReader::readObject);
+            return Optional.ofNullable(dependenciesDefinitions.getJsonObject(database)).map(dependency -> {
+
+                var query = String.format("g:%s+AND+a:%s", dependency.getString(G_KEY), dependency.getString(A_KEY));
+                return getLastVersionDependency(log, query);
+            }).filter(Optional::isPresent).flatMap(item -> item);
+        } catch (IOException | InterruptedException | URISyntaxException ex) {
+            log.error(ex.getMessage(), ex);
+        }
+        return Optional.empty();
     }
 
-    public static DependencyModel getLastVersionDependency(Log log, String query) {
+    /**
+     * Gets the latest version of a dependency given by the query string.
+     *
+     * @param log   Maven log
+     * @param query Query string that is sent to the Maven API
+     * @return JSON object with the dependency found, or {@link Optional#empty()} if not found.
+     */
+    public static Optional<JsonObject> getLastVersionDependency(Log log, String query) {
         try {
-            String uri = HOST_MAVEN_SEARCH + "/solrsearch/select?q=" + query;
-            log.debug("getting uri:" + uri);
-            var httpRequest = HttpRequest.newBuilder(new URI(uri))
-                    .GET()
-                    .build();
-            var httpResponse = HttpClient.newBuilder()
-                    .build()
-                    .send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            log.debug("code:" + httpResponse.statusCode());
-            String json = httpResponse.body();
+            String uri = QUERY_MAVEN_URL + query;
+            var jsonResp = HttpClientUtil.getJson(log, uri, JsonReader::readObject);
+            var responseJson = jsonResp.getJsonObject(RESPONSE);
+            var docsJson = responseJson.getJsonArray(DOCS);
+            var docJson = docsJson.get(0).asJsonObject();
+            return Optional.of(Json.createObjectBuilder()
+                .add(DEPENDENCY_GROUP_ID, docJson.getString(G_KEY))
+                .add(DEPENDENCY_ARTIFACT_ID, docJson.getString(A_KEY))
+                .add(DEPENDENCY_VERSION, docJson.getString(LATEST_VERSION))
+                .build());
 
-            log.debug("resp:" + json);
-            try ( StringReader stringReader = new StringReader(json);  var jsonReader = Json.createReader(stringReader)) {
-
-                var jsonResp = jsonReader.readObject();
-                var responseJson = jsonResp.getJsonObject("response");
-                var docsJson = responseJson.getJsonArray("docs");
-                var docJson = docsJson.get(0).asJsonObject();
-                return new DependencyModel(docJson.getString("g"), docJson.getString("a"), docJson.getString("latestVersion"));
-            }
         } catch (URISyntaxException | IOException | InterruptedException ex) {
             log.error(ex.getMessage(), ex);
         }
-        return null;
+        return Optional.empty();
     }
 
 }
