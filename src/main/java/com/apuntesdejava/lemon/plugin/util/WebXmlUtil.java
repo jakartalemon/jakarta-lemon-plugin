@@ -32,10 +32,11 @@ import static com.apuntesdejava.lemon.plugin.util.Constants.*;
  */
 public class WebXmlUtil {
     /**
-     * Open or create the web.xml file for the project being worked on. It receives as a parameter the path of the current project.
+     * Open or create the web.xml file for the project being worked on. It receives as a parameter the path of the
+     * current project.
      *
      * @param basedir Project folder being worked on.
-     * @return XML object {@link Document} from the <code>web.xml</code> file to be manipulated. 
+     * @return XML object {@link Document} from the <code>web.xml</code> file to be manipulated.
      * @throws IOException if IO Exception
      */
     public static Document openWebXml(File basedir) throws IOException {
@@ -50,10 +51,12 @@ public class WebXmlUtil {
                     .ifPresent(webappElement -> {
                         webappElement.setAttribute(XMLNS, "https://jakarta.ee/xml/ns/jakartaee");
                         webappElement.setAttribute(XMLNS_XSI, XMLNS_XSI_INSTANCE);
-                        webappElement.setAttribute("xsi:schemaLocation", "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
+                        webappElement.setAttribute("xsi:schemaLocation",
+                            "https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd");
                         webappElement.setAttribute(VERSION, "5.0");
                         DocumentXmlUtil.createElement(document, webappElement, "session-config")
-                            .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem, "session-timeout", "30"));
+                            .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem,
+                                "session-timeout", "30"));
                     });
 
 
@@ -63,10 +66,11 @@ public class WebXmlUtil {
             }
         });
     }
-    
+
     /**
      * Saves the <code>web.xml</code> XML object to the appropriate location, based on the location of the project
-     * @param basedir Project folder being worked on.
+     *
+     * @param basedir  Project folder being worked on.
      * @param document XML object {@link Document} from the <code>web.xml</code> file to save.
      */
 

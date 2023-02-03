@@ -16,8 +16,9 @@
 package com.apuntesdejava.lemon.jakarta.model.types;
 
 import com.apuntesdejava.lemon.plugin.util.Constants;
-import static com.apuntesdejava.lemon.plugin.util.Constants.WEBXML;
 import org.apache.commons.lang3.StringUtils;
+
+import static com.apuntesdejava.lemon.plugin.util.Constants.WEBXML;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com

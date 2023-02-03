@@ -120,7 +120,8 @@ public class AddOpenLibertyMojo extends AbstractMojo {
                         DEPENDENCY_TYPE, runtimeArtifact.getString(DEPENDENCY_TYPE)
                     ));
                 }
-                ProjectModelUtil.addPlugin(pm, "io.openliberty.tools", "liberty-maven-plugin", pluginInfo.getString(DEPENDENCY_VERSION), configOptions);
+                ProjectModelUtil.addPlugin(pm, "io.openliberty.tools", "liberty-maven-plugin",
+                    pluginInfo.getString(DEPENDENCY_VERSION), configOptions);
             } catch (InterruptedException | URISyntaxException ex) {
                 getLog().error(ex.getMessage(), ex);
             }

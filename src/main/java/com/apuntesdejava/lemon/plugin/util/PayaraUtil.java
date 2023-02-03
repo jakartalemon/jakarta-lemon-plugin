@@ -31,6 +31,8 @@ import java.util.List;
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 
 /**
+ * Utility class for managing the Payara server
+ *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class PayaraUtil {
@@ -39,6 +41,13 @@ public class PayaraUtil {
 
     }
 
+    /**
+     * Create the DataSource resources according to the characteristics of the model
+     *
+     * @param log          maven log
+     * @param projectModel Project Model
+     * @param mavenProject Maven Project
+     */
     public static void createPayaraDataSourceResources(Log log, JsonObject projectModel, MavenProject mavenProject) {
         try {
 
@@ -48,13 +57,14 @@ public class PayaraUtil {
 
             String driverDataSource = ProjectModelUtil.getDriver(log, datasource.getString(DB));
             var payaraResourcesXml = PayaraResourcesXmlUtil.openPayaraXml(mavenProject.getBasedir());
-            DocumentXmlUtil.listElementsByFilter(payaraResourcesXml, SLASH+RESOURCES)
+            DocumentXmlUtil.listElementsByFilter(payaraResourcesXml, SLASH + RESOURCES)
                 .stream()
                 .findFirst()
                 .ifPresent(resourcesElement -> {
                     try {
                         try {
-                            if (DocumentXmlUtil.listElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-resource[@jndi-name=\"%s\"]", dataSourceName))
+                            if (DocumentXmlUtil.listElementsByFilter(payaraResourcesXml,
+                                    String.format("/resources/jdbc-resource[@jndi-name=\"%s\"]", dataSourceName))
                                 .isEmpty()) {
                                 DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-resource")
                                     .ifPresent(jdbcResourceElement -> {
@@ -65,31 +75,36 @@ public class PayaraUtil {
                         } catch (XPathExpressionException ex) {
                             log.error(ex.getMessage(), ex);
                         }
-                        if (DocumentXmlUtil.listElementsByFilter(payaraResourcesXml, String.format("/resources/jdbc-connection-pool[@name=\"%s\"]", poolName))
+                        if (DocumentXmlUtil.listElementsByFilter(payaraResourcesXml,
+                                String.format("/resources/jdbc-connection-pool[@name=\"%s\"]", poolName))
                             .isEmpty()) {
                             DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-connection-pool")
                                 .ifPresent(jdbcConnectionPoolElement -> {
                                     jdbcConnectionPoolElement.setAttribute("datasource-classname", driverDataSource);
                                     jdbcConnectionPoolElement.setAttribute(NAME, poolName);
                                     jdbcConnectionPoolElement.setAttribute("res-type", "javax.sql.DataSource");
-                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
+                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement,
+                                            PROPERTY)
                                         .ifPresent(propertyElement -> {
                                             propertyElement.setAttribute(NAME, URL);
                                             propertyElement.setAttribute(VALUE, datasource.getString(URL));
                                         });
-                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
+                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement,
+                                            PROPERTY)
                                         .ifPresent(propertyElement -> {
                                             propertyElement.setAttribute(NAME, USER);
                                             propertyElement.setAttribute(VALUE, datasource.getString(USER));
                                         });
-                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
+                                    DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement,
+                                            PROPERTY)
                                         .ifPresent(propertyElement -> {
                                             propertyElement.setAttribute(NAME, PASSWORD);
                                             propertyElement.setAttribute(VALUE, datasource.getString(PASSWORD));
                                         });
                                     var properties = datasource.getJsonObject(PROPERTIES);
                                     properties.keySet()
-                                        .forEach(key -> DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement, PROPERTY)
+                                        .forEach(key -> DocumentXmlUtil.createElement(payaraResourcesXml,
+                                                jdbcConnectionPoolElement, PROPERTY)
                                             .ifPresent(propertyElement -> {
                                                 propertyElement.setAttribute(NAME, key);
                                                 propertyElement.setAttribute(VALUE, properties.getString(key));
@@ -101,8 +116,8 @@ public class PayaraUtil {
                         log.error(ex.getMessage(), ex);
                     }
                 });
-            PayaraResourcesXmlUtil.savePayaraXml(mavenProject.getBasedir(), payaraResourcesXml);
-            log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + PayaraResourcesXmlUtil.getPayaraResourcesPath(mavenProject.getBasedir()));
+            var path = PayaraResourcesXmlUtil.savePayaraXml(mavenProject.getBasedir(), payaraResourcesXml);
+            log.info("To add resources into PAYARA Server, use:\n $PAYARA_HOME/bin/asadmin add-resources " + path);
 
         } catch (IOException | InterruptedException | URISyntaxException | XPathExpressionException ex) {
             log.error(ex.getMessage(), ex);
@@ -113,7 +128,17 @@ public class PayaraUtil {
         return StringUtils.replaceEach(str, new String[]{":"}, new String[]{'\\' + ":"});
     }
 
-    public static void createPayaraMicroDataSourcePostBootFile(Log log, String fileName, JsonObject projectModel, MavenProject mavenProject) {
+    /**
+     * Create the DataSource resources in the POSTBOOT file for PayaraMicro according to the characteristics of the
+     * model
+     *
+     * @param log          maven log
+     * @param fileName     filename POSTBOOT
+     * @param projectModel Project Model
+     * @param mavenProject Maven Project
+     */
+    public static void createPayaraMicroDataSourcePostBootFile(Log log, String fileName, JsonObject projectModel,
+                                                               MavenProject mavenProject) {
         try {
             log.debug("Creating datasource for PayaraMicro in " + fileName);
             var datasource = projectModel.getJsonObject(DATASOURCE);
@@ -121,7 +146,9 @@ public class PayaraUtil {
             String poolName = mavenProject.getArtifactId() + "Pool";
             String dataSourceName = "jdbc/" + mavenProject.getArtifactId();
             List<String> lines = new ArrayList<>();
-            StringBuilder line = new StringBuilder(String.format("create-jdbc-connection-pool --ping=true --pooling=true --restype=javax.sql.DataSource --datasourceclassname=%s --property ", driverDataSource));
+            StringBuilder line = new StringBuilder(String.format(
+                "create-jdbc-connection-pool --ping=true --pooling=true --restype=javax.sql.DataSource --datasourceclassname=%s --property ",
+                driverDataSource));
             line.append(String.format("%s=%s:", USER, datasource.getString(USER)));
             line.append(String.format("%s=%s:", PASSWORD, datasource.getString(PASSWORD)));
             line.append(String.format("%s=%s:", URL, replaceChars(datasource.getString(URL))));

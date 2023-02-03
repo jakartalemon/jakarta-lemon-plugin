@@ -35,6 +35,8 @@ import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 import static java.util.Collections.emptyMap;
 
 /**
+ * Utility class for handling the pom.xml file
+ *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class ProjectModelUtil {
@@ -47,6 +49,7 @@ public class ProjectModelUtil {
 
     /**
      * Gets the properties of a given Maven profile
+     *
      * @param profile Maven Profile
      * @return Properties
      */
@@ -60,6 +63,7 @@ public class ProjectModelUtil {
 
     /**
      * Gets the configuration of a plugin in XML format
+     *
      * @param plugin The plugin where the configuration will be obtained from
      * @return The plugin configuration in XML format {@link Xpp3Dom} , manipulable by Maven
      */
@@ -73,7 +77,8 @@ public class ProjectModelUtil {
 
     /**
      * Gets the {@code  model.json } file that contains the configuration of the model to be created in the project.
-     * @param log Maven log
+     *
+     * @param log              Maven log
      * @param modelProjectFile Model File
      * @return Model Configuration Json Object, or empty if not found
      */
@@ -90,7 +95,8 @@ public class ProjectModelUtil {
 
     /**
      * Gets the given Maven project profile, and if it doesn't exist, a new one will be created.
-     * @param model Maven model
+     *
+     * @param model       Maven model
      * @param profileName Profile Name
      * @return Profile object
      */
@@ -105,6 +111,7 @@ public class ProjectModelUtil {
 
     /**
      * Gets the Plugin Manager given a BuildBase. If it does not exist, it is created.
+     *
      * @param buildBase the value of buildBase
      * @return PluginManagement
      */
@@ -118,23 +125,48 @@ public class ProjectModelUtil {
 
     /**
      * Inserts a plugin, based on groupId and artifactId, to the Plugin container. Returns the inserted object.
+     *
      * @param pluginContainer Plugin container
-     * @param groupId Group ID
-     * @param artifactId Artifact ID
+     * @param groupId         Group ID
+     * @param artifactId      Artifact ID
      * @return Plugin Object, Empty if not inserted.
      */
     public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId) {
         return addPlugin(pluginContainer, groupId, artifactId, StringUtils.EMPTY);
     }
 
-
-    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId,
+    /**
+     * Add a plugin to the container, given a group ID, artifact ID, and a specific version
+     *
+     * @param pluginContainer Plugin container
+     * @param groupId         Group ID
+     * @param artifactId      Artifact ID
+     * @param version         Version
+     * @return Plugin Object, Empty if not inserted.
+     */
+    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer,
+                                             String groupId,
+                                             String artifactId,
                                              String version) {
         return addPlugin(pluginContainer, groupId, artifactId, version, null);
     }
 
-    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer, String groupId, String artifactId,
-                                             String version, Map<String, ?> configurationOptions) {
+    /**
+     * Adds a plugin to the container, given a group ID, artifact ID, a specific version, and a map of additional
+     * settings.
+     *
+     * @param pluginContainer      Plug container
+     * @param groupId              Group ID
+     * @param artifactId           Artifact ID
+     * @param version              Version
+     * @param configurationOptions map of additional settings
+     * @return Plugin created
+     */
+    public static Optional<Plugin> addPlugin(PluginContainer pluginContainer,
+                                             String groupId,
+                                             String artifactId,
+                                             String version,
+                                             Map<String, ?> configurationOptions) {
         List<Plugin> plugins = pluginContainer.getPlugins();
         return plugins.stream()
             .filter(item -> item.getGroupId().equals(groupId) && item.getArtifactId().equals(artifactId))
@@ -154,25 +186,29 @@ public class ProjectModelUtil {
 
     }
 
+    /**
+     * Sets the configuration options for a plugin
+     *
+     * @param plugin               plugin
+     * @param configurationOptions configuration options
+     */
     public static void setConfigurationOptions(ConfigurationContainer plugin, Map<String, ?> configurationOptions) {
-        Optional.ofNullable(configurationOptions)
-            .ifPresent(conf -> {
-                if (!conf.isEmpty()) {
-                    var xpp3DomConf = getConfiguration(plugin);
+        Optional.ofNullable(configurationOptions).ifPresent(conf -> {
+            if (!conf.isEmpty()) {
+                var xpp3DomConf = getConfiguration(plugin);
 
-                    conf.forEach((name, value) -> {
-                        if (value instanceof String) {
-                            addChildren(xpp3DomConf, name, true)
-                                .setValue(value.toString());
-                        } else if (value instanceof List) {
-                            addConfiguration(xpp3DomConf, name, (List<?>) value);
-                        } else if (value instanceof Map) {
-                            addConfiguration(xpp3DomConf, name, (Map<String, ?>) value);
-                        }
-                    });
-                    plugin.setConfiguration(xpp3DomConf);
-                }
-            });
+                conf.forEach((name, value) -> {
+                    if (value instanceof String) {
+                        addChildren(xpp3DomConf, name, true).setValue(value.toString());
+                    } else if (value instanceof List) {
+                        addConfiguration(xpp3DomConf, name, (List<?>) value);
+                    } else if (value instanceof Map) {
+                        addConfiguration(xpp3DomConf, name, (Map<String, ?>) value);
+                    }
+                });
+                plugin.setConfiguration(xpp3DomConf);
+            }
+        });
     }
 
     private static void addConfiguration(Xpp3Dom parent, String elementName, Map<String, ?> configuration) {
@@ -187,8 +223,7 @@ public class ProjectModelUtil {
 
     private static void addConfigurationIteration(Xpp3Dom newChildDom, String elementName, String name, Object value) {
         if (value instanceof String) {
-            addChildren(newChildDom, elementName, true)
-                .setValue((String) value);
+            addChildren(newChildDom, elementName, true).setValue((String) value);
 
         } else if (value instanceof Map) {
             addConfiguration(newChildDom, name, (Map<String, ?>) value);
@@ -198,6 +233,12 @@ public class ProjectModelUtil {
         }
     }
 
+    /**
+     * Get build base from Profile
+     *
+     * @param profile Profile
+     * @return Buildbase
+     */
     public static BuildBase getBuildBase(Profile profile) {
         return Optional.ofNullable(profile.getBuild()).orElseGet(() -> {
             BuildBase b = new BuildBase();
@@ -206,27 +247,59 @@ public class ProjectModelUtil {
         });
     }
 
+    /**
+     * Save the XML model of the maven project
+     *
+     * @param mavenProject Maven Project
+     * @param model        Maven Project to save
+     * @throws IOException IO Exception
+     */
     public static void saveModel(MavenProject mavenProject, Model model) throws IOException {
         File projectFile = mavenProject.getFile();
         MavenXpp3Writer writer = new MavenXpp3Writer();
         writer.write(new FileWriter(projectFile), model);
     }
 
+    /**
+     * Gets the XML model of the maven project
+     *
+     * @param mavenProject Maven Project
+     * @return Maven Project to handle
+     * @throws IOException            IOException
+     * @throws XmlPullParserException XmlPullParserException
+     */
     public static Model getModel(MavenProject mavenProject) throws IOException, XmlPullParserException {
         File projectFile = mavenProject.getFile();
         MavenXpp3Reader reader = new MavenXpp3Reader();
         return reader.read(new FileReader(projectFile));
     }
 
+    /**
+     * Adds an element with the given name. Returns the created XML element {@link Xpp3Dom} .
+     *
+     * @param parent Parent element
+     * @param name   Child element name
+     * @return Child Xpp3Dom created
+     */
     public static Xpp3Dom addChildren(Xpp3Dom parent, String name) {
         return addChildren(parent, name, false);
     }
 
+    /**
+     * Adds an element with the given name.Returns the created XML element {@link Xpp3Dom} .
+     *
+     * @param parent          Parent element
+     * @param name            Child element name
+     * @param ignoreDuplicate {@code  true } if it ignores repeating elements
+     * @return Child Xpp3Dom created
+     */
     public static Xpp3Dom addChildren(Xpp3Dom parent, String name, boolean ignoreDuplicate) {
-        return ignoreDuplicate ? createChildren(parent, name) : Arrays.stream(parent.getChildren())
-            .filter(item -> item.getName().equals(name))
-            .findFirst()
-            .orElseGet(() -> createChildren(parent, name));
+        return ignoreDuplicate
+            ? createChildren(parent, name)
+            : Arrays.stream(parent.getChildren())
+                .filter(item -> item.getName().equals(name))
+                .findFirst()
+                .orElseGet(() -> createChildren(parent, name));
     }
 
     private static Xpp3Dom createChildren(Xpp3Dom parent, String name) {
@@ -235,32 +308,41 @@ public class ProjectModelUtil {
         return xpp3Dom;
     }
 
-    public static void addDependenciesDatabase(Log log, Xpp3Dom dependency, String database) {
-
+    /**
+     * Adds a dependency based on the database name, to the dependency group.
+     *
+     * @param log             Maven log
+     * @param dependencyGroup Dependency Group
+     * @param database        Database Name, may be: mysql, postgresql, etc.
+     */
+    public static void addDependenciesDatabase(Log log, Xpp3Dom dependencyGroup, String database) {
         DependenciesUtil.getByDatabase(log, database).ifPresent(dependen -> {
-
-            addChildren(dependency, DEPENDENCY_GROUP_ID)
-                .setValue(dependen.getString(DEPENDENCY_GROUP_ID));
-            addChildren(dependency, DEPENDENCY_ARTIFACT_ID)
-                .setValue(dependen.getString(DEPENDENCY_ARTIFACT_ID));
-            addChildren(dependency, DEPENDENCY_VERSION)
-                .setValue(dependen.getString(DEPENDENCY_VERSION));
+            Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, DEPENDENCY);
+            addChildren(dependency, DEPENDENCY_GROUP_ID).setValue(dependen.getString(DEPENDENCY_GROUP_ID));
+            addChildren(dependency, DEPENDENCY_ARTIFACT_ID).setValue(dependen.getString(DEPENDENCY_ARTIFACT_ID));
+            addChildren(dependency, DEPENDENCY_VERSION).setValue(dependen.getString(DEPENDENCY_VERSION));
         });
 
     }
 
+    /**
+     * Adds a dependency based on the database name, to the Project Model dependency group.
+     * @param log Maven log
+     * @param model Project Model
+     * @param database Databas name
+     */
     public static void addDependenciesDatabase(Log log, Model model, String database) {
-        addDependency(DependenciesUtil.getByDatabase(log, database)
-            .orElse(null), model.getDependencies(), emptyMap());
+        addDependency(DependenciesUtil.getByDatabase(log, database).orElse(null), model.getDependencies(), emptyMap());
 
     }
 
-    private static Dependency addDependency(JsonObject dependencyJson, List<Dependency> dependencies,
+    private static Dependency addDependency(JsonObject dependencyJson,
+                                            List<Dependency> dependencies,
                                             Map<String, String> props) {
         return dependencies.stream()
-            .filter(item -> item.getGroupId()
-                .equals(dependencyJson.getString(DEPENDENCY_GROUP_ID)) && item.getArtifactId()
-                .equals(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID)))
+            .filter(
+                item -> item.getGroupId().equals(dependencyJson.getString(DEPENDENCY_GROUP_ID)) && item.getArtifactId()
+                    .equals(dependencyJson.getString(DEPENDENCY_ARTIFACT_ID)))
             .findFirst()
             .orElseGet(() -> {
                 Dependency dependency = new Dependency();
@@ -278,17 +360,49 @@ public class ProjectModelUtil {
             });
     }
 
+    /**
+     * Adds a dependency to the list, given by the group ID and artifact ID.
+     *
+     * @param log          Maven log
+     * @param dependencies dependencies list
+     * @param groupId      Group ID
+     * @param artefactId   Artefact ID
+     * @return Dependency created
+     */
     public static Dependency addDependency(Log log, List<Dependency> dependencies, String groupId, String artefactId) {
         return addDependency(log, dependencies, groupId, artefactId, emptyMap());
     }
 
-    public static Dependency addDependency(Log log, List<Dependency> dependencies, String groupId, String artefactId,
+    /**
+     * Adds a dependency to the list, given by the group ID, artifact ID, and properties.
+     *
+     * @param log          Maven log
+     * @param dependencies dependencies list
+     * @param groupId      Group ID
+     * @param artefactId   Artefact ID
+     * @param props        Dependency properties
+     * @return Dependency created
+     */
+    public static Dependency addDependency(Log log,
+                                           List<Dependency> dependencies,
+                                           String groupId,
+                                           String artefactId,
                                            Map<String, String> props) {
         return addDependency(
             DependenciesUtil.getLastVersionDependency(log, String.format("g:%s+AND+a:%s", groupId, artefactId))
                 .orElse(null), dependencies, props);
     }
 
+    /**
+     * Gets the driver of a database name. The definitions are taken from the project website.
+     *
+     * @param log    Maven log
+     * @param dbName Database name
+     * @return JDBC Driver
+     * @throws IOException          IOException
+     * @throws InterruptedException InterruptedException
+     * @throws URISyntaxException   URISyntaxException
+     */
     public static String getDriver(Log log, String dbName) throws IOException, InterruptedException,
                                                                   URISyntaxException {
         if (DEPENDENCIES_DEFINITIONS == null) {

@@ -34,10 +34,11 @@ public class DependenciesUtil {
     private DependenciesUtil() {
 
     }
-    
+
     /**
      * Gets the Maven dependency based on the database type
-     * @param log Maven log
+     *
+     * @param log      Maven log
      * @param database database type (mysql, postgresql, etc)
      * @return JSON with the Maven definition of the database
      */
@@ -57,7 +58,8 @@ public class DependenciesUtil {
 
     /**
      * Gets the latest version of a dependency given by the query string.
-     * @param log Maven log
+     *
+     * @param log   Maven log
      * @param query Query string that is sent to the Maven API
      * @return JSON object with the dependency found, or {@link Optional#empty()} if not found.
      */

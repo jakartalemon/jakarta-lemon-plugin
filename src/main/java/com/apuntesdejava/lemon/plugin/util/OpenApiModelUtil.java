@@ -34,6 +34,8 @@ import java.util.List;
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 
 /**
+ * Utility class for handling the OpenAPI model
+ *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class OpenApiModelUtil {
@@ -41,11 +43,43 @@ public class OpenApiModelUtil {
     private OpenApiModelUtil() {
     }
 
+    /**
+     * Gets an instance of this utility class as a Singleton
+     *
+     * @return An instance
+     */
     public static OpenApiModelUtil getInstance() {
         return OpenApiModelUtilHolder.INSTANCE;
     }
 
-    public String createClass(Log log, String packageName, MavenProject mavenProject, String schemaName, JsonObject properties) {
+    /**
+     * Gets the name of the JSON type
+     *
+     * @param schemaType Schema Type
+     * @return JSON Type
+     */
+    public static String getJavaType(String schemaType) {
+        switch (schemaType) {
+            case "string":
+                return "String";
+            case "integer":
+                return "Integer";
+        }
+        return schemaType;
+    }
+
+    /**
+     * Creates a file class from the package name and the schema name given by the OpenAPI Model properties
+     *
+     * @param log          Maven Log
+     * @param packageName  Package Name
+     * @param mavenProject Maven Project
+     * @param schemaName   Schema Name
+     * @param properties   Properties list
+     * @return Path File Class
+     */
+    public String createClass(Log log, String packageName, MavenProject mavenProject, String schemaName,
+                              JsonObject properties) {
         try {
             Path basedir = mavenProject.getBasedir().toPath();
             log.debug("basedir:" + basedir);
@@ -57,11 +91,11 @@ public class OpenApiModelUtil {
             }
             String[] paths = packageName.split("\\.");
             Path packageFile = Paths.get(mavenProject.getBasedir()
-                    .toPath()
-                    .resolve(SRC_PATH)
-                    .resolve(MAIN_PATH)
-                    .resolve(JAVA_PATH)
-                    .toString(), paths);
+                .toPath()
+                .resolve(SRC_PATH)
+                .resolve(MAIN_PATH)
+                .resolve(JAVA_PATH)
+                .toString(), paths);
             Files.createDirectories(packageFile);
 
             Path classFile = packageFile.resolve(schemaName + ".java");
@@ -84,24 +118,22 @@ public class OpenApiModelUtil {
         return null;
     }
 
-    public static String getJavaType(String schemaType) {
-        switch (schemaType) {
-            case "string":
-                return "String";
-            case "integer":
-                return "Integer";
+    /**
+     * Gets the OpenAPI model in JSON object from the file location
+     *
+     * @param modelProjectFile Model Project File
+     * @return JSON Objecet OpenAPI Model
+     * @throws IOException IO Exception
+     */
+    public JsonObject getModel(Path modelProjectFile) throws IOException {
+        try (InputStream in = new FileInputStream(modelProjectFile.toFile()); JsonReader reader = Json.createReader(
+            in)) {
+            return reader.readObject();
         }
-        return schemaType;
     }
 
     private static class OpenApiModelUtilHolder {
 
         private static final OpenApiModelUtil INSTANCE = new OpenApiModelUtil();
-    }
-
-    public JsonObject getModel(Path modelProjectFile) throws IOException {
-        try (InputStream in = new FileInputStream(modelProjectFile.toFile()); JsonReader reader = Json.createReader(in)) {
-            return reader.readObject();
-        }
     }
 }

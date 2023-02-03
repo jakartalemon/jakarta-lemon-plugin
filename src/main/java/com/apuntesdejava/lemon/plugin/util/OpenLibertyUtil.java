@@ -43,6 +43,8 @@ import java.util.Optional;
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
 
 /**
+ * Utility class for handling the creation of OpenLiberty components
+ *
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
  */
 public class OpenLibertyUtil {
@@ -53,6 +55,13 @@ public class OpenLibertyUtil {
 
     }
 
+    /**
+     * Create the Datasource for OpenLiberty
+     *
+     * @param log          Manager Log
+     * @param projectModel Object Project Model
+     * @param mavenProject Maven Project
+     */
     public static void createDataSource(Log log,
                                         JsonObject projectModel,
                                         MavenProject mavenProject) {
@@ -109,8 +118,8 @@ public class OpenLibertyUtil {
                             Xpp3Dom location = ProjectModelUtil.addChildren(dependencyGroup, "location");
                             location.setValue(JDBC);
 
-                            Xpp3Dom dependency = ProjectModelUtil.addChildren(dependencyGroup, DEPENDENCY);
-                            ProjectModelUtil.addDependenciesDatabase(log, dependency, datasourceModel.getString(DB));
+                            ProjectModelUtil.addDependenciesDatabase(log, dependencyGroup,
+                                datasourceModel.getString(DB));
 
                             ProjectModelUtil.saveModel(mavenProject, model);
                         }
@@ -125,6 +134,17 @@ public class OpenLibertyUtil {
         }
     }
 
+    /**
+     * Gets the current XML model of the OpenLiberty Server
+     *
+     * @param log          Maven Log
+     * @param mavenProject Maven Project
+     * @param options      Options
+     * @return Document XML
+     * @throws JAXBException                JAXBException
+     * @throws IOException                  IOException
+     * @throws ParserConfigurationException ParserConfigurationException
+     */
     public static Optional<Document> getServerModel(Log log,
                                                     MavenProject mavenProject,
                                                     Map<String, String> options) throws JAXBException, IOException,
@@ -194,6 +214,13 @@ public class OpenLibertyUtil {
 
     }
 
+    /**
+     * Saves the OpenLiberty server configuration XML
+     *
+     * @param mavenProject Maven Project
+     * @param serverModel  XML Server Model
+     * @throws JAXBException JAXBException
+     */
     public static void saveServerModel(MavenProject mavenProject,
                                        Document serverModel) throws JAXBException {
         Path baseDirPath = mavenProject.getBasedir().toPath();
