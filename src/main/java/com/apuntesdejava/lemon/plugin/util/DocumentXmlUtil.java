@@ -63,7 +63,6 @@ public class DocumentXmlUtil {
      */
     public static Document newDocument(String rootElementName) throws ParserConfigurationException {
         var documentBuilderFactory = DocumentBuilderFactory.newInstance();
-//        documentBuilderFactory.setNamespaceAware(true);
         documentBuilderFactory.setFeature(FEATURE_SECURE_PROCESSING, true);
         var documentBuilder = documentBuilderFactory.newDocumentBuilder();
         var document = documentBuilder.newDocument();
@@ -82,7 +81,6 @@ public class DocumentXmlUtil {
     public static Optional<Document> openDocument(Path path) {
 
         var documentBuilderFactory = DocumentBuilderFactory.newInstance();
-//        documentBuilderFactory.setNamespaceAware(true);
         try {
             documentBuilderFactory.setFeature(FEATURE_SECURE_PROCESSING, true);
             var documentBuilder = documentBuilderFactory.newDocumentBuilder();

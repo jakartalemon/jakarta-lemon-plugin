@@ -93,7 +93,6 @@ public class ViewModelUtil {
      * @param mavenProject Maven Project
      * @return ViewModelUtil Instance
      */
-
     public static ViewModelUtil getInstance(Log log,
                                             MavenProject mavenProject) {
         if (INSTANCE == null) {
@@ -211,7 +210,6 @@ public class ViewModelUtil {
      *
      * @throws IOException If IO Exception
      */
-
     public void createServletJsf() throws IOException {
         log.info("Creating Jakarta Server Faces views");
         var baseDir = mavenProject.getBasedir();
@@ -256,7 +254,6 @@ public class ViewModelUtil {
      * @return JSON object with the configuration of the views
      * @throws IOException if IO exception
      */
-
     public Optional<JsonObject> getViewModel(String viewProjectFile) throws IOException {
         log.debug("Reading view configuration:" + viewProjectFile);
         try (InputStream in = new FileInputStream(viewProjectFile)) {
@@ -468,7 +465,6 @@ public class ViewModelUtil {
             var viewJsf = webAppPath.resolve(pathName + ".xhtml");
 
             var docFactory = DocumentBuilderFactory.newInstance();
-//            docFactory.setNamespaceAware(true);
             var docBuilder = docFactory.newDocumentBuilder();
 
             var doc = docBuilder.newDocument();
@@ -541,12 +537,19 @@ public class ViewModelUtil {
         formBean.forEach((fieldName, type) -> {
             ElementBuilder fieldPanelGroup;
             panel.addChild(fieldPanelGroup = DocumentXmlUtil.ElementBuilder.newInstance("h:panelGroup")
-                .addAttribute("layout", "block").addAttribute("styleClass", "field col-12 md:col-6").addChild(
-                    DocumentXmlUtil.ElementBuilder.newInstance("p:outputLabel").addAttribute("for", fieldName)
-                        .addAttribute(VALUE,
-                            String.format("#{messages.%s_%s}", $formBeanName, fieldName))));
+                .addAttribute("layout", "block")
+                .addAttribute("styleClass", "field col-12 md:col-6")
+            );
             log.debug("----" + fieldName + ":" + type);
             var fieldType = getFileType(type);
+            boolean isItem = fieldType.equals("boolean");
+            var labelMessage = String.format("#{messages.%s_%s}", $formBeanName, fieldName);
+            if (!isItem) {
+                fieldPanelGroup.addChild(
+                    DocumentXmlUtil.ElementBuilder.newInstance("p:outputLabel")
+                        .addAttribute("for", fieldName)
+                        .addAttribute(VALUE, labelMessage));
+            }
             ElementBuilder child = null;
             switch (fieldType) {
                 case "String":
@@ -557,6 +560,11 @@ public class ViewModelUtil {
                     break;
                 case "float":
                     fieldPanelGroup.addChild(child = DocumentXmlUtil.ElementBuilder.newInstance("p:inputNumber"));
+                    break;
+                case "boolean":
+                    fieldPanelGroup.addChild(
+                        child = DocumentXmlUtil.ElementBuilder.newInstance("p:selectBooleanCheckbox")
+                            .addAttribute("itemLabel", labelMessage));
                     break;
             }
             if (child != null) {
