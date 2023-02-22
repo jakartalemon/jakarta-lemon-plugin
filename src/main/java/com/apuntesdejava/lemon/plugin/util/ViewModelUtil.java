@@ -468,6 +468,7 @@ public class ViewModelUtil {
             var viewJsf = webAppPath.resolve(pathName + ".xhtml");
 
             var docFactory = DocumentBuilderFactory.newInstance();
+//            docFactory.setNamespaceAware(true);
             var docBuilder = docFactory.newDocumentBuilder();
 
             var doc = docBuilder.newDocument();
