@@ -64,6 +64,11 @@ public class Constants {
      * Value {@code openliberty}
      */
     public final static String OPENLIBERTY = "openliberty";
+
+    /**
+     * Value {@code payara-resources}
+     */
+    public final static String PAYARA_RESOURCES = "payara-resources";
     /**
      * Value {@code persistence}
      */

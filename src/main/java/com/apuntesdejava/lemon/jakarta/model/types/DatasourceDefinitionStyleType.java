@@ -18,7 +18,6 @@ package com.apuntesdejava.lemon.jakarta.model.types;
 import com.apuntesdejava.lemon.plugin.util.Constants;
 import org.apache.commons.lang3.StringUtils;
 
-import static com.apuntesdejava.lemon.plugin.util.Constants.WEBXML;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
@@ -27,7 +26,7 @@ public enum DatasourceDefinitionStyleType {
     /**
      * Type by create datasource in web.xml file
      */
-    WEB(WEBXML),
+    WEB(Constants.WEBXML),
     /**
      * Type by create datasource for Open Liberty
      */
@@ -35,7 +34,7 @@ public enum DatasourceDefinitionStyleType {
     /**
      * Type by create datasource for Payara Server
      */
-    PAYARA_RESOURCES("payara-resources");
+    PAYARA_RESOURCES(Constants.PAYARA_RESOURCES);
     private final String value;
 
     DatasourceDefinitionStyleType(String value) {
