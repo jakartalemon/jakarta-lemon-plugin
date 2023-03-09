@@ -59,6 +59,7 @@ public class Constants {
      * Value {@code runtimeArtifact}
      */
     public final static String RUNTIME_ARTIFACT = "runtimeArtifact";
+    public final static String OUTCOME = "outcome";
 
     /**
      * Value {@code openliberty}
@@ -148,7 +149,6 @@ public class Constants {
      * It is the query string to look up the dependencies in the Maven repository.
      * <a href="https://central.sonatype.org/search/rest-api-guide/">REST API Maven Query</a>
      * Value {@code https://search.maven.org/solrsearch/select?q=}
-     *
      */
 
     public static final String QUERY_MAVEN_URL = "https://search.maven.org/solrsearch/select?q=";
@@ -182,6 +182,9 @@ public class Constants {
      * Value {@code value}
      */
     public static final String VALUE = "value";
+    public static final String MAX = "max";
+    public static final String SIZE = "size";
+    public static final String OPTIONS = "options";
     /**
      * Value {@code tableName}
      */
@@ -515,8 +518,19 @@ public class Constants {
      * Value {@code  org.apache.maven.plugins }
      */
     public static final String MAVEN_PLUGIN_GROUP_ID = "org.apache.maven.plugins";
+    public static final String FOR = "for";
+
+    public static final String PRIMEFLEX_CSS = "primeflex/%s/primeflex.min.css";
+    public static final String BLOCK = "block";
+    public static final String LAYOUT = "layout";
+    public static final String STYLECLASS = "styleClass";
+    public static final String H_PANEL_GROUP = "h:panelGroup";
+    public static final String LABEL = "label";
+    public static final String P_LINK_BUTTON = "p:linkButton";
+    public static final String ITEM_LABEL = "itemLabel";
 
     private Constants() {
     }
 
 }
+
