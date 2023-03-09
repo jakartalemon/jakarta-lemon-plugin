@@ -504,7 +504,7 @@ public class ViewModelUtil {
 
             if (isList) {
                 var editFormLink = entry.getValue().asJsonObject().getString("editForm");
-                hForm.addChild(DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
+                hForm.addChild(DocumentXmlUtil.ElementBuilder.newInstance(P_LINK_BUTTON)
                         .addAttribute(OUTCOME, editFormLink)
                         .addAttribute("icon", "pi pi-plus-circle")
                         .addAttribute(VALUE, "#{messages['list.new_record']}"))
@@ -537,7 +537,7 @@ public class ViewModelUtil {
                 .addAttribute(STYLECLASS, "field col-12 md:col-6"));
             log.debug("----" + fieldName + ":" + fieldDescription);
             var fieldType = getFieldType(fieldDescription);
-            boolean isItem = fieldType.equals("boolean");
+            boolean isItem = fieldType.equals("boolean"); 
             var labelMessage = String.format("#{messages.%s_%s}", $formBeanName, fieldName);
             if (!isItem) {
                 fieldPanelGroup.addChild(DocumentXmlUtil.ElementBuilder.newInstance("p:outputLabel")
@@ -562,7 +562,7 @@ public class ViewModelUtil {
                 case "boolean":
                     fieldPanelGroup.addChild(
                         controlComponent = DocumentXmlUtil.ElementBuilder.newInstance("p:selectBooleanCheckbox")
-                            .addAttribute("itemLabel", labelMessage));
+                            .addAttribute(ITEM_LABEL, labelMessage));
                     break;
             }
             if (controlComponent != null) {
@@ -617,7 +617,7 @@ public class ViewModelUtil {
             optionsArray.stream()
                 .map(JsonValue::asJsonObject)
                 .forEach(item -> selectOneMenu.addChild(ElementBuilder.newInstance("f:selectItem")
-                    .addAttribute("itemLabel", item.getString(VALUE))
+                    .addAttribute(ITEM_LABEL, item.getString(VALUE))
                     .addAttribute("itemValue", item.getString(KEY))));
 
         }
@@ -633,7 +633,7 @@ public class ViewModelUtil {
             .addChild(ElementBuilder.newInstance("h:outputText")
                 .addAttribute(VALUE, String.format("#{item.%s}", fieldName)))));
         getPrimaryKey(formBean).ifPresent(field -> pDataTable.addChild(ElementBuilder.newInstance("p:column")
-            .addChild(ElementBuilder.newInstance("p:linkButton")
+            .addChild(ElementBuilder.newInstance(P_LINK_BUTTON)
                 .addAttribute(OUTCOME, editForm)
                 .addAttribute("icon", "pi pi-pencil")
                 .addChild(ElementBuilder.newInstance("f:param")
@@ -692,7 +692,7 @@ public class ViewModelUtil {
                 .addAttribute(STYLECLASS, "mr-3")
                 .addAttribute("update", "formPanel")
                 .addAttribute("action", String.format("#{%sFormView.save()}", formBeanName)))
-            .addChild(DocumentXmlUtil.ElementBuilder.newInstance("p:linkButton")
+            .addChild(DocumentXmlUtil.ElementBuilder.newInstance(P_LINK_BUTTON)
                 .addAttribute(VALUE, "#{messages['form.cancel']}")
                 .addAttribute(STYLECLASS, "ui-button-secondary mr-3")
                 .addAttribute(OUTCOME, listLink));

@@ -526,6 +526,8 @@ public class Constants {
     public static final String STYLECLASS = "styleClass";
     public static final String H_PANEL_GROUP = "h:panelGroup";
     public static final String LABEL = "label";
+    public static final String P_LINK_BUTTON = "p:linkButton";
+    public static final String ITEM_LABEL = "itemLabel";
 
     private Constants() {
     }
