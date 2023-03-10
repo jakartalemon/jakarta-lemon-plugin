@@ -537,7 +537,7 @@ public class ViewModelUtil {
                 .addAttribute(STYLECLASS, "field col-12 md:col-6"));
             log.debug("----" + fieldName + ":" + fieldDescription);
             var fieldType = getFieldType(fieldDescription);
-            boolean isItem = fieldType.equals("boolean"); 
+            boolean isItem = fieldType.equals("boolean");
             var labelMessage = String.format("#{messages.%s_%s}", $formBeanName, fieldName);
             if (!isItem) {
                 fieldPanelGroup.addChild(DocumentXmlUtil.ElementBuilder.newInstance("p:outputLabel")
@@ -545,11 +545,13 @@ public class ViewModelUtil {
                     .addAttribute(VALUE, labelMessage));
             }
             ElementBuilder controlComponent = null;
-            boolean isOptions = fieldDescription.asJsonObject().containsKey(OPTIONS);
+            var fieldDescriptionObject = fieldDescription.asJsonObject();
+            boolean isOptions = fieldDescriptionObject.containsKey(OPTIONS);
             switch (fieldType) {
                 case "String":
+
                     fieldPanelGroup.addChild(controlComponent = DocumentXmlUtil.ElementBuilder.newInstance(
-                        isOptions ? "p:selectOneRadio" : "p:inputText"));
+                        isOptions ? getOptionsType(fieldDescriptionObject) : "p:inputText"));
                     break;
                 case "LocalDate":
                     fieldPanelGroup.addChild(
@@ -570,9 +572,8 @@ public class ViewModelUtil {
                     .addAttribute(STYLECLASS, "w-full")
                     .addAttribute(VALUE, String.format("#{%1$sFormView.%1$s.%2$s}", formBeanName, fieldName));
                 if (fieldDescription.getValueType() == JsonValue.ValueType.OBJECT) {
-                    var typeObject = fieldDescription.asJsonObject();
-                    if (typeObject.containsKey(SIZE)) {
-                        var size = typeObject.getJsonObject(SIZE);
+                    if (fieldDescriptionObject.containsKey(SIZE)) {
+                        var size = fieldDescriptionObject.getJsonObject(SIZE);
                         if (size.containsKey(MAX)) {
                             var max = size.getInt(MAX);
                             controlComponent.addAttribute("maxlength", String.valueOf(max));
@@ -696,5 +697,17 @@ public class ViewModelUtil {
                 .addAttribute(VALUE, "#{messages['form.cancel']}")
                 .addAttribute(STYLECLASS, "ui-button-secondary mr-3")
                 .addAttribute(OUTCOME, listLink));
+    }
+
+    private String getOptionsType(JsonObject fieldDescription) {
+        if (fieldDescription.containsKey(OPTIONS_TYPE)) {
+            switch (fieldDescription.getString(OPTIONS_TYPE)) {
+                case "radio":
+                    return P_SELECT_ONE_RADIO;
+                case "select":
+                    return "p:selectOneMenu";
+            }
+        }
+        return P_SELECT_ONE_RADIO;
     }
 }

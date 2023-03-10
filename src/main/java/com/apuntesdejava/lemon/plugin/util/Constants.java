@@ -528,6 +528,8 @@ public class Constants {
     public static final String LABEL = "label";
     public static final String P_LINK_BUTTON = "p:linkButton";
     public static final String ITEM_LABEL = "itemLabel";
+    public static final String OPTIONS_TYPE = "optionsType";
+    public static final String P_SELECT_ONE_RADIO = "p:selectOneRadio";
 
     private Constants() {
     }
