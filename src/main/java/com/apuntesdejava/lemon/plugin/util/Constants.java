@@ -419,6 +419,10 @@ public class Constants {
      */
     public static final String MAIN_PATH = "main";
 
+    public static final String STRING_TYPE = "String";
+    public static final String LOCALDATE_TYPE = "LocalDate";
+    public static final String MULTI = "multi";
+
     /**
      * Value {@code  java}
      */
