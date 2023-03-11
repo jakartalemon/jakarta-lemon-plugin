@@ -108,7 +108,7 @@ public class ViewModelUtil {
 
     private static void insertImportType(Set<String> lines, String fieldType) {
         switch (fieldType) {
-            case "LocalDate":
+            case LOCALDATE_TYPE:
                 lines.add("import java.time.LocalDate;");
                 break;
             case "LocalDateTime":
@@ -116,6 +116,9 @@ public class ViewModelUtil {
                 break;
             case "Date":
                 lines.add("import java.util.Date;");
+                break;
+            case "Set":
+                lines.add("import java.util.Set;");
         }
     }
 
@@ -125,9 +128,9 @@ public class ViewModelUtil {
 
     private static String getFieldType(JsonValue type) {
         if (type.getValueType() == JsonValue.ValueType.OBJECT) {
-            return type.asJsonObject().getString("type", "String");
+            return type.asJsonObject().getString(TYPE, STRING_TYPE);
         }
-        return "String";//String.valueOf(((JsonString) type.getValue()).getChars());
+        return STRING_TYPE;//String.valueOf(((JsonString) type.getValue()).getChars());
     }
 
     private static Optional<String> getPrimaryKey(JsonObject formBean) {
@@ -292,7 +295,7 @@ public class ViewModelUtil {
         var pathName = pathEntry.getKey();
         log.info("Creating Managed Bean:" + pathName);
         var pathJson = pathEntry.getValue().asJsonObject();
-        var isList = pathJson.getString("type").equals("list");
+        var isList = pathJson.getString(TYPE).equals("list");
         String scoped = isList ? "SessionScoped" : "RequestScoped";
         var $temp = getNameFromPath(pathName) + "View";
         var hasListView = pathEntry.getValue().asJsonObject().containsKey("listView");
@@ -410,11 +413,13 @@ public class ViewModelUtil {
             Set<String> imports = new TreeSet<>();
             bodyBean.forEach((fieldName, value) -> {
                 log.debug(String.format("--field:%s", fieldName));
-                var fieldType = "String";
+                var fieldType = STRING_TYPE;
+                boolean isMulti = false;
                 switch (value.getValueType()) {
                     case OBJECT:
                         var bodyStruct = value.asJsonObject();
-                        fieldType = bodyStruct.getString("type", "String");
+                        fieldType = bodyStruct.getString(TYPE, STRING_TYPE);
+                        isMulti = bodyStruct.containsKey(MULTI) && bodyStruct.getBoolean(MULTI, false);
 
                         insertValidation(imports, lines, bodyStruct);
                         insertLabels(labels, fieldName, bodyStruct);
@@ -426,7 +431,13 @@ public class ViewModelUtil {
 
                 }
                 insertImportType(imports, fieldType);
-                lines.add(String.format("%sprivate %s %s;", StringUtils.repeat(SPACE, TAB), fieldType, fieldName));
+                if (isMulti) {
+                    insertImportType(imports, "Set");
+                    lines.add(
+                        String.format("%sprivate Set<%s> %s;", StringUtils.repeat(SPACE, TAB), fieldType, fieldName));
+                } else {
+                    lines.add(String.format("%sprivate %s %s;", StringUtils.repeat(SPACE, TAB), fieldType, fieldName));
+                }
                 lines.add(EMPTY);
             });
             lines.addAll(2, imports);
@@ -456,7 +467,7 @@ public class ViewModelUtil {
                             JsonObject formBean,
                             String primeflexVersion) {
         var pathJson = entry.getValue().asJsonObject();
-        var isList = pathJson.getString("type").equals("list");
+        var isList = pathJson.getString(TYPE).equals("list");
         try {
             var pathName = entry.getKey().replaceAll("[^a-zA-Z]", "");
             log.info("Creating View page:" + pathName);
@@ -548,12 +559,12 @@ public class ViewModelUtil {
             var fieldDescriptionObject = fieldDescription.asJsonObject();
             boolean isOptions = fieldDescriptionObject.containsKey(OPTIONS);
             switch (fieldType) {
-                case "String":
+                case STRING_TYPE:
 
                     fieldPanelGroup.addChild(controlComponent = DocumentXmlUtil.ElementBuilder.newInstance(
                         isOptions ? getOptionsType(fieldDescriptionObject) : "p:inputText"));
                     break;
-                case "LocalDate":
+                case LOCALDATE_TYPE:
                     fieldPanelGroup.addChild(
                         controlComponent = DocumentXmlUtil.ElementBuilder.newInstance("p:datePicker"));
                     break;
@@ -700,12 +711,15 @@ public class ViewModelUtil {
     }
 
     private String getOptionsType(JsonObject fieldDescription) {
+        boolean isMulti = fieldDescription.containsKey(MULTI) && fieldDescription.getBoolean(MULTI, false);
         if (fieldDescription.containsKey(OPTIONS_TYPE)) {
             switch (fieldDescription.getString(OPTIONS_TYPE)) {
                 case "radio":
                     return P_SELECT_ONE_RADIO;
+                case "check":
+                    return "p:selectManyCheckbox ";
                 case "select":
-                    return "p:selectOneMenu";
+                    return isMulti ? "p:selectManyMenu" : "p:selectOneMenu";
             }
         }
         return P_SELECT_ONE_RADIO;
