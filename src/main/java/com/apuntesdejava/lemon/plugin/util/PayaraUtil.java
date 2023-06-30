@@ -64,7 +64,7 @@ public class PayaraUtil {
                     try {
                         try {
                             if (DocumentXmlUtil.listElementsByFilter(payaraResourcesXml,
-                                    String.format("/resources/jdbc-resource[@jndi-name=\"%s\"]", dataSourceName))
+                                String.format("/resources/jdbc-resource[@jndi-name=\"%s\"]", dataSourceName))
                                 .isEmpty()) {
                                 DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-resource")
                                     .ifPresent(jdbcResourceElement -> {
@@ -76,7 +76,7 @@ public class PayaraUtil {
                             log.error(ex.getMessage(), ex);
                         }
                         if (DocumentXmlUtil.listElementsByFilter(payaraResourcesXml,
-                                String.format("/resources/jdbc-connection-pool[@name=\"%s\"]", poolName))
+                            String.format("/resources/jdbc-connection-pool[@name=\"%s\"]", poolName))
                             .isEmpty()) {
                             DocumentXmlUtil.createElement(payaraResourcesXml, resourcesElement, "jdbc-connection-pool")
                                 .ifPresent(jdbcConnectionPoolElement -> {
@@ -84,19 +84,19 @@ public class PayaraUtil {
                                     jdbcConnectionPoolElement.setAttribute(NAME, poolName);
                                     jdbcConnectionPoolElement.setAttribute("res-type", "javax.sql.DataSource");
                                     DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement,
-                                            PROPERTY)
+                                        PROPERTY)
                                         .ifPresent(propertyElement -> {
                                             propertyElement.setAttribute(NAME, URL);
                                             propertyElement.setAttribute(VALUE, datasource.getString(URL));
                                         });
                                     DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement,
-                                            PROPERTY)
+                                        PROPERTY)
                                         .ifPresent(propertyElement -> {
                                             propertyElement.setAttribute(NAME, USER);
                                             propertyElement.setAttribute(VALUE, datasource.getString(USER));
                                         });
                                     DocumentXmlUtil.createElement(payaraResourcesXml, jdbcConnectionPoolElement,
-                                            PROPERTY)
+                                        PROPERTY)
                                         .ifPresent(propertyElement -> {
                                             propertyElement.setAttribute(NAME, PASSWORD);
                                             propertyElement.setAttribute(VALUE, datasource.getString(PASSWORD));
@@ -104,11 +104,11 @@ public class PayaraUtil {
                                     var properties = datasource.getJsonObject(PROPERTIES);
                                     properties.keySet()
                                         .forEach(key -> DocumentXmlUtil.createElement(payaraResourcesXml,
-                                                jdbcConnectionPoolElement, PROPERTY)
-                                            .ifPresent(propertyElement -> {
-                                                propertyElement.setAttribute(NAME, key);
-                                                propertyElement.setAttribute(VALUE, properties.getString(key));
-                                            }));
+                                        jdbcConnectionPoolElement, PROPERTY)
+                                        .ifPresent(propertyElement -> {
+                                            propertyElement.setAttribute(NAME, key);
+                                            propertyElement.setAttribute(VALUE, properties.getString(key));
+                                        }));
 
                                 });
                         }

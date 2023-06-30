@@ -65,6 +65,7 @@ public class Constants {
      * Value {@code openliberty}
      */
     public final static String OPENLIBERTY = "openliberty";
+    public final static String LIST = "list";
 
     /**
      * Value {@code payara-resources}
@@ -531,12 +532,14 @@ public class Constants {
     public static final String H_PANEL_GROUP = "h:panelGroup";
     public static final String LABEL = "label";
     public static final String P_LINK_BUTTON = "p:linkButton";
+    public static final String P_LINK = "p:link";
     public static final String ITEM_LABEL = "itemLabel";
     public static final String OPTIONS_TYPE = "optionsType";
     public static final String P_SELECT_ONE_RADIO = "p:selectOneRadio";
+
+    public static final String PAYARA_MICRO_PROFILE = "payara-micro";
 
     private Constants() {
     }
 
 }
-

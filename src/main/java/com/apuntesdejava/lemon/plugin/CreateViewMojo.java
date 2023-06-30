@@ -15,8 +15,11 @@
  */
 package com.apuntesdejava.lemon.plugin;
 
+import com.apuntesdejava.lemon.plugin.util.DependenciesUtil;
 import com.apuntesdejava.lemon.plugin.util.ProjectModelUtil;
 import com.apuntesdejava.lemon.plugin.util.ViewModelUtil;
+import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
@@ -70,14 +73,23 @@ public class CreateViewMojo extends AbstractMojo {
                 addJsfDependencies();
                 viewModelUtil.createServletJsf();
                 viewModelUtil.createViews(this.viewModel, primeflexDependency.getVersion());
+                var pathsObject = this.viewModel.getJsonObject(PATHS);
 
+                var viewsForIndex = pathsObject.entrySet().stream()
+                    .filter(item -> item.getValue().asJsonObject().getString(TYPE).equalsIgnoreCase(LIST))
+                    .collect(Json::createArrayBuilder, (arrayBuilder, valueEntry) ->
+                            arrayBuilder.add(Json.createObjectBuilder().add(valueEntry.getKey(), valueEntry.getValue())),
+                        JsonArrayBuilder::addAll)
+                    .build();
+
+                viewModelUtil.createIndexPage(viewsForIndex, primeflexDependency.getVersion());
             }
+            DependenciesUtil.addProjectLombokDependency(getLog(), mavenProject);
 
         } catch (IOException ex) {
             getLog().error(ex.getMessage(), ex);
         }
     }
-
 
     private void addJsfDependencies() {
         try {

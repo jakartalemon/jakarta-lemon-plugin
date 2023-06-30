@@ -57,6 +57,10 @@ public class WebXmlUtil {
                         DocumentXmlUtil.createElement(document, webappElement, "session-config")
                             .ifPresent(sessionConfigElem -> DocumentXmlUtil.createElement(document, sessionConfigElem,
                                 "session-timeout", "30"));
+                        DocumentXmlUtil.createElement(document, webappElement, "welcome-file-list")
+                            .ifPresent(
+                                welcomeFileListElem -> DocumentXmlUtil.createElement(document, welcomeFileListElem,
+                                    "welcome-file", "index.jsf"));
                     });
 
 

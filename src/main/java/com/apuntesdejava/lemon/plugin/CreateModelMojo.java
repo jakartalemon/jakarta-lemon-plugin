@@ -199,13 +199,15 @@ public class CreateModelMojo extends AbstractMojo {
                             value.getString(RETURN_VALUE_TYPE), name, params));
                     lines.add(
                         StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 2) + "return em." + (value.getBoolean(
-                            NATIVE_QUERY,
-                            false) ? "createNativeQuery" : "createNamedQuery") + "(\"" + entityName + ".findBy" + name + "\"," + entityName + ".class)");
+                        NATIVE_QUERY,
+                        false)
+                            ? "createNativeQuery"
+                            : "createNamedQuery") + "(\"" + entityName + ".findBy" + name + "\"," + entityName + ".class)");
                     if (isFieldsNotEmpty(value, PARAMETERS)) {
                         value.getJsonObject(PARAMETERS)
                             .keySet()
                             .forEach(paramName -> lines.add(StringUtils.repeat(StringUtils.SPACE,
-                                Constants.TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")"));
+                            Constants.TAB * 3) + ".setParameter(\"" + paramName + "\"," + paramName + ")"));
                     }
                     if (value.getBoolean(UNIQUE, false)) {
                         lines.add(StringUtils.repeat(StringUtils.SPACE, Constants.TAB * 3) + ".getSingleResult();");
@@ -285,13 +287,13 @@ public class CreateModelMojo extends AbstractMojo {
         var packageName = projectModel.getString(PACKAGE_NAME);
         var projectName = projectModel.getString(PROJECT_NAME);
         createFile(packageBasePath.resolve("repositories")
-                .resolve("JpaProvider.java"), "/classes/JpaProvider.javatemplate",
+            .resolve("JpaProvider.java"), "/classes/JpaProvider.javatemplate",
             Map.of("{package}", packageName, "{unitNamePU}", projectName + "PU"));
         createFile(packageBasePath.resolve("services")
-                .resolve("AbstractService.java"), "/classes/AbstractService.javatemplate",
+            .resolve("AbstractService.java"), "/classes/AbstractService.javatemplate",
             Map.of("{package}", packageName));
         createFile(packageBasePath.resolve("repositories")
-                .resolve("AbstractRepository.java"), "/classes/AbstractRepository.javatemplate",
+            .resolve("AbstractRepository.java"), "/classes/AbstractRepository.javatemplate",
             Map.of("{package}", packageName));
     }
 
@@ -304,7 +306,7 @@ public class CreateModelMojo extends AbstractMojo {
                     List<String> code = IOUtils.readLines(is, Charset.defaultCharset());
                     List<String> newCode = code.stream()
                         .map(line -> StringUtils.replaceEach(line, maps.keySet()
-                            .toArray(String[]::new), maps.values().toArray(String[]::new)))
+                        .toArray(String[]::new), maps.values().toArray(String[]::new)))
                         .collect(Collectors.toList());
                     Files.write(target, newCode);
                 }
@@ -328,8 +330,8 @@ public class CreateModelMojo extends AbstractMojo {
                     .entrySet()
                     .stream()
                     .filter(entry -> entry.getValue().asJsonObject().containsKey(NATIVE_QUERY) && entry.getValue()
-                        .asJsonObject()
-                        .getBoolean(NATIVE_QUERY))
+                    .asJsonObject()
+                    .getBoolean(NATIVE_QUERY))
                     .forEach(entry -> {
                         var value = entry.getValue().asJsonObject();
                         lines.add("@jakarta.persistence.NamedNativeQuery(");
@@ -339,15 +341,15 @@ public class CreateModelMojo extends AbstractMojo {
                             QUERY) + ",\n");
                         lines.add(
                             StringUtils.repeat(StringUtils.SPACE, Constants.TAB) + "resultClass = " + value.getString(
-                                RETURN_VALUE_TYPE));
+                            RETURN_VALUE_TYPE));
                         lines.add(")");
                     });
                 entity.getJsonObject(FINDERS)
                     .entrySet()
                     .stream()
                     .filter(entry -> !entry.getValue().asJsonObject().containsKey(NATIVE_QUERY) || !entry.getValue()
-                        .asJsonObject()
-                        .getBoolean(NATIVE_QUERY))
+                    .asJsonObject()
+                    .getBoolean(NATIVE_QUERY))
                     .forEach(entry -> {
                         var value = entry.getValue().asJsonObject();
                         lines.add("@jakarta.persistence.NamedQuery(");
@@ -420,7 +422,7 @@ public class CreateModelMojo extends AbstractMojo {
         if (this.style == DatasourceDefinitionStyleType.WEB) { //se agrega dependencia solo si está incorporado dentro del .war
             addDBDependencies();
         }
-        addProjectLombokDependency();
+        DependenciesUtil.addProjectLombokDependency(getLog(), mavenProject);
     }
 
     private void addDBDependencies() {
@@ -445,23 +447,23 @@ public class CreateModelMojo extends AbstractMojo {
             try {
                 String driverDataSource = ProjectModelUtil.getDriver(getLog(), datasource.getString(DB));
                 getLog().debug("Driver: " + driverDataSource);
-                String styleSrc = datasource.getString(STYLE);
-                this.style = DatasourceDefinitionStyleType.findByValue(styleSrc);
-                if (style != null) {
-                    switch (style) {
-                        case PAYARA_RESOURCES:
-                            PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel, mavenProject);
-                            break;
-                        case WEB:
-                            createWebXML();
-                            break;
-                        case OPENLIBERTY:
-                            OpenLibertyUtil.createDataSource(getLog(), projectModel, mavenProject);
-                            break;
-                        default:
-                            getLog().error("DataSource Style is invalid:" + styleSrc);
+                    String styleSrc = datasource.getString(STYLE);
+                    this.style = DatasourceDefinitionStyleType.findByValue(styleSrc);
+                    if (style != null) {
+                        switch (style) {
+                            case PAYARA_RESOURCES:
+                                PayaraUtil.createPayaraDataSourceResources(getLog(), projectModel, mavenProject);
+                                break;
+                            case WEB:
+                                createWebXML();
+                                break;
+                            case OPENLIBERTY:
+                                OpenLibertyUtil.createDataSource(getLog(), projectModel, mavenProject);
+                                break;
+                            default:
+                                getLog().error("DataSource Style is invalid:" + styleSrc);
+                        }
                     }
-                }
             } catch (IOException | InterruptedException | URISyntaxException ex) {
                 getLog().error(ex.getMessage(), ex);
             }
@@ -476,7 +478,7 @@ public class CreateModelMojo extends AbstractMojo {
             var persistenceXml = PersistenceXmlUtil.openPersistenceXml(baseDir);
             var persistenceName = projectModel.getString(PROJECT_NAME) + "PU";
             if (DocumentXmlUtil.listElementsByFilter(persistenceXml,
-                    String.format("/persistence/persistence-unit[@name=\"%s\"]", persistenceName))
+                String.format("/persistence/persistence-unit[@name=\"%s\"]", persistenceName))
                 .isEmpty()) {
                 try {
 
@@ -485,12 +487,14 @@ public class CreateModelMojo extends AbstractMojo {
 
                             persistenceUnitElement.setAttribute("transaction-type", "JTA");
                             persistenceUnitElement.setAttribute(NAME, persistenceName);
-                            var dataSourceName = (style == DatasourceDefinitionStyleType.WEB ? "java:app/" : "") + "jdbc/" + mavenProject.getArtifactId();
+                            var dataSourceName = (style == DatasourceDefinitionStyleType.WEB
+                                ? "java:app/"
+                                : "") + "jdbc/" + mavenProject.getArtifactId();
                             DocumentXmlUtil.createElement(persistenceXml, persistenceUnitElement, "jta-data-source",
                                 dataSourceName);
                             DocumentXmlUtil.createElement(persistenceXml, persistenceUnitElement, PROPERTIES)
                                 .flatMap(propertiesElement -> DocumentXmlUtil.createElement(persistenceXml,
-                                    propertiesElement, PROPERTY))
+                                propertiesElement, PROPERTY))
                                 .ifPresent(propertyElement -> {
                                     propertyElement.setAttribute(NAME,
                                         "jakarta.persistence.schema-generation.database.action");
@@ -556,16 +560,5 @@ public class CreateModelMojo extends AbstractMojo {
 
     }
 
-    private void addProjectLombokDependency() {
-        try {
-            getLog().debug("Add Project Lombok Dependencies");
-            Model model = ProjectModelUtil.getModel(mavenProject);
-            ProjectModelUtil.addDependency(getLog(), model.getDependencies(), "org.projectlombok", "lombok");
-
-            ProjectModelUtil.saveModel(mavenProject, model);
-        } catch (IOException | XmlPullParserException ex) {
-            getLog().error(ex.getMessage(), ex);
-        }
-    }
 
 }

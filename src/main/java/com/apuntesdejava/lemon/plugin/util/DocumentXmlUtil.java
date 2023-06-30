@@ -62,14 +62,18 @@ public class DocumentXmlUtil {
      * @throws ParserConfigurationException ParserConfigurationException
      */
     public static Document newDocument(String rootElementName) throws ParserConfigurationException {
-        var documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setFeature(FEATURE_SECURE_PROCESSING, true);
-        var documentBuilder = documentBuilderFactory.newDocumentBuilder();
-        var document = documentBuilder.newDocument();
+        var document = newDocument();
         var rootElement = document.createElement(rootElementName);
         document.appendChild(rootElement);
         return document;
 
+    }
+
+    public static Document newDocument() throws ParserConfigurationException {
+        var documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setFeature(FEATURE_SECURE_PROCESSING, true);
+        var documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        return documentBuilder.newDocument();
     }
 
     /**
@@ -183,7 +187,7 @@ public class DocumentXmlUtil {
      * @param outputProperties transformation properties. See {@link OutputKeys}
      */
     public static void saveDocument(Path path, Document document, Map<String, String> outputProperties) {
-        try ( var fos = new FileOutputStream(path.toFile());  var xlsIs = DocumentXmlUtil.class.getResourceAsStream(
+        try (var fos = new FileOutputStream(path.toFile()); var xlsIs = DocumentXmlUtil.class.getResourceAsStream(
             STRIP_XSL_FILE_NAME)) {
             Source xslt = new StreamSource(xlsIs);
             var transformerFactory = TransformerFactory.newInstance();
@@ -205,6 +209,7 @@ public class DocumentXmlUtil {
      * Constructor class that helps create elements with attributes and children
      */
     public static class ElementBuilder {
+
         /**
          * Creates a new element instance, with a specific name.
          *
@@ -224,7 +229,6 @@ public class DocumentXmlUtil {
             attributes = new LinkedHashSet<>();
             children = new LinkedHashSet<>();
         }
-
 
         /**
          * Add an attribute to the attribute's constructor, in addition to the attribute's value
@@ -267,6 +271,7 @@ public class DocumentXmlUtil {
         }
 
     }
+
     private static final Map<String, String> NAMESPACES = Map.of(
         "f", "http://xmlns.jcp.org/jsf/core",
         "h", "http://xmlns.jcp.org/jsf/html",
