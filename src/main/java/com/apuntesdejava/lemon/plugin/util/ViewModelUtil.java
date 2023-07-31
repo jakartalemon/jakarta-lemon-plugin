@@ -16,10 +16,7 @@
 package com.apuntesdejava.lemon.plugin.util;
 
 import com.apuntesdejava.lemon.plugin.util.DocumentXmlUtil.ElementBuilder;
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
+import jakarta.json.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
@@ -36,6 +33,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.SPACE;
 
@@ -295,7 +293,7 @@ public class ViewModelUtil {
         var pathName = pathEntry.getKey();
         log.info("Creating Managed Bean:" + pathName);
         var pathJson = pathEntry.getValue().asJsonObject();
-        var isList = pathJson.getString(TYPE).equals("list");
+        var isList = pathJson.getString(TYPE).equals(LIST);
         String scoped = isList ? "SessionScoped" : "RequestScoped";
         var $temp = getNameFromPath(pathName) + "View";
         var hasListView = pathEntry.getValue().asJsonObject().containsKey("listView");
@@ -467,7 +465,7 @@ public class ViewModelUtil {
                             JsonObject formBean,
                             String primeflexVersion) {
         var pathJson = entry.getValue().asJsonObject();
-        var isList = pathJson.getString(TYPE).equals("list");
+        var isList = pathJson.getString(TYPE).equals(LIST);
         try {
             var pathName = entry.getKey().replaceAll("[^a-zA-Z]", "");
             log.info("Creating View page:" + pathName);
@@ -480,19 +478,7 @@ public class ViewModelUtil {
 
             ElementBuilder hForm;
 
-            var htmlElem = DocumentXmlUtil.ElementBuilder.newInstance("html")
-                .addAttribute(XMLNS, "http://www.w3.org/1999/xhtml")
-                .addAttribute("xmlns:h", "http://xmlns.jcp.org/jsf/html")
-                .addAttribute("xmlns:ui", "http://xmlns.jcp.org/jsf/facelets")
-                .addAttribute("xmlns:p", "http://primefaces.org/ui")
-                .addAttribute("xmlns:f", "http://xmlns.jcp.org/jsf/core")
-                .addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:head")
-                    .addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:outputStylesheet")
-                        .addAttribute("library", "webjars")
-                        .addAttribute(NAME, String.format(PRIMEFLEX_CSS, primeflexVersion)))
-                    .addChild(DocumentXmlUtil.ElementBuilder.newInstance("f:loadBundle")
-                        .addAttribute("var", "messages")
-                        .addAttribute("basename", "messages")));
+            var htmlElem = createHtmlElement(primeflexVersion);
             if (!isList) {
                 getPrimaryKey(formBean).ifPresent(id -> htmlElem.addChild(ElementBuilder.newInstance("f:metadata")
                     .addChild(ElementBuilder.newInstance("f:viewParam")
@@ -723,5 +709,50 @@ public class ViewModelUtil {
             }
         }
         return P_SELECT_ONE_RADIO;
+    }
+
+    public void createIndexPage(JsonArray viewsForIndex, String primeflexVersion) {
+        try {
+            var indexJsf = webAppPath.resolve("index.xhtml");
+            var htmlElem = createHtmlElement(primeflexVersion);
+
+            var ulElem = DocumentXmlUtil.ElementBuilder.newInstance("ul");
+            htmlElem.addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:body")
+                .addChild(ulElem));
+            viewsForIndex.stream()
+                .map(JsonValue::asJsonObject)
+                .forEach(entry -> entry.keySet().stream().findFirst().ifPresent(outcome -> ulElem.addChild(
+                    ElementBuilder.newInstance("li")
+                        .addChild(ElementBuilder.newInstance(P_LINK)
+                            .addAttribute("outcome", outcome)
+                            .addAttribute("value", outcome)
+                            .addAttribute("icon", "pi pi-link")
+
+                        )
+                )));
+
+            var doc = DocumentXmlUtil.newDocument();
+            doc.appendChild(htmlElem.build(doc));
+            DocumentXmlUtil.saveDocument(indexJsf, doc);
+        } catch (ParserConfigurationException ex) {
+            log.error(ex.getMessage(), ex);
+        }
+
+    }
+
+    private ElementBuilder createHtmlElement(String primeflexVersion) {
+        return DocumentXmlUtil.ElementBuilder.newInstance("html")
+            .addAttribute(XMLNS, "http://www.w3.org/1999/xhtml")
+            .addAttribute("xmlns:h", "http://xmlns.jcp.org/jsf/html")
+            .addAttribute("xmlns:ui", "http://xmlns.jcp.org/jsf/facelets")
+            .addAttribute("xmlns:p", "http://primefaces.org/ui")
+            .addAttribute("xmlns:f", "http://xmlns.jcp.org/jsf/core")
+            .addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:head")
+                .addChild(DocumentXmlUtil.ElementBuilder.newInstance("h:outputStylesheet")
+                    .addAttribute("library", "webjars")
+                    .addAttribute(NAME, String.format(PRIMEFLEX_CSS, primeflexVersion)))
+                .addChild(DocumentXmlUtil.ElementBuilder.newInstance("f:loadBundle")
+                    .addAttribute("var", "messages")
+                    .addAttribute("basename", "messages")));
     }
 }

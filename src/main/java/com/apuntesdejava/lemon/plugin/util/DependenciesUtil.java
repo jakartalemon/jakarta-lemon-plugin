@@ -25,6 +25,9 @@ import java.net.URISyntaxException;
 import java.util.Optional;
 
 import static com.apuntesdejava.lemon.plugin.util.Constants.*;
+import org.apache.maven.model.Model;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  * @author Diego Silva mailto:diego.silva@apuntesdejava.com
@@ -80,6 +83,18 @@ public class DependenciesUtil {
             log.error(ex.getMessage(), ex);
         }
         return Optional.empty();
+    }
+    
+     public static void addProjectLombokDependency(Log log, MavenProject mavenProject) {
+        try {
+            log.debug("Add Project Lombok Dependencies");
+            Model model = ProjectModelUtil.getModel(mavenProject);
+            ProjectModelUtil.addDependency(log, model.getDependencies(), "org.projectlombok", "lombok");
+
+            ProjectModelUtil.saveModel(mavenProject, model);
+        } catch (IOException | XmlPullParserException ex) {
+            log.error(ex.getMessage(), ex);
+        }
     }
 
 }

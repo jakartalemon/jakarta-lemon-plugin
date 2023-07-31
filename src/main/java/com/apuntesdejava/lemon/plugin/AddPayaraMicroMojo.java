@@ -81,7 +81,7 @@ public class AddPayaraMicroMojo extends AbstractMojo {
         try {
             getLog().debug("Add Payara Micro Plugin");
             Model model = ProjectModelUtil.getModel(mavenProject);
-            Profile profile = ProjectModelUtil.getProfile(model, "payara-micro");
+            Profile profile = ProjectModelUtil.getProfile(model, PAYARA_MICRO_PROFILE);
             Properties props = ProjectModelUtil.getProperties(profile);
             DependenciesUtil.getLastVersionDependency(getLog(), "g:fish.payara.extras+AND+a:payara-micro")
                 .ifPresent(dependencyModel -> props.setProperty("version.payara",

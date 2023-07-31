@@ -213,17 +213,17 @@ public class ProjectModelUtil {
 
     private static void addConfiguration(Xpp3Dom parent, String elementName, Map<String, ?> configuration) {
         Xpp3Dom newChildDom = addChildren(parent, elementName, true);
-        configuration.forEach((name, value) -> addConfigurationIteration(newChildDom, elementName, name, value));
+        configuration.forEach((name, value) -> addConfigurationIteration(newChildDom, name, value));
     }
 
     private static void addConfiguration(Xpp3Dom parent, String elementName, List<?> configuration) {
         Xpp3Dom newChildDom = addChildren(parent, elementName, true);
-        configuration.forEach(value -> addConfigurationIteration(newChildDom, elementName, OPTION, value));
+        configuration.forEach(value -> addConfigurationIteration(newChildDom, OPTION, value));
     }
 
-    private static void addConfigurationIteration(Xpp3Dom newChildDom, String elementName, String name, Object value) {
+    private static void addConfigurationIteration(Xpp3Dom newChildDom, String name, Object value) {
         if (value instanceof String) {
-            addChildren(newChildDom, elementName, true).setValue((String) value);
+            addChildren(newChildDom, name, true).setValue((String) value);
 
         } else if (value instanceof Map) {
             addConfiguration(newChildDom, name, (Map<String, ?>) value);
